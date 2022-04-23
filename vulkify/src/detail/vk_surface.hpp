@@ -22,35 +22,26 @@ enum class PresentOutcome { eSuccess, eNotReady };
 using PresentResult = ktl::expected<PresentOutcome, vk::Result>;
 
 struct VKSurface {
-	struct Device {
-		VKGpu gpu{};
-		VKQueue queue{};
-		vk::Device device{};
-	};
-
-	struct Sync {
-		vk::Semaphore wait{};
-		vk::Semaphore ssignal{};
-		vk::Fence fsignal{};
-	};
-
 	struct Acquire {
 		VKImage image{};
 		std::uint32_t index{};
 	};
 
+	using Device = VKDevice;
+
 	static constexpr vk::Result refresh_v[] = {vk::Result::eErrorOutOfDateKHR, vk::Result::eSuboptimalKHR};
 
+	VKDevice device{};
 	vk::SwapchainCreateInfoKHR info{};
 	VKSwapchain swapchain{};
 	vk::SurfaceKHR surface{};
-	class DeferQueue* deferQueue{};
+	Defer* defer{};
 
-	static vk::SwapchainCreateInfoKHR makeInfo(Device const& device, vk::SurfaceKHR surface, glm::ivec2 framebuffer);
+	static vk::SwapchainCreateInfoKHR makeInfo(VKDevice const& device, vk::SurfaceKHR surface, glm::ivec2 framebuffer);
 
-	vk::Result refresh(Device const& device, glm::ivec2 framebuffer);
-	std::optional<Acquire> acquire(Device const& device, vk::Semaphore signal, glm::ivec2 framebuffer);
-	vk::Result submit(Device const& device, vk::CommandBuffer cb, Sync const& sync);
-	PresentResult present(Device const& device, Acquire const& acquired, vk::Semaphore wait, glm::ivec2 framebuffer);
+	vk::Result refresh(glm::ivec2 framebuffer);
+	std::optional<Acquire> acquire(vk::Semaphore signal, glm::ivec2 framebuffer);
+	vk::Result submit(vk::CommandBuffer cb, VKSync const& sync);
+	PresentResult present(Acquire const& acquired, vk::Semaphore wait, glm::ivec2 framebuffer);
 };
 } // namespace vf

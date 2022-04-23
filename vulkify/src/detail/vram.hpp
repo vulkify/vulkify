@@ -9,10 +9,32 @@ enum class BlitFlag { eSrc, eDst, eLinearFilter };
 using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
 
 struct BlitCaps {
-	BlitFlags optimal;
-	BlitFlags linear;
+	BlitFlags optimal{};
+	BlitFlags linear{};
 
 	static BlitCaps make(vk::PhysicalDevice device, vk::Format format);
+};
+
+struct LayerMip {
+	struct Range {
+		std::uint32_t first = 0U;
+		std::uint32_t count = 1U;
+	};
+
+	Range layer{};
+	Range mip{};
+
+	static LayerMip make(std::uint32_t mipCount, std::uint32_t firstMip = 0U) noexcept { return LayerMip{{}, {firstMip, mipCount}}; }
+};
+
+struct ImgMeta {
+	LayerMip layerMip{};
+	std::pair<vk::AccessFlags, vk::AccessFlags> access{};
+	std::pair<vk::PipelineStageFlags, vk::PipelineStageFlags> stages{};
+	std::pair<vk::ImageLayout, vk::ImageLayout> layouts{};
+	vk::ImageAspectFlags aspects = vk::ImageAspectFlagBits::eColor;
+
+	void imageBarrier(vk::CommandBuffer cb, vk::Image image) const;
 };
 
 struct Vram {

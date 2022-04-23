@@ -1,8 +1,10 @@
 target_sources(${PROJECT_NAME} PRIVATE
   context/context.cpp
 
+  detail/defer.hpp
   detail/renderer.cpp
   detail/renderer.hpp
+  detail/rotator.hpp
   detail/trace.cpp
   detail/trace.hpp
   detail/vk_instance.cpp

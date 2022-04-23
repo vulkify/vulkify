@@ -27,6 +27,9 @@ class Instance {
 	virtual void hide() = 0;
 	virtual void close() = 0;
 	virtual Poll poll() = 0;
+
+	virtual bool beginPass() = 0;
+	virtual bool endPass() = 0;
 };
 
 using UInstance = ktl::kunique_ptr<Instance>;

@@ -15,6 +15,23 @@ BlitCaps BlitCaps::make(vk::PhysicalDevice device, vk::Format format) {
 	return ret;
 }
 
+void ImgMeta::imageBarrier(vk::CommandBuffer cb, vk::Image image) const {
+	vk::ImageMemoryBarrier barrier;
+	barrier.oldLayout = layouts.first;
+	barrier.newLayout = layouts.second;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image = image;
+	barrier.subresourceRange.aspectMask = aspects;
+	barrier.subresourceRange.baseMipLevel = layerMip.mip.first;
+	barrier.subresourceRange.levelCount = layerMip.mip.count;
+	barrier.subresourceRange.baseArrayLayer = layerMip.layer.first;
+	barrier.subresourceRange.layerCount = layerMip.layer.count;
+	barrier.srcAccessMask = access.first;
+	barrier.dstAccessMask = access.second;
+	cb.pipelineBarrier(stages.first, stages.second, {}, {}, {}, barrier);
+}
+
 UniqueVram makeVram(vk::Instance instance, vk::PhysicalDevice pd, vk::Device device) {
 	VmaAllocatorCreateInfo allocatorInfo = {};
 	auto dl = VULKAN_HPP_DEFAULT_DISPATCHER;

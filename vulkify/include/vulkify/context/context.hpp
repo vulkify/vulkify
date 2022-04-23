@@ -23,6 +23,9 @@ class Context {
 	void close() { m_instance->close(); }
 	Instance::Poll poll() { return m_instance->poll(); }
 
+	bool nextFrame() { return m_instance->beginPass(); }
+	bool submit() { return m_instance->endPass(); }
+
   private:
 	Context(UInstance&& instance) noexcept;
 

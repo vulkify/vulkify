@@ -1,25 +1,25 @@
-// #include <detail/defer_queue.hpp>
-// #include <detail/expect.hpp>
 #include <detail/trace.hpp>
 #include <detail/vk_instance.hpp>
 #include <detail/vk_surface.hpp>
 #include <algorithm>
 #include <cassert>
 #include <limits>
+#include <map>
 #include <span>
 
 namespace vf {
 namespace {
-constexpr vk::Format imageFormat(std::span<vk::SurfaceFormatKHR const> formats) noexcept {
-	constexpr vk::Format targets[] = {vk::Format::eR8G8B8A8Unorm, vk::Format::eB8G8R8A8Unorm};
+vk::Format imageFormat(std::span<vk::SurfaceFormatKHR const> formats) noexcept {
+	static constexpr vk::Format targets[] = {vk::Format::eR8G8B8A8Srgb, vk::Format::eB8G8R8A8Srgb, vk::Format::eR8G8B8A8Unorm, vk::Format::eB8G8R8A8Unorm};
+	auto map = std::map<std::size_t, vk::Format>{};
 	for (auto const format : formats) {
 		if (format.colorSpace == vk::ColorSpaceKHR::eVkColorspaceSrgbNonlinear) {
-			for (auto const target : targets) {
-				if (format == target) { return format.format; }
+			for (std::size_t i = 0; i < std::size(targets); ++i) {
+				if (format == targets[i]) { map[i] = format.format; }
 			}
 		}
 	}
-	return formats.empty() ? vk::Format() : formats.front().format;
+	return map.empty() ? vk::Format() : map.begin()->second;
 }
 
 constexpr std::uint32_t imageCount(vk::SurfaceCapabilitiesKHR const& caps) noexcept {
@@ -59,7 +59,7 @@ vk::UniqueImageView makeImageView(vk::Device const device, vk::Image const image
 }
 } // namespace
 
-vk::SwapchainCreateInfoKHR VKSurface::makeInfo(Device const& device, vk::SurfaceKHR const surface, glm::ivec2 const framebuffer) {
+vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, vk::SurfaceKHR const surface, glm::ivec2 const framebuffer) {
 	vk::SwapchainCreateInfoKHR ret;
 	ret.surface = surface;
 	ret.presentMode = vk::PresentModeKHR::eFifo;
@@ -75,7 +75,7 @@ vk::SwapchainCreateInfoKHR VKSurface::makeInfo(Device const& device, vk::Surface
 	return ret;
 }
 
-vk::Result VKSurface::refresh(Device const& device, glm::ivec2 const framebuffer) {
+vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
 	if (framebuffer.x <= 0 || framebuffer.y <= 0) { return vk::Result::eNotReady; }
 	info = makeInfo(device, surface, framebuffer);
 	info.oldSwapchain = *swapchain.swapchain;
@@ -83,8 +83,8 @@ vk::Result VKSurface::refresh(Device const& device, glm::ivec2 const framebuffer
 	auto const ret = device.device.createSwapchainKHR(&info, nullptr, &vks);
 	if (ret != vk::Result::eSuccess) { return ret; }
 	VF_TRACEF("Swapchain resized: {}x{}", info.imageExtent.width, info.imageExtent.height);
-	if (deferQueue) {
-		// deferQueue->defer(std::move(swapchain)); // defer destruction of current swapchain and its image views if possible
+	if (defer) {
+		(*defer)(std::move(swapchain.swapchain));
 	} else {
 		device.device.waitIdle(); // otherwise stall device
 	}
@@ -98,13 +98,13 @@ vk::Result VKSurface::refresh(Device const& device, glm::ivec2 const framebuffer
 	return ret;
 }
 
-std::optional<VKSurface::Acquire> VKSurface::acquire(Device const& device, vk::Semaphore const signal, glm::ivec2 const framebuffer) {
+std::optional<VKSurface::Acquire> VKSurface::acquire(vk::Semaphore const signal, glm::ivec2 const framebuffer) {
 	static constexpr auto max_wait_v = std::numeric_limits<std::uint64_t>::max();
 	std::uint32_t idx{};
 	auto result = presentResult(device.device.acquireNextImageKHR(*swapchain.swapchain, max_wait_v, signal, {}, &idx));
 	if (!result) { return std::nullopt; }
 	if (*result == PresentOutcome::eNotReady) {
-		refresh(device, framebuffer);
+		refresh(framebuffer);
 		return std::nullopt;
 	}
 	auto const i = std::size_t(idx);
@@ -112,21 +112,21 @@ std::optional<VKSurface::Acquire> VKSurface::acquire(Device const& device, vk::S
 	return Acquire{swapchain.images[i], idx};
 }
 
-vk::Result VKSurface::submit(Device const& device, vk::CommandBuffer const cb, Sync const& sync) {
+vk::Result VKSurface::submit(vk::CommandBuffer const cb, VKSync const& sync) {
 	static constexpr vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eTopOfPipe;
 	vk::SubmitInfo submitInfo;
 	submitInfo.pWaitDstStageMask = &waitStages;
 	submitInfo.commandBufferCount = 1U;
 	submitInfo.pCommandBuffers = &cb;
 	submitInfo.waitSemaphoreCount = 1U;
-	submitInfo.pWaitSemaphores = &sync.wait;
+	submitInfo.pWaitSemaphores = &sync.draw;
 	submitInfo.signalSemaphoreCount = 1U;
-	submitInfo.pSignalSemaphores = &sync.ssignal;
-	auto const ret = device.queue.queue.submit(1U, &submitInfo, sync.fsignal);
+	submitInfo.pSignalSemaphores = &sync.present;
+	auto const ret = device.queue.queue.submit(1U, &submitInfo, sync.drawn);
 	return ret;
 }
 
-PresentResult VKSurface::present(Device const& device, Acquire const& acquired, vk::Semaphore const wait, glm::ivec2 const framebuffer) {
+PresentResult VKSurface::present(Acquire const& acquired, vk::Semaphore const wait, glm::ivec2 const framebuffer) {
 	vk::PresentInfoKHR info;
 	info.waitSemaphoreCount = 1;
 	info.pWaitSemaphores = &wait;
@@ -134,7 +134,7 @@ PresentResult VKSurface::present(Device const& device, Acquire const& acquired, 
 	info.pSwapchains = &*swapchain.swapchain;
 	info.pImageIndices = &acquired.index;
 	auto ret = presentResult(device.queue.queue.presentKHR(&info));
-	if (ret && *ret == PresentOutcome::eNotReady) { refresh(device, framebuffer); }
+	if (ret && *ret == PresentOutcome::eNotReady) { refresh(framebuffer); }
 	return ret;
 }
 } // namespace vf

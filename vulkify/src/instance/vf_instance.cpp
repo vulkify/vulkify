@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 
+#include <detail/renderer.hpp>
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
 
@@ -179,7 +180,10 @@ struct VulkifyInstance::Impl {
 	VKInstance vulkan{};
 	UniqueVram vram{};
 	VKSurface surface{};
+	Renderer renderer{};
 	GPU gpu{};
+
+	std::optional<VKSurface::Acquire> acquired{};
 };
 
 GPU makeGPU(VKInstance const& vulkan) {
@@ -201,7 +205,10 @@ VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(
 }
 VulkifyInstance::VulkifyInstance(VulkifyInstance&&) noexcept = default;
 VulkifyInstance& VulkifyInstance::operator=(VulkifyInstance&&) noexcept = default;
-VulkifyInstance::~VulkifyInstance() noexcept { g_glfw = {}; }
+VulkifyInstance::~VulkifyInstance() noexcept {
+	m_impl->vulkan.device->waitIdle();
+	g_glfw = {};
+}
 
 VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	auto glfw = getOrMakeGlfw();
@@ -221,9 +228,14 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
 	impl->surface.surface = *impl->vulkan.surface;
-	auto const device = VKSurface::Device{impl->vulkan.gpu, impl->vulkan.queue, *impl->vulkan.device};
-	if (impl->surface.refresh(device, getFramebufferSize(impl->window->win)) != vk::Result::eSuccess) { return Error::eVulkanInitFailure; }
+	impl->surface.device = impl->vulkan.makeDevice();
+	impl->surface.defer = &impl->vulkan.defer;
+	if (impl->surface.refresh(getFramebufferSize(impl->window->win)) != vk::Result::eSuccess) { return Error::eVulkanInitFailure; }
 	impl->gpu = makeGPU(*vulkan);
+
+	auto renderer = Renderer::make(impl->vram, impl->surface, true);
+	if (!renderer.renderPass) { return Error::eVulkanInitFailure; }
+	impl->renderer = std::move(renderer);
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
@@ -238,10 +250,31 @@ void VulkifyInstance::hide() { glfwHideWindow(m_impl->window->win); }
 void VulkifyInstance::close() { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
 
 Instance::Poll VulkifyInstance::poll() {
+	m_impl->vulkan.defer.update();
 	m_impl->window->events.clear();
 	m_impl->window->scancodes.clear();
 	m_impl->window->fileDrops.clear();
 	glfwPollEvents();
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->fileDrops};
+}
+
+bool VulkifyInstance::beginPass() {
+	if (m_impl->acquired) { return true; }
+	auto const sync = m_impl->renderer.sync();
+	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
+	if (!m_impl->acquired) { return false; }
+	return m_impl->renderer.beginPass(m_impl->acquired->image);
+}
+
+bool VulkifyInstance::endPass() {
+	if (!m_impl->acquired) { return false; }
+	auto const cb = m_impl->renderer.endPass();
+	if (!cb) { return false; }
+	auto const sync = m_impl->renderer.sync();
+	m_impl->surface.submit(cb, sync);
+	auto const ret = m_impl->surface.present(*m_impl->acquired, sync.present, framebufferSize());
+	m_impl->acquired.reset();
+	m_impl->renderer.next();
+	return ret.has_value();
 }
 } // namespace vf

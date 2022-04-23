@@ -19,6 +19,9 @@ class HeadlessInstance : public Instance {
 	void close() override {}
 	Poll poll() override { return std::move(m_poll); }
 
+	bool beginPass() override { return true; }
+	bool endPass() override { return true; }
+
 	Poll m_poll{};
 	glm::ivec2 m_framebufferSize{};
 	glm::ivec2 m_windowSize{};

@@ -31,6 +31,9 @@ class VulkifyInstance : public Instance {
 	void close() override;
 	Poll poll() override;
 
+	bool beginPass() override;
+	bool endPass() override;
+
   private:
 	struct Impl;
 	ktl::kunique_ptr<Impl> m_impl;

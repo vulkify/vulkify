@@ -26,6 +26,8 @@ void test(vf::UContext ctx) {
 			}
 		}
 		for (auto const code : poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
+
+		if (ctx->nextFrame()) { ctx->submit(); }
 	}
 }
 } // namespace
