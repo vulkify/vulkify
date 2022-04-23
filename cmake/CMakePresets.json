@@ -1,0 +1,109 @@
+{
+	"version": 2,
+	"cmakeMinimumRequired": {
+		"major": 3,
+		"minor": 20,
+		"patch": 0
+	},
+	"configurePresets": [
+		{
+			"name": "default",
+			"description": "Default build configuration using Ninja",
+			"generator": "Ninja",
+			"binaryDir": "out/default"
+		},
+		{
+			"name": "ninja-clang",
+			"description": "Base configuration using Ninja / clang",
+			"inherits": "default",
+			"cacheVariables": {
+				"CMAKE_C_COMPILER": "clang",
+				"CMAKE_CXX_COMPILER": "clang++"
+			}
+		},
+		{
+			"name": "nc-debug",
+			"description": "Debug build using Ninja/clang",
+			"binaryDir": "out/db",
+			"inherits": "ninja-clang",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+			}
+		},
+		{
+			"name": "mg-debug",
+			"description": "Debug build configuration using make/gcc",
+			"inherits": "nc-debug",
+			"generator": "Unix Makefiles",
+			"cacheVariables": {
+				"CMAKE_C_COMPILER": "gcc",
+				"CMAKE_CXX_COMPILER": "g++"
+			}
+		},
+		{
+			"name": "vs19",
+			"description": "Build configuration using Visual Studio 16 (2019)",
+			"generator": "Visual Studio 16 2019",
+			"binaryDir": "out/vs",
+			"architecture": {
+				"value": "x64",
+				"strategy": "external"
+			}
+		},
+		{
+			"name": "vs22",
+			"description": "Build configuration using Visual Studio 17 (2022)",
+			"inherits": "vs19",
+			"generator": "Visual Studio 17 2022"
+		},
+		{
+			"name": "nc-release",
+			"description": "Release build using Ninja/clang",
+			"inherits": "ninja-clang",
+			"binaryDir": "out/rl",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Release"
+			}
+		},
+		{
+			"name": "nc-relw",
+			"description": "RelWithDebInfo build using Ninja/clang",
+			"inherits": "ninja-clang",
+			"binaryDir": "out/rw",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "RelWithDebInfo"
+			}
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "default",
+			"configurePreset": "default"
+		},
+		{
+			"name": "nc-debug",
+			"configurePreset": "nc-debug"
+		},
+		{
+			"name": "mg-debug",
+			"configurePreset": "mg-debug"
+		},
+		{
+			"name": "vs19",
+			"configurePreset": "vs19"
+		},
+		{
+			"name": "vs22",
+			"configurePreset": "vs22"
+		},
+		{
+			"name": "nc-release",
+			"configurePreset": "nc-release"
+		},
+		{
+			"name": "nc-relw",
+			"configurePreset": "nc-relw"
+		}
+	]
+}

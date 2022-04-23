@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(ktl)
+find_dependency(glfw3)
+find_dependency(dyvk)
+
+include("${CMAKE_CURRENT_LIST_DIR}/vk-bootstrap-targets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/dear-imgui-targets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@-targets.cmake")
+
+check_required_components(@PROJECT_NAME@)

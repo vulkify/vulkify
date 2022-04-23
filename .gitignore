@@ -1,0 +1,16 @@
+**/.vs/*
+**/.vscode/*
+build/*
+out/*
+.cache
+.DS_Store
+
+CMakeSettings.json
+compile_commands.json
+/CMakePresets.json
+/CMakeUserPresets.json
+
+examples/out/*
+wiki
+
+ext/src/*

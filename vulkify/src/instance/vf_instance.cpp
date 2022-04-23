@@ -1,0 +1,191 @@
+#include <GLFW/glfw3.h>
+#include <ktl/fixed_vector.hpp>
+#include <vulkify/core/unique.hpp>
+#include <vulkify/instance/vf_instance.hpp>
+#include <memory>
+#include <vector>
+
+namespace vf {
+namespace {
+using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
+using ScancodeStorage = ktl::fixed_vector<std::uint32_t, Instance::max_scancodes_v>;
+using FileDropStorage = std::vector<std::string>;
+
+struct {
+	GLFWwindow* window{};
+	EventsStorage* events{};
+	ScancodeStorage* scancodes{};
+	FileDropStorage* fileDrops{};
+
+	bool match(GLFWwindow const* w) const { return w == window && events && scancodes && fileDrops; }
+} g_glfw;
+
+template <typename Out, typename In = int>
+constexpr glm::tvec2<Out> cast(glm::tvec2<In> const& in) {
+	return {static_cast<Out>(in.x), static_cast<Out>(in.y)};
+}
+
+void attachCallbacks(GLFWwindow* w) {
+	glfwSetWindowCloseCallback(w, [](GLFWwindow* w) {
+		if (g_glfw.match(w)) {
+			glfwSetWindowShouldClose(w, GLFW_TRUE);
+			if (g_glfw.events->has_space()) { g_glfw.events->push_back({{}, EventType::eClose}); }
+		}
+	});
+	glfwSetWindowIconifyCallback(w, [](GLFWwindow* w, int v) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({v == GLFW_TRUE, EventType::eIconify}); }
+	});
+	glfwSetWindowFocusCallback(w, [](GLFWwindow* w, int v) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({v == GLFW_TRUE, EventType::eFocus}); }
+	});
+	glfwSetWindowMaximizeCallback(w, [](GLFWwindow* w, int v) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({v == GLFW_TRUE, EventType::eMaximize}); }
+	});
+	glfwSetCursorEnterCallback(w, [](GLFWwindow* w, int v) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({v == GLFW_TRUE, EventType::eCursorEnter}); }
+	});
+	glfwSetWindowPosCallback(w, [](GLFWwindow* w, int x, int y) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({glm::ivec2(x, y), EventType::eMove}); }
+	});
+	glfwSetWindowSizeCallback(w, [](GLFWwindow* w, int x, int y) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({glm::ivec2(x, y), EventType::eWindowResize}); }
+	});
+	glfwSetFramebufferSizeCallback(w, [](GLFWwindow* w, int x, int y) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({glm::ivec2(x, y), EventType::eFramebufferResize}); }
+	});
+	glfwSetCursorPosCallback(w, [](GLFWwindow* w, double x, double y) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({glm::vec2(x, y), EventType::eCursorPos}); }
+	});
+	glfwSetScrollCallback(w, [](GLFWwindow* w, double x, double y) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({glm::vec2(x, y), EventType::eScroll}); }
+	});
+	glfwSetKeyCallback(w, [](GLFWwindow* w, int key, int, int action, int mods) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) {
+			auto const keyEvent = KeyEvent{static_cast<Key>(key), static_cast<Action>(action), static_cast<Mods::type>(mods)};
+			g_glfw.events->push_back({keyEvent, EventType::eKey});
+		}
+	});
+	glfwSetMouseButtonCallback(w, [](GLFWwindow* w, int button, int action, int mods) {
+		if (g_glfw.match(w) && g_glfw.events->has_space()) {
+			auto const key = static_cast<Key>(button + static_cast<int>(Key::eMouseButtonBegin));
+			auto const keyEvent = KeyEvent{key, static_cast<Action>(action), static_cast<Mods::type>(mods)};
+			g_glfw.events->push_back({keyEvent, EventType::eMouseButton});
+		}
+	});
+
+	glfwSetCharCallback(w, [](GLFWwindow* w, std::uint32_t scancode) {
+		if (g_glfw.match(w) && g_glfw.scancodes->has_space()) { g_glfw.scancodes->push_back(scancode); }
+	});
+	glfwSetDropCallback(w, [](GLFWwindow* w, int count, char const** paths) {
+		if (g_glfw.match(w)) {
+			for (int i = 0; i < count; ++i) {
+				if (auto const path = paths[i]) { g_glfw.fileDrops->push_back(path); }
+			}
+		}
+	});
+}
+
+void detachCallbacks(GLFWwindow* w) {
+	glfwSetWindowCloseCallback(w, {});
+	glfwSetWindowIconifyCallback(w, {});
+	glfwSetWindowFocusCallback(w, {});
+	glfwSetWindowMaximizeCallback(w, {});
+	glfwSetCursorEnterCallback(w, {});
+	glfwSetWindowPosCallback(w, {});
+	glfwSetWindowSizeCallback(w, {});
+	glfwSetFramebufferSizeCallback(w, {});
+	glfwSetCursorPosCallback(w, {});
+	glfwSetScrollCallback(w, {});
+	glfwSetKeyCallback(w, {});
+	glfwSetMouseButtonCallback(w, {});
+
+	glfwSetCharCallback(w, {});
+	glfwSetDropCallback(w, {});
+}
+} // namespace
+
+namespace {
+struct GlfwDeleter {
+	void operator()(bool) const { glfwTerminate(); }
+};
+using UniqueGlfw = Unique<bool, GlfwDeleter>;
+
+struct Window {
+	GLFWwindow* win{};
+	EventsStorage events{};
+	ScancodeStorage scancodes{};
+	FileDropStorage fileDrops{};
+
+	bool operator==(Window const& rhs) const { return win == rhs.win; }
+
+	struct Deleter {
+		void operator()(Window const& window) const {
+			detachCallbacks(window.win);
+			glfwDestroyWindow(window.win);
+		}
+	};
+};
+
+using UniqueWindow = Unique<Window, Window::Deleter>;
+
+Result<std::shared_ptr<UniqueGlfw>> getOrMakeGlfw() {
+	static std::weak_ptr<UniqueGlfw> s_glfw{};
+	if (auto lock = s_glfw.lock()) { return lock; }
+	if (!glfwInit()) { return Error::eGlfwFailure; }
+	if (!glfwVulkanSupported()) {
+		glfwTerminate();
+		return Error::eNoVulkanSupport;
+	}
+	// TODO
+	// glfwSetErrorCallback([](int code, char const* szDesc) { log("GLFW Error! [{}]: {}", code, szDesc); });
+	auto ret = std::make_shared<UniqueGlfw>(true);
+	s_glfw = ret;
+	return ret;
+}
+
+UniqueWindow makeWindow(VulkifyInstance::Info const& info) {
+	using Flag = VulkifyInstance::Flag;
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_DECORATED, info.flags.test(Flag::eBorderless) ? 0 : 1);
+	glfwWindowHint(GLFW_VISIBLE, 0);
+	glfwWindowHint(GLFW_MAXIMIZED, info.flags.test(Flag::eMaximized) ? 1 : 0);
+	auto ret = glfwCreateWindow(int(info.extent.x), int(info.extent.y), info.title.c_str(), nullptr, nullptr);
+	attachCallbacks(ret);
+	return Window{ret};
+}
+} // namespace
+
+struct VulkifyInstance::Impl {
+	std::shared_ptr<UniqueGlfw> glfw{};
+	UniqueWindow window{};
+};
+
+VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
+	g_glfw = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->fileDrops};
+}
+VulkifyInstance::VulkifyInstance(VulkifyInstance&&) noexcept = default;
+VulkifyInstance& VulkifyInstance::operator=(VulkifyInstance&&) noexcept = default;
+VulkifyInstance::~VulkifyInstance() noexcept { g_glfw = {}; }
+
+VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
+	auto glfw = getOrMakeGlfw();
+	if (!glfw) { return glfw.error(); }
+	auto window = makeWindow(info);
+	if (!window) { return Error::eGlfwFailure; }
+	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window));
+	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
+}
+
+bool VulkifyInstance::isOpen() const { return !glfwWindowShouldClose(m_impl->window->win); }
+void VulkifyInstance::show() { glfwShowWindow(m_impl->window->win); }
+void VulkifyInstance::hide() { glfwHideWindow(m_impl->window->win); }
+void VulkifyInstance::close() { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
+
+Instance::Poll VulkifyInstance::poll() {
+	m_impl->window->events.clear();
+	m_impl->window->scancodes.clear();
+	m_impl->window->fileDrops.clear();
+	glfwPollEvents();
+	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->fileDrops};
+}
+} // namespace vf
