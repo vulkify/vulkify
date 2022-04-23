@@ -19,6 +19,8 @@ class Instance {
 	virtual ~Instance() = default;
 
 	virtual GPU const& gpu() const = 0;
+	virtual glm::ivec2 framebufferSize() const = 0;
+	virtual glm::ivec2 windowSize() const = 0;
 
 	virtual bool closing() const = 0;
 	virtual void show() = 0;

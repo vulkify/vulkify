@@ -25,6 +25,6 @@ struct VKInstance {
 	vk::UniqueSurfaceKHR surface;
 	VKQueue queue;
 
-	static Result<VKInstance> make(MakeSurface makeSurface, bool validation);
+	static Result<VKInstance> make(MakeSurface makeSurface, bool validation = true);
 };
 } // namespace vf

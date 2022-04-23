@@ -22,6 +22,8 @@ class VulkifyInstance : public Instance {
 	~VulkifyInstance() noexcept;
 
 	GPU const& gpu() const override;
+	glm::ivec2 framebufferSize() const override;
+	glm::ivec2 windowSize() const override;
 
 	bool closing() const override;
 	void show() override;

@@ -8,6 +8,8 @@
 #include <memory>
 #include <vector>
 
+#include <detail/vk_surface.hpp>
+
 namespace vf {
 namespace {
 using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
@@ -156,12 +158,25 @@ UniqueWindow makeWindow(VulkifyInstance::Info const& info) {
 	attachCallbacks(ret);
 	return Window{ret};
 }
+
+glm::ivec2 getFramebufferSize(GLFWwindow* w) {
+	int x, y;
+	glfwGetFramebufferSize(w, &x, &y);
+	return {x, y};
+}
+
+glm::ivec2 getWindowSize(GLFWwindow* w) {
+	int x, y;
+	glfwGetWindowSize(w, &x, &y);
+	return {x, y};
+}
 } // namespace
 
 struct VulkifyInstance::Impl {
 	std::shared_ptr<UniqueGlfw> glfw{};
 	UniqueWindow window{};
 	VKInstance vulkan{};
+	VKSurface surface{};
 	GPU gpu{};
 };
 
@@ -191,21 +206,27 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	if (!glfw) { return glfw.error(); }
 	auto window = makeWindow(info);
 	if (!window) { return Error::eGlfwFailure; }
-	auto makeSurface = [&window](vk::Instance inst) {
-		auto surface = VkSurfaceKHR{};
-		glfwCreateWindowSurface(static_cast<VkInstance>(inst), window->win, {}, &surface);
-		return vk::SurfaceKHR(surface);
-	};
 
-	auto vulkan = VKInstance::make(makeSurface, true);
+	auto vulkan = VKInstance::make([&window](vk::Instance inst) {
+		auto surface = VkSurfaceKHR{};
+		auto const res = glfwCreateWindowSurface(static_cast<VkInstance>(inst), window->win, {}, &surface);
+		assert(res == VK_SUCCESS);
+		return vk::SurfaceKHR(surface);
+	});
 	if (!vulkan) { return vulkan.error(); }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan));
+	impl->surface.surface = *impl->vulkan.surface;
+	auto const device = VKSurface::Device{impl->vulkan.gpu, impl->vulkan.queue, *impl->vulkan.device};
+	if (impl->surface.refresh(device, getFramebufferSize(impl->window->win)) != vk::Result::eSuccess) { return Error::eVulkanInitFailure; }
 	impl->gpu = makeGPU(*vulkan);
+
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
 
 GPU const& VulkifyInstance::gpu() const { return m_impl->gpu; }
+glm::ivec2 VulkifyInstance::framebufferSize() const { return getFramebufferSize(m_impl->window->win); }
+glm::ivec2 VulkifyInstance::windowSize() const { return getWindowSize(m_impl->window->win); }
 
 bool VulkifyInstance::closing() const { return glfwWindowShouldClose(m_impl->window->win); }
 void VulkifyInstance::show() { glfwShowWindow(m_impl->window->win); }
