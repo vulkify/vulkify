@@ -124,7 +124,7 @@ vk::CommandBuffer Renderer::beginPass(VKImage const& target) {
 	return *s.cmd.secondary;
 }
 
-vk::CommandBuffer Renderer::endPass() {
+vk::CommandBuffer Renderer::endPass(Rgba clear) {
 	auto& s = frameSync.get();
 	s.cmd.secondary->end();
 	s.cmd.primary->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
@@ -134,8 +134,9 @@ vk::CommandBuffer Renderer::endPass() {
 	meta.layouts = {vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal};
 	meta.imageBarrier(*s.cmd.primary, target.image);
 	auto const renderArea = vk::Rect2D({}, target.extent);
-	vk::ClearValue const clear = vk::ClearColorValue(std::array{0.0f, 0.0f, 0.0f, 0.0f});
-	s.cmd.primary->beginRenderPass(vk::RenderPassBeginInfo(*renderPass, *s.framebuffer, renderArea, 1U, &clear), vk::SubpassContents::eSecondaryCommandBuffers);
+	auto const c = clear.normalize();
+	vk::ClearValue const cv = vk::ClearColorValue(std::array{c.x, c.y, c.z, c.w});
+	s.cmd.primary->beginRenderPass(vk::RenderPassBeginInfo(*renderPass, *s.framebuffer, renderArea, 1U, &cv), vk::SubpassContents::eSecondaryCommandBuffers);
 	s.cmd.primary->executeCommands(*s.cmd.secondary);
 	s.cmd.primary->endRenderPass();
 	meta.access = {vk::AccessFlagBits::eColorAttachmentWrite, {}};

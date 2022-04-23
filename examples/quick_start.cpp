@@ -1,15 +1,19 @@
 #include <vulkify/context/context.hpp>
 #include <vulkify/instance/headless_instance.hpp>
 #include <vulkify/instance/vf_instance.hpp>
+#include <cmath>
 #include <iostream>
 
 namespace {
 void test(vf::UContext ctx) {
 	std::cout << "using GPU: " << ctx->instance().gpu().name << '\n';
 	ctx->show();
+	auto const clearA = vf::Rgba::make(0xfff000ff);
+	auto const clearB = vf::Rgba::make(0x000fffff);
+	auto elapsed = vf::Time{};
 	while (!ctx->closing()) {
-		auto const poll = ctx->poll();
-		for (auto const& event : poll.events) {
+		auto const frame = ctx->nextFrame();
+		for (auto const& event : frame.poll.events) {
 			switch (event.type) {
 			case vf::EventType::eClose: return;
 			case vf::EventType::eMove: {
@@ -25,9 +29,11 @@ void test(vf::UContext ctx) {
 			default: break;
 			}
 		}
-		for (auto const code : poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
+		for (auto const code : frame.poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
 
-		if (ctx->nextFrame()) { ctx->submit(); }
+		elapsed += frame.dt;
+		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
+		ctx->submit(clear.linear());
 	}
 }
 } // namespace

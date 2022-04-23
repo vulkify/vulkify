@@ -266,9 +266,9 @@ bool VulkifyInstance::beginPass() {
 	return m_impl->renderer.beginPass(m_impl->acquired->image);
 }
 
-bool VulkifyInstance::endPass() {
+bool VulkifyInstance::endPass(Rgba clear) {
 	if (!m_impl->acquired) { return false; }
-	auto const cb = m_impl->renderer.endPass();
+	auto const cb = m_impl->renderer.endPass(clear);
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();
 	m_impl->surface.submit(cb, sync);

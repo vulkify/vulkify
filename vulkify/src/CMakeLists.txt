@@ -1,6 +1,8 @@
 target_sources(${PROJECT_NAME} PRIVATE
   context/context.cpp
 
+  core/rgba.cpp
+
   detail/defer.hpp
   detail/renderer.cpp
   detail/renderer.hpp

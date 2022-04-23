@@ -1,10 +1,17 @@
 #pragma once
 #include <vulkify/core/result.hpp>
+#include <vulkify/core/time.hpp>
 #include <vulkify/instance/instance.hpp>
+#include <optional>
 
 namespace vf {
 class Context;
 using UContext = ktl::kunique_ptr<Context>;
+
+struct Frame {
+	Instance::Poll poll{};
+	Time dt{};
+};
 
 class Context {
   public:
@@ -23,13 +30,15 @@ class Context {
 	void close() { m_instance->close(); }
 	Instance::Poll poll() { return m_instance->poll(); }
 
-	bool nextFrame() { return m_instance->beginPass(); }
-	bool submit() { return m_instance->endPass(); }
+	Frame nextFrame();
+	bool submit(Rgba clear);
 
   private:
 	Context(UInstance&& instance) noexcept;
 
 	ktl::kunique_ptr<Instance> m_instance{};
+	Clock::time_point m_stamp = now();
+	bool m_ready{};
 };
 
 struct Context::Info {};

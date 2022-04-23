@@ -4,6 +4,7 @@
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
 #include <glm/vec2.hpp>
+#include <vulkify/core/rgba.hpp>
 
 namespace vf {
 struct FrameSync {
@@ -37,7 +38,7 @@ struct Renderer {
 
 	VKSync sync() const { return frameSync.get().sync(); }
 	vk::CommandBuffer beginPass(VKImage const& target);
-	vk::CommandBuffer endPass();
+	vk::CommandBuffer endPass(Rgba clear);
 	void next() { frameSync.next(); }
 
 	vk::UniqueFramebuffer makeFramebuffer(RenderTarget const& target) const;
