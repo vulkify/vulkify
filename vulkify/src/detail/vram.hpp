@@ -37,11 +37,27 @@ struct ImgMeta {
 	void imageBarrier(vk::CommandBuffer cb, vk::Image image) const;
 };
 
+struct VmaImage {
+	vk::Image image{};
+	VmaAllocator allocator{};
+	VmaAllocation allocation{};
+
+	bool operator==(VmaImage const&) const = default;
+
+	struct Deleter {
+		void operator()(VmaImage const& img) const;
+	};
+};
+using UniqueImage = Unique<VmaImage, VmaImage::Deleter>;
+
 struct Vram {
 	VmaAllocator allocator{};
 	vk::Device device{};
+	std::uint32_t queue{};
 
 	bool operator==(Vram const& rhs) const { return device == rhs.device && allocator == rhs.allocator; }
+
+	UniqueImage makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage) const;
 
 	struct Deleter {
 		void operator()(Vram const& vram) const;
@@ -49,5 +65,5 @@ struct Vram {
 };
 
 using UniqueVram = Unique<Vram, Vram::Deleter>;
-UniqueVram makeVram(vk::Instance instance, vk::PhysicalDevice pd, vk::Device device);
+UniqueVram makeVram(vk::Instance instance, vk::PhysicalDevice pd, vk::Device device, std::uint32_t queue);
 } // namespace vf

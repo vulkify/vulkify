@@ -224,13 +224,12 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 		return vk::SurfaceKHR(surface);
 	});
 	if (!vulkan) { return vulkan.error(); }
-	auto vram = makeVram(*vulkan->instance, vulkan->gpu.device, *vulkan->device);
+	auto vram = makeVram(*vulkan->instance, vulkan->gpu.device, *vulkan->device, vulkan->queue.family);
 	if (!vram) { return Error::eVulkanInitFailure; }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
 	impl->surface.surface = *impl->vulkan.surface;
 	impl->surface.device = impl->vulkan.makeDevice();
-	impl->surface.defer = &impl->vulkan.defer;
 	if (impl->surface.refresh(getFramebufferSize(impl->window->win)) != vk::Result::eSuccess) { return Error::eVulkanInitFailure; }
 	impl->gpu = makeGPU(*vulkan);
 

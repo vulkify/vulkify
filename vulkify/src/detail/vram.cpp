@@ -32,7 +32,7 @@ void ImgMeta::imageBarrier(vk::CommandBuffer cb, vk::Image image) const {
 	cb.pipelineBarrier(stages.first, stages.second, {}, {}, {}, barrier);
 }
 
-UniqueVram makeVram(vk::Instance instance, vk::PhysicalDevice pd, vk::Device device) {
+UniqueVram makeVram(vk::Instance instance, vk::PhysicalDevice pd, vk::Device device, std::uint32_t queue) {
 	VmaAllocatorCreateInfo allocatorInfo = {};
 	auto dl = VULKAN_HPP_DEFAULT_DISPATCHER;
 	allocatorInfo.instance = static_cast<VkInstance>(instance);
@@ -69,8 +69,29 @@ UniqueVram makeVram(vk::Instance instance, vk::PhysicalDevice pd, vk::Device dev
 	}
 	VF_TRACE("Vram constructed");
 	ret.device = device;
+	ret.queue = queue;
 	return ret;
 }
 
 void Vram::Deleter::operator()(Vram const& vram) const { vmaDestroyAllocator(vram.allocator); }
+void VmaImage::Deleter::operator()(VmaImage const& img) const { vmaDestroyImage(img.allocator, img.image, img.allocation); }
+
+UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage) const {
+	if (!allocator || !device) { return {}; }
+	bool const linear = usage != VMA_MEMORY_USAGE_UNKNOWN && usage != VMA_MEMORY_USAGE_GPU_ONLY && usage != VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED;
+	info.tiling = linear ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal;
+	if (info.imageType == vk::ImageType()) { info.imageType = vk::ImageType::e2D; }
+	if (info.mipLevels == 0U) { info.mipLevels = 1U; }
+	if (info.arrayLayers == 0U) { info.arrayLayers = 1U; }
+	info.sharingMode = vk::SharingMode::eExclusive;
+	info.queueFamilyIndexCount = 1U;
+	info.pQueueFamilyIndices = &queue;
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = usage;
+	auto const& imageInfo = static_cast<VkImageCreateInfo const&>(info);
+	VkImage ret;
+	VmaAllocation handle;
+	if (auto res = vmaCreateImage(allocator, &imageInfo, &allocInfo, &ret, &handle, nullptr); res != VK_SUCCESS) { return {}; }
+	return VmaImage{vk::Image(ret), allocator, handle};
+}
 } // namespace vf

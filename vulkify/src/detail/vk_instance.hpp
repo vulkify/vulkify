@@ -22,6 +22,7 @@ struct VKDevice {
 	VKGpu gpu{};
 	VKQueue queue{};
 	vk::Device device{};
+	Defer* defer{};
 };
 
 struct VKSync {
@@ -47,6 +48,6 @@ struct VKInstance {
 
 	static Result<VKInstance> make(MakeSurface makeSurface, bool validation = true);
 
-	VKDevice makeDevice() const { return {gpu, queue, *device}; }
+	VKDevice makeDevice() { return {gpu, queue, *device, &defer}; }
 };
 } // namespace vf

@@ -29,7 +29,6 @@ struct VKSurface {
 	vk::SwapchainCreateInfoKHR info{};
 	VKSwapchain swapchain{};
 	vk::SurfaceKHR surface{};
-	Defer* defer{};
 
 	static vk::SwapchainCreateInfoKHR makeInfo(VKDevice const& device, vk::SurfaceKHR surface, glm::ivec2 framebuffer);
 

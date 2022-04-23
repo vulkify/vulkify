@@ -83,8 +83,8 @@ vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
 	auto const ret = device.device.createSwapchainKHR(&info, nullptr, &vks);
 	if (ret != vk::Result::eSuccess) { return ret; }
 	VF_TRACEF("Swapchain resized: {}x{}", info.imageExtent.width, info.imageExtent.height);
-	if (defer) {
-		(*defer)(std::move(swapchain.swapchain));
+	if (device.defer) {
+		(*device.defer)(std::move(swapchain.swapchain));
 	} else {
 		device.device.waitIdle(); // otherwise stall device
 	}

@@ -94,8 +94,8 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 	// auto const colour = bestColour(surface.device.gpu.device, surface.surface).format;
 	auto const colour = surface.info.imageFormat;
 	// TODO
-	auto const depth = bestDepth(surface.device.gpu.device);
-	// auto const depth = vk::Format();
+	// auto const depth = bestDepth(surface.device.gpu.device);
+	auto const depth = vk::Format();
 	ret.renderPass = makeRenderPass(vram.device, colour, depth);
 
 	static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
