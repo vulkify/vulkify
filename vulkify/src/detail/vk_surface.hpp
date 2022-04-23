@@ -7,15 +7,15 @@
 
 namespace vf {
 struct VKImage {
-	vk::Image image;
-	vk::ImageView view;
+	vk::Image image{};
+	vk::ImageView view{};
 	vk::Extent2D extent{};
 };
 
 struct VKSwapchain {
-	ktl::fixed_vector<VKImage, 8> images;
-	ktl::fixed_vector<vk::UniqueImageView, 8> views;
-	vk::UniqueSwapchainKHR swapchain;
+	ktl::fixed_vector<VKImage, 8> images{};
+	ktl::fixed_vector<vk::UniqueImageView, 8> views{};
+	vk::UniqueSwapchainKHR swapchain{};
 };
 
 enum class PresentOutcome { eSuccess, eNotReady };
@@ -29,21 +29,21 @@ struct VKSurface {
 	};
 
 	struct Sync {
-		vk::Semaphore wait;
-		vk::Semaphore ssignal;
-		vk::Fence fsignal;
+		vk::Semaphore wait{};
+		vk::Semaphore ssignal{};
+		vk::Fence fsignal{};
 	};
 
 	struct Acquire {
-		VKImage image;
+		VKImage image{};
 		std::uint32_t index{};
 	};
 
 	static constexpr vk::Result refresh_v[] = {vk::Result::eErrorOutOfDateKHR, vk::Result::eSuboptimalKHR};
 
-	vk::SwapchainCreateInfoKHR info;
-	VKSwapchain swapchain;
-	vk::SurfaceKHR surface;
+	vk::SwapchainCreateInfoKHR info{};
+	VKSwapchain swapchain{};
+	vk::SurfaceKHR surface{};
 	class DeferQueue* deferQueue{};
 
 	static vk::SwapchainCreateInfoKHR makeInfo(Device const& device, vk::SurfaceKHR surface, glm::ivec2 framebuffer);

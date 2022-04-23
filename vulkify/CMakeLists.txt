@@ -24,6 +24,7 @@ target_link_libraries(${PROJECT_NAME}
   glfw
   dyvk::dyvk
   vk-bootstrap::vk-bootstrap
+  vma
   ${PROJECT_NAME}::options
 )
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<BOOL:${VULKIFY_DEBUG_TRACE}>:VULKIFY_DEBUG_TRACE>)

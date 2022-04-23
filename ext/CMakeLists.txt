@@ -67,6 +67,10 @@ target_compile_options(glm INTERFACE
 )
 list(APPEND ext_targets glm)
 
+# vma
+add_subdirectory(src/vma)
+list(APPEND ext_targets vma)
+
 if(VULKIFY_INSTALL)
   install(TARGETS ${ext_targets} EXPORT vulkify-ext-targets)
   install(EXPORT vulkify-ext-targets
@@ -74,5 +78,5 @@ if(VULKIFY_INSTALL)
     NAMESPACE vulkify::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/vulkify
   )
-  export(EXPORT ${ext_targets})
+  export(EXPORT vulkify-ext-targets)
 endif()

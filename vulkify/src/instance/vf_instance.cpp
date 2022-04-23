@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <detail/vk_surface.hpp>
+#include <detail/vram.hpp>
 
 namespace vf {
 namespace {
@@ -176,6 +177,7 @@ struct VulkifyInstance::Impl {
 	std::shared_ptr<UniqueGlfw> glfw{};
 	UniqueWindow window{};
 	VKInstance vulkan{};
+	UniqueVram vram{};
 	VKSurface surface{};
 	GPU gpu{};
 };
@@ -214,8 +216,10 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 		return vk::SurfaceKHR(surface);
 	});
 	if (!vulkan) { return vulkan.error(); }
+	auto vram = makeVram(*vulkan->instance, vulkan->gpu.device, *vulkan->device);
+	if (!vram) { return Error::eVulkanInitFailure; }
 
-	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan));
+	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
 	impl->surface.surface = *impl->vulkan.surface;
 	auto const device = VKSurface::Device{impl->vulkan.gpu, impl->vulkan.queue, *impl->vulkan.device};
 	if (impl->surface.refresh(device, getFramebufferSize(impl->window->win)) != vk::Result::eSuccess) { return Error::eVulkanInitFailure; }
