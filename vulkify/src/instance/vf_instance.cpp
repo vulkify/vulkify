@@ -1,4 +1,7 @@
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
+#include <detail/vk_instance.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/core/unique.hpp>
 #include <vulkify/instance/vf_instance.hpp>
@@ -158,6 +161,7 @@ UniqueWindow makeWindow(VulkifyInstance::Info const& info) {
 struct VulkifyInstance::Impl {
 	std::shared_ptr<UniqueGlfw> glfw{};
 	UniqueWindow window{};
+	VKInstance vulkan{};
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
@@ -172,7 +176,16 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	if (!glfw) { return glfw.error(); }
 	auto window = makeWindow(info);
 	if (!window) { return Error::eGlfwFailure; }
-	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window));
+	auto makeSurface = [&window](vk::Instance inst) {
+		auto surface = VkSurfaceKHR{};
+		glfwCreateWindowSurface(static_cast<VkInstance>(inst), window->win, {}, &surface);
+		return vk::SurfaceKHR(surface);
+	};
+
+	auto vulkan = VKInstance::make(makeSurface, true);
+	if (!vulkan) { return vulkan.error(); }
+
+	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan));
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
 
