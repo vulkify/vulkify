@@ -21,7 +21,7 @@ class VulkifyInstance : public Instance {
 	VulkifyInstance& operator=(VulkifyInstance&&) noexcept;
 	~VulkifyInstance() noexcept;
 
-	GPU const& gpu() const override;
+	Gpu const& gpu() const override;
 	glm::ivec2 framebufferSize() const override;
 	glm::ivec2 windowSize() const override;
 
@@ -31,7 +31,7 @@ class VulkifyInstance : public Instance {
 	void close() override;
 	Poll poll() override;
 
-	bool beginPass() override;
+	Canvas beginPass() override;
 	bool endPass(Rgba clear) override;
 
   private:

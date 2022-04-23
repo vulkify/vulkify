@@ -9,7 +9,7 @@ class HeadlessInstance : public Instance {
 
 	static Result make() { return ktl::make_unique<HeadlessInstance>(); }
 
-	GPU const& gpu() const override { return m_gpu; }
+	Gpu const& gpu() const override { return m_gpu; }
 	glm::ivec2 framebufferSize() const override { return m_framebufferSize; }
 	glm::ivec2 windowSize() const override { return m_windowSize; }
 
@@ -19,7 +19,7 @@ class HeadlessInstance : public Instance {
 	void close() override {}
 	Poll poll() override { return std::move(m_poll); }
 
-	bool beginPass() override { return true; }
+	Canvas beginPass() override { return {}; }
 	bool endPass(Rgba) override { return true; }
 
 	Poll m_poll{};
@@ -28,6 +28,6 @@ class HeadlessInstance : public Instance {
 	bool m_closing{};
 
   private:
-	GPU m_gpu = {"vulkify (headless)", GPU::Type::eOther};
+	Gpu m_gpu = {"vulkify (headless)", Gpu::Type::eOther};
 };
 } // namespace vf

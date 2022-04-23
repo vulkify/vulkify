@@ -1,3 +1,4 @@
+#include <detail/canvas_impl.hpp>
 #include <vulkify/context/context.hpp>
 
 namespace vf {
@@ -14,10 +15,11 @@ vf::Result<ktl::kunique_ptr<Context>> Context::make(Info, UInstance&& instance) 
 }
 
 Frame Context::nextFrame() {
-	if (m_ready) { return {{}, diffExchg(m_stamp)}; }
-	auto ret = Frame{m_instance->poll(), diffExchg(m_stamp)};
-	m_ready = m_instance->beginPass();
-	return ret;
+	if (m_ready) { return {{}, {}, diffExchg(m_stamp)}; }
+	auto poll = m_instance->poll();
+	auto canvas = m_instance->beginPass();
+	m_ready = static_cast<bool>(canvas);
+	return Frame{std::move(poll), std::move(canvas), diffExchg(m_stamp)};
 }
 
 bool Context::submit(Rgba clear) {

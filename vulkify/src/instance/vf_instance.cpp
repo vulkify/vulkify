@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 
+#include <detail/canvas_impl.hpp>
 #include <detail/renderer.hpp>
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
@@ -181,20 +182,20 @@ struct VulkifyInstance::Impl {
 	UniqueVram vram{};
 	VKSurface surface{};
 	Renderer renderer{};
-	GPU gpu{};
+	Gpu gpu{};
 
 	std::optional<VKSurface::Acquire> acquired{};
 };
 
-GPU makeGPU(VKInstance const& vulkan) {
-	auto ret = GPU{};
+Gpu makeGPU(VKInstance const& vulkan) {
+	auto ret = Gpu{};
 	ret.name = vulkan.gpu.properties.deviceName.data();
 	switch (vulkan.gpu.properties.deviceType) {
-	case vk::PhysicalDeviceType::eCpu: ret.type = GPU::Type::eCpu; break;
-	case vk::PhysicalDeviceType::eDiscreteGpu: ret.type = GPU::Type::eDiscrete; break;
-	case vk::PhysicalDeviceType::eIntegratedGpu: ret.type = GPU::Type::eIntegrated; break;
-	case vk::PhysicalDeviceType::eVirtualGpu: ret.type = GPU::Type::eVirtual; break;
-	case vk::PhysicalDeviceType::eOther: ret.type = GPU::Type::eOther; break;
+	case vk::PhysicalDeviceType::eCpu: ret.type = Gpu::Type::eCpu; break;
+	case vk::PhysicalDeviceType::eDiscreteGpu: ret.type = Gpu::Type::eDiscrete; break;
+	case vk::PhysicalDeviceType::eIntegratedGpu: ret.type = Gpu::Type::eIntegrated; break;
+	case vk::PhysicalDeviceType::eVirtualGpu: ret.type = Gpu::Type::eVirtual; break;
+	case vk::PhysicalDeviceType::eOther: ret.type = Gpu::Type::eOther; break;
 	default: break;
 	}
 	return ret;
@@ -240,7 +241,7 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
 
-GPU const& VulkifyInstance::gpu() const { return m_impl->gpu; }
+Gpu const& VulkifyInstance::gpu() const { return m_impl->gpu; }
 glm::ivec2 VulkifyInstance::framebufferSize() const { return getFramebufferSize(m_impl->window->win); }
 glm::ivec2 VulkifyInstance::windowSize() const { return getWindowSize(m_impl->window->win); }
 
@@ -258,12 +259,12 @@ Instance::Poll VulkifyInstance::poll() {
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->fileDrops};
 }
 
-bool VulkifyInstance::beginPass() {
-	if (m_impl->acquired) { return true; }
+Canvas VulkifyInstance::beginPass() {
+	if (m_impl->acquired) { return Canvas::Impl{m_impl->renderer.drawCmd()}; }
 	auto const sync = m_impl->renderer.sync();
 	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
-	if (!m_impl->acquired) { return false; }
-	return m_impl->renderer.beginPass(m_impl->acquired->image);
+	if (!m_impl->acquired) { return {}; }
+	return Canvas::Impl{m_impl->renderer.beginPass(m_impl->acquired->image)};
 }
 
 bool VulkifyInstance::endPass(Rgba clear) {

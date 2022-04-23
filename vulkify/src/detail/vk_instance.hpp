@@ -30,6 +30,12 @@ struct VKSync {
 	vk::Fence drawn{};
 };
 
+struct VKImage {
+	vk::Image image{};
+	vk::ImageView view{};
+	vk::Extent2D extent{};
+};
+
 struct VKInstance {
 	vk::UniqueInstance instance{};
 	vk::UniqueDebugUtilsMessengerEXT messenger{};

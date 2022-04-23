@@ -3,7 +3,7 @@
 #include <string>
 
 namespace vf {
-struct GPU {
+struct Gpu {
 	enum class Type { eUnknown, eDiscrete, eIntegrated, eCpu, eVirtual, eOther };
 
 	std::string name{};

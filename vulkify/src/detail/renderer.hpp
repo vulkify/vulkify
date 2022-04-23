@@ -42,5 +42,6 @@ struct Renderer {
 	void next() { frameSync.next(); }
 
 	vk::UniqueFramebuffer makeFramebuffer(RenderTarget const& target) const;
+	vk::CommandBuffer drawCmd() const { return *frameSync.get().cmd.secondary; }
 };
 } // namespace vf

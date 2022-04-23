@@ -1,8 +1,10 @@
 target_sources(${PROJECT_NAME} PRIVATE
+  context/canvas.cpp
   context/context.cpp
 
   core/rgba.cpp
 
+  detail/canvas_impl.hpp
   detail/defer.hpp
   detail/renderer.cpp
   detail/renderer.hpp

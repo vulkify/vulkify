@@ -6,6 +6,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/core/time.hpp
   include/vulkify/core/unique.hpp
 
+  include/vulkify/context/canvas.hpp
   include/vulkify/context/context.hpp
 
   include/vulkify/instance/event_type.hpp

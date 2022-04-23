@@ -6,12 +6,6 @@
 #include <optional>
 
 namespace vf {
-struct VKImage {
-	vk::Image image{};
-	vk::ImageView view{};
-	vk::Extent2D extent{};
-};
-
 struct VKSwapchain {
 	ktl::fixed_vector<VKImage, 8> images{};
 	ktl::fixed_vector<vk::UniqueImageView, 8> views{};

@@ -1,5 +1,6 @@
 #pragma once
 #include <ktl/kunique_ptr.hpp>
+#include <vulkify/context/canvas.hpp>
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/instance/event.hpp>
 #include <vulkify/instance/gpu.hpp>
@@ -19,7 +20,7 @@ class Instance {
 
 	virtual ~Instance() = default;
 
-	virtual GPU const& gpu() const = 0;
+	virtual Gpu const& gpu() const = 0;
 	virtual glm::ivec2 framebufferSize() const = 0;
 	virtual glm::ivec2 windowSize() const = 0;
 
@@ -29,7 +30,7 @@ class Instance {
 	virtual void close() = 0;
 	virtual Poll poll() = 0;
 
-	virtual bool beginPass() = 0;
+	virtual Canvas beginPass() = 0;
 	virtual bool endPass(Rgba clear) = 0;
 };
 
