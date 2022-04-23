@@ -162,7 +162,22 @@ struct VulkifyInstance::Impl {
 	std::shared_ptr<UniqueGlfw> glfw{};
 	UniqueWindow window{};
 	VKInstance vulkan{};
+	GPU gpu{};
 };
+
+GPU makeGPU(VKInstance const& vulkan) {
+	auto ret = GPU{};
+	ret.name = vulkan.gpu.properties.deviceName.data();
+	switch (vulkan.gpu.properties.deviceType) {
+	case vk::PhysicalDeviceType::eCpu: ret.type = GPU::Type::eCpu; break;
+	case vk::PhysicalDeviceType::eDiscreteGpu: ret.type = GPU::Type::eDiscrete; break;
+	case vk::PhysicalDeviceType::eIntegratedGpu: ret.type = GPU::Type::eIntegrated; break;
+	case vk::PhysicalDeviceType::eVirtualGpu: ret.type = GPU::Type::eVirtual; break;
+	case vk::PhysicalDeviceType::eOther: ret.type = GPU::Type::eOther; break;
+	default: break;
+	}
+	return ret;
+}
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
 	g_glfw = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->fileDrops};
@@ -186,10 +201,13 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	if (!vulkan) { return vulkan.error(); }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan));
+	impl->gpu = makeGPU(*vulkan);
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
 
-bool VulkifyInstance::isOpen() const { return !glfwWindowShouldClose(m_impl->window->win); }
+GPU const& VulkifyInstance::gpu() const { return m_impl->gpu; }
+
+bool VulkifyInstance::closing() const { return glfwWindowShouldClose(m_impl->window->win); }
 void VulkifyInstance::show() { glfwShowWindow(m_impl->window->win); }
 void VulkifyInstance::hide() { glfwHideWindow(m_impl->window->win); }
 void VulkifyInstance::close() { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }

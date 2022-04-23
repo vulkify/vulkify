@@ -1,6 +1,7 @@
 #pragma once
 #include <ktl/kunique_ptr.hpp>
 #include <vulkify/instance/event.hpp>
+#include <vulkify/instance/gpu.hpp>
 #include <span>
 
 namespace vf {
@@ -17,7 +18,9 @@ class Instance {
 
 	virtual ~Instance() = default;
 
-	virtual bool isOpen() const = 0;
+	virtual GPU const& gpu() const = 0;
+
+	virtual bool closing() const = 0;
 	virtual void show() = 0;
 	virtual void hide() = 0;
 	virtual void close() = 0;

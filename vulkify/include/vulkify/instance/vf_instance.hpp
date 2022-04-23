@@ -21,7 +21,9 @@ class VulkifyInstance : public Instance {
 	VulkifyInstance& operator=(VulkifyInstance&&) noexcept;
 	~VulkifyInstance() noexcept;
 
-	bool isOpen() const override;
+	GPU const& gpu() const override;
+
+	bool closing() const override;
 	void show() override;
 	void hide() override;
 	void close() override;

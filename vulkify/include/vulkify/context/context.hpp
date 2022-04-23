@@ -16,7 +16,9 @@ class Context {
 	Context& operator=(Context&&) = delete;
 	~Context() noexcept;
 
-	bool isOpen() const { return m_instance->isOpen(); }
+	Instance const& instance() const { return *m_instance; }
+
+	bool closing() const { return m_instance->closing(); }
 	void show() { m_instance->show(); }
 	void close() { m_instance->close(); }
 	Instance::Poll poll() { return m_instance->poll(); }
