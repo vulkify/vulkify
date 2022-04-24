@@ -1,4 +1,5 @@
 #pragma once
+#include <detail/image_cache.hpp>
 #include <detail/rotator.hpp>
 #include <detail/vk_instance.hpp>
 #include <detail/vk_surface.hpp>
@@ -32,7 +33,8 @@ struct Renderer {
 	vk::UniqueRenderPass renderPass{};
 	vk::UniqueCommandPool commandPool{};
 	Rotator<FrameSync> frameSync{};
-	VKImage target{};
+	ImageCache depthImage{};
+	RenderTarget attachments{};
 
 	static Renderer make(Vram vram, VKSurface const& surface, std::size_t buffering = 2);
 

@@ -44,19 +44,6 @@ constexpr PresentResult presentResult(vk::Result const result) noexcept {
 	}
 	return result;
 }
-
-vk::UniqueImageView makeImageView(vk::Device const device, vk::Image const image, vk::Format const format) {
-	vk::ImageViewCreateInfo info;
-	info.viewType = vk::ImageViewType::e2D;
-	info.format = format;
-	info.components.r = vk::ComponentSwizzle::eR;
-	info.components.g = vk::ComponentSwizzle::eG;
-	info.components.b = vk::ComponentSwizzle::eB;
-	info.components.a = vk::ComponentSwizzle::eA;
-	info.subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1};
-	info.image = image;
-	return device.createImageViewUnique(info);
-}
 } // namespace
 
 vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, vk::SurfaceKHR const surface, glm::ivec2 const framebuffer) {
@@ -92,7 +79,7 @@ vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
 	swapchain.swapchain = vk::UniqueSwapchainKHR(vks, device.device);
 	auto const images = device.device.getSwapchainImagesKHR(*swapchain.swapchain);
 	for (std::size_t i = 0; i < images.size(); ++i) {
-		swapchain.views.push_back(makeImageView(device.device, images[i], info.imageFormat));
+		swapchain.views.push_back(makeImageView(device.device, images[i], info.imageFormat, vk::ImageAspectFlagBits::eColor));
 		swapchain.images.push_back({images[i], *swapchain.views[i], info.imageExtent});
 	}
 	return ret;

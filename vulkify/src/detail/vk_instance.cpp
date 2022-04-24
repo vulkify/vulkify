@@ -34,4 +34,19 @@ Result<VKInstance> VKInstance::make(MakeSurface const makeSurface, bool const va
 	ret.queue = VKQueue{vk::Queue(queue.value()), qfam.value()};
 	return ret;
 }
+
+vk::UniqueImageView makeImageView(vk::Device device, vk::Image const image, vk::Format const format, vk::ImageAspectFlags const aspects) {
+	vk::ImageViewCreateInfo info;
+	info.viewType = vk::ImageViewType::e2D;
+	info.format = format;
+	// TODO: research
+	// info.components.r = vk::ComponentSwizzle::eR;
+	// info.components.g = vk::ComponentSwizzle::eG;
+	// info.components.b = vk::ComponentSwizzle::eB;
+	// info.components.a = vk::ComponentSwizzle::eA;
+	info.components.r = info.components.g = info.components.b = info.components.a = vk::ComponentSwizzle::eIdentity;
+	info.subresourceRange = {aspects, 0, 1, 0, 1};
+	info.image = image;
+	return device.createImageViewUnique(info);
+}
 } // namespace vf

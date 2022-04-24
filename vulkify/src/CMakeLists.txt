@@ -6,6 +6,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   detail/canvas_impl.hpp
   detail/defer.hpp
+  detail/image_cache.hpp
   detail/renderer.cpp
   detail/renderer.hpp
   detail/rotator.hpp

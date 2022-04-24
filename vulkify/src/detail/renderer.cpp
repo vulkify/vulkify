@@ -93,9 +93,7 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 	// TODO: off-screen
 	// auto const colour = bestColour(surface.device.gpu.device, surface.surface).format;
 	auto const colour = surface.info.imageFormat;
-	// TODO
-	// auto const depth = bestDepth(surface.device.gpu.device);
-	auto const depth = vk::Format();
+	auto const depth = bestDepth(surface.device.gpu.device);
 	ret.renderPass = makeRenderPass(vram.device, colour, depth);
 
 	static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
@@ -110,15 +108,19 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 		sync.cmd.secondary = std::move(secondaries[i]);
 		ret.frameSync.push(std::move(sync));
 	}
+	ret.depthImage = {vram};
+	ret.depthImage.setDepth();
+	ret.depthImage.info.format = depth;
 	return ret;
 }
 
 vk::CommandBuffer Renderer::beginPass(VKImage const& target) {
-	this->target = target;
+	attachments.colour = target;
 	auto& s = frameSync.get();
 	if (vram.device.getFenceStatus(*s.drawn) == vk::Result::eNotReady) { vram.device.waitForFences(*s.drawn, true, std::numeric_limits<std::uint64_t>::max()); }
 	vram.device.resetFences(*s.drawn);
-	s.framebuffer = makeFramebuffer({target, {}});
+	attachments.depth = depthImage.refresh({target.extent.width, target.extent.height, 1}, depthImage.info.format);
+	s.framebuffer = makeFramebuffer(attachments);
 	auto const cbii = vk::CommandBufferInheritanceInfo(*renderPass, 0U, *s.framebuffer);
 	s.cmd.secondary->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue, &cbii});
 	return *s.cmd.secondary;
@@ -128,21 +130,27 @@ vk::CommandBuffer Renderer::endPass(Rgba clear) {
 	auto& s = frameSync.get();
 	s.cmd.secondary->end();
 	s.cmd.primary->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-	auto meta = ImgMeta{};
-	meta.access = {{}, vk::AccessFlagBits::eColorAttachmentWrite};
-	meta.stages = {vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eColorAttachmentOutput};
-	meta.layouts = {vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal};
-	meta.imageBarrier(*s.cmd.primary, target.image);
-	auto const renderArea = vk::Rect2D({}, target.extent);
+	auto barrier = ImageBarrier{};
+	barrier.access = {{}, vk::AccessFlagBits::eColorAttachmentWrite};
+	barrier.stages = {vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eColorAttachmentOutput};
+	barrier.layouts = {vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal};
+	barrier(*s.cmd.primary, attachments.colour.image);
+	barrier.access = {{}, vk::AccessFlagBits::eDepthStencilAttachmentWrite};
+	barrier.stages.first = barrier.stages.second = vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests;
+	barrier.layouts.second = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+	barrier.aspects = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+	barrier(*s.cmd.primary, depthImage.peek().image);
+	auto const renderArea = vk::Rect2D({}, attachments.colour.extent);
 	auto const c = clear.normalize();
-	vk::ClearValue const cv = vk::ClearColorValue(std::array{c.x, c.y, c.z, c.w});
-	s.cmd.primary->beginRenderPass(vk::RenderPassBeginInfo(*renderPass, *s.framebuffer, renderArea, 1U, &cv), vk::SubpassContents::eSecondaryCommandBuffers);
+	vk::ClearValue const cvs[] = {vk::ClearColorValue(std::array{c.x, c.y, c.z, c.w}), vk::ClearDepthStencilValue(1.0f)};
+	s.cmd.primary->beginRenderPass({*renderPass, *s.framebuffer, renderArea, std::size(cvs), cvs}, vk::SubpassContents::eSecondaryCommandBuffers);
 	s.cmd.primary->executeCommands(*s.cmd.secondary);
 	s.cmd.primary->endRenderPass();
-	meta.access = {vk::AccessFlagBits::eColorAttachmentWrite, {}};
-	meta.stages = {vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eBottomOfPipe};
-	meta.layouts = {vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR};
-	meta.imageBarrier(*s.cmd.primary, target.image);
+	barrier.access = {vk::AccessFlagBits::eColorAttachmentWrite, {}};
+	barrier.stages = {vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eBottomOfPipe};
+	barrier.layouts = {vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR};
+	barrier.aspects = vk::ImageAspectFlagBits::eColor;
+	barrier(*s.cmd.primary, attachments.colour.image);
 	s.cmd.primary->end();
 	return *s.cmd.primary;
 }

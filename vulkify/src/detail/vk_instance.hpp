@@ -50,4 +50,6 @@ struct VKInstance {
 
 	VKDevice makeDevice() { return {gpu, queue, *device, &defer}; }
 };
+
+vk::UniqueImageView makeImageView(vk::Device device, vk::Image const image, vk::Format const format, vk::ImageAspectFlags aspects);
 } // namespace vf

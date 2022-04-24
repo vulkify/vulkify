@@ -15,7 +15,7 @@ BlitCaps BlitCaps::make(vk::PhysicalDevice device, vk::Format format) {
 	return ret;
 }
 
-void ImgMeta::imageBarrier(vk::CommandBuffer cb, vk::Image image) const {
+void ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image) const {
 	vk::ImageMemoryBarrier barrier;
 	barrier.oldLayout = layouts.first;
 	barrier.newLayout = layouts.second;
@@ -74,7 +74,7 @@ UniqueVram makeVram(vk::Instance instance, vk::PhysicalDevice pd, vk::Device dev
 }
 
 void Vram::Deleter::operator()(Vram const& vram) const { vmaDestroyAllocator(vram.allocator); }
-void VmaImage::Deleter::operator()(VmaImage const& img) const { vmaDestroyImage(img.allocator, img.image, img.allocation); }
+void VmaImage::Deleter::operator()(VmaImage const& img) const { vmaDestroyImage(img.allocator, img.image, img.handle); }
 
 UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage) const {
 	if (!allocator || !device) { return {}; }

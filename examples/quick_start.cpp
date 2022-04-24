@@ -38,6 +38,10 @@ void test(vf::UContext ctx) {
 }
 } // namespace
 
+struct foo {
+	void operator()(int x) const { std::cout << "Deleting" << x << std::endl; }
+};
+
 int main() {
 	auto instance = vf::VulkifyInstance::make({});
 	if (!instance) { return EXIT_FAILURE; }

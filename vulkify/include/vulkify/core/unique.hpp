@@ -13,7 +13,10 @@ class Unique {
   public:
 	constexpr Unique(Type t = {}, Deleter deleter = {}) : m_t(std::move(t)), m_del(std::move(deleter)) {}
 	constexpr Unique(Unique&& rhs) noexcept : Unique() { swap(rhs); }
-	constexpr Unique& operator=(Unique rhs) noexcept { return (swap(rhs), *this); }
+	constexpr Unique& operator=(Unique rhs) noexcept {
+		swap(rhs);
+		return *this;
+	}
 	constexpr ~Unique() {
 		if (m_t != Type{}) { m_del(m_t); }
 	}

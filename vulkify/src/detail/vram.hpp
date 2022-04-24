@@ -27,20 +27,20 @@ struct LayerMip {
 	static LayerMip make(std::uint32_t mipCount, std::uint32_t firstMip = 0U) noexcept { return LayerMip{{}, {firstMip, mipCount}}; }
 };
 
-struct ImgMeta {
+struct ImageBarrier {
 	LayerMip layerMip{};
 	std::pair<vk::AccessFlags, vk::AccessFlags> access{};
 	std::pair<vk::PipelineStageFlags, vk::PipelineStageFlags> stages{};
 	std::pair<vk::ImageLayout, vk::ImageLayout> layouts{};
 	vk::ImageAspectFlags aspects = vk::ImageAspectFlagBits::eColor;
 
-	void imageBarrier(vk::CommandBuffer cb, vk::Image image) const;
+	void operator()(vk::CommandBuffer cb, vk::Image image) const;
 };
 
 struct VmaImage {
 	vk::Image image{};
 	VmaAllocator allocator{};
-	VmaAllocation allocation{};
+	VmaAllocation handle{};
 
 	bool operator==(VmaImage const&) const = default;
 
