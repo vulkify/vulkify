@@ -20,7 +20,7 @@ class HeadlessInstance : public Instance {
 	Poll poll() override { return std::move(m_poll); }
 
 	Canvas beginPass() override { return {}; }
-	bool endPass(Rgba) override { return true; }
+	bool endPass() override { return true; }
 
 	Poll m_poll{};
 	glm::ivec2 m_framebufferSize{};

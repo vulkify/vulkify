@@ -32,7 +32,7 @@ class VulkifyInstance : public Instance {
 	Poll poll() override;
 
 	Canvas beginPass() override;
-	bool endPass(Rgba clear) override;
+	bool endPass() override;
 
   private:
 	struct Impl;

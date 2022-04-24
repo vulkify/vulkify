@@ -35,12 +35,13 @@ struct Renderer {
 	Rotator<FrameSync> frameSync{};
 	ImageCache depthImage{};
 	RenderTarget attachments{};
+	Rgba clear{};
 
 	static Renderer make(Vram vram, VKSurface const& surface, std::size_t buffering = 2);
 
 	VKSync sync() const { return frameSync.get().sync(); }
 	vk::CommandBuffer beginPass(VKImage const& target);
-	vk::CommandBuffer endPass(Rgba clear);
+	vk::CommandBuffer endPass();
 	void next() { frameSync.next(); }
 
 	vk::UniqueFramebuffer makeFramebuffer(RenderTarget const& target) const;

@@ -115,6 +115,7 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 }
 
 vk::CommandBuffer Renderer::beginPass(VKImage const& target) {
+	clear = {};
 	attachments.colour = target;
 	auto& s = frameSync.get();
 	if (vram.device.getFenceStatus(*s.drawn) == vk::Result::eNotReady) { vram.device.waitForFences(*s.drawn, true, std::numeric_limits<std::uint64_t>::max()); }
@@ -123,10 +124,12 @@ vk::CommandBuffer Renderer::beginPass(VKImage const& target) {
 	s.framebuffer = makeFramebuffer(attachments);
 	auto const cbii = vk::CommandBufferInheritanceInfo(*renderPass, 0U, *s.framebuffer);
 	s.cmd.secondary->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue, &cbii});
+	s.cmd.secondary->setViewport(0, vk::Viewport({}, {}, static_cast<float>(target.extent.width), static_cast<float>(target.extent.height)));
+	s.cmd.secondary->setScissor(0, vk::Rect2D({}, target.extent));
 	return *s.cmd.secondary;
 }
 
-vk::CommandBuffer Renderer::endPass(Rgba clear) {
+vk::CommandBuffer Renderer::endPass() {
 	auto& s = frameSync.get();
 	s.cmd.secondary->end();
 	s.cmd.primary->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});

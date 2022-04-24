@@ -31,15 +31,13 @@ class Context {
 	void close() { m_instance->close(); }
 	Instance::Poll poll() { return m_instance->poll(); }
 
-	Frame nextFrame();
-	bool submit(Rgba clear);
+	Frame frame();
 
   private:
 	Context(UInstance&& instance) noexcept;
 
 	ktl::kunique_ptr<Instance> m_instance{};
 	Clock::time_point m_stamp = now();
-	bool m_ready{};
 };
 
 struct Context::Info {};

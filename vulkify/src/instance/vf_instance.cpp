@@ -10,6 +10,7 @@
 
 #include <detail/canvas_impl.hpp>
 #include <detail/renderer.hpp>
+#include <detail/trace.hpp>
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
 
@@ -240,10 +241,8 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	if (!renderer.renderPass) { return Error::eVulkanInitFailure; }
 	impl->renderer = std::move(renderer);
 
-	impl->pipelineFactory = PipelineFactory::make("test.vert.spv", impl->surface.device, {}, {});
-
-	auto spec = PipelineSpec{"test.frag"};
-	auto test = impl->pipelineFactory.get(spec, *impl->renderer.renderPass);
+	auto const vert = SpirV::glslcAvailable() ? "test.vert" : "test.vert.spv";
+	impl->pipelineFactory = PipelineFactory::make(vert, impl->surface.device, {}, {});
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
@@ -267,16 +266,20 @@ Instance::Poll VulkifyInstance::poll() {
 }
 
 Canvas VulkifyInstance::beginPass() {
-	if (m_impl->acquired) { return Canvas::Impl{m_impl->renderer.drawCmd()}; }
+	if (m_impl->acquired) {
+		VF_TRACE("RenderPass already begun");
+		return {};
+	}
 	auto const sync = m_impl->renderer.sync();
 	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
 	if (!m_impl->acquired) { return {}; }
-	return Canvas::Impl{m_impl->renderer.beginPass(m_impl->acquired->image)};
+	auto& r = m_impl->renderer;
+	return Canvas::Impl{this, &m_impl->pipelineFactory, *r.renderPass, r.beginPass(m_impl->acquired->image), &r.clear};
 }
 
-bool VulkifyInstance::endPass(Rgba clear) {
+bool VulkifyInstance::endPass() {
 	if (!m_impl->acquired) { return false; }
-	auto const cb = m_impl->renderer.endPass(clear);
+	auto const cb = m_impl->renderer.endPass();
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();
 	m_impl->surface.submit(cb, sync);

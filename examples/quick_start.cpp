@@ -10,14 +10,13 @@ namespace {
 void test(vf::UContext ctx) {
 	bool const glslc = vf::SpirV::glslcAvailable();
 	std::cout << "glslc available: " << std::boolalpha << glslc << '\n';
-	if (glslc) { auto spirv = vf::SpirV::compile("../LittleEngineVk/demo/data/shaders/basic.vert", "basic.vert.spv"); }
 	std::cout << "using GPU: " << ctx->instance().gpu().name << '\n';
 	ctx->show();
 	auto const clearA = vf::Rgba::make(0xfff000ff);
 	auto const clearB = vf::Rgba::make(0x000fffff);
 	auto elapsed = vf::Time{};
 	while (!ctx->closing()) {
-		auto const frame = ctx->nextFrame();
+		auto const frame = ctx->frame();
 		for (auto const& event : frame.poll.events) {
 			switch (event.type) {
 			case vf::EventType::eClose: return;
@@ -37,8 +36,9 @@ void test(vf::UContext ctx) {
 		for (auto const code : frame.poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
 
 		elapsed += frame.dt;
+		if (frame.canvas.bind({"test.frag"})) { frame.canvas.draw(3, 0); }
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
-		ctx->submit(clear.linear());
+		frame.canvas.setClear(clear.linear());
 	}
 }
 } // namespace

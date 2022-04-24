@@ -1,7 +1,6 @@
 #pragma once
 #include <ktl/kunique_ptr.hpp>
 #include <vulkify/context/canvas.hpp>
-#include <vulkify/core/rgba.hpp>
 #include <vulkify/instance/event.hpp>
 #include <vulkify/instance/gpu.hpp>
 #include <span>
@@ -31,7 +30,7 @@ class Instance {
 	virtual Poll poll() = 0;
 
 	virtual Canvas beginPass() = 0;
-	virtual bool endPass(Rgba clear) = 0;
+	virtual bool endPass() = 0;
 };
 
 using UInstance = ktl::kunique_ptr<Instance>;

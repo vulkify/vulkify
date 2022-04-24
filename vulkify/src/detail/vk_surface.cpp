@@ -44,6 +44,8 @@ constexpr PresentResult presentResult(vk::Result const result) noexcept {
 	}
 	return result;
 }
+
+constexpr bool valid(glm::ivec2 extent) { return extent.x > 0 && extent.y > 0; }
 } // namespace
 
 vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, vk::SurfaceKHR const surface, glm::ivec2 const framebuffer) {
@@ -63,7 +65,7 @@ vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, vk::Surfa
 }
 
 vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
-	if (framebuffer.x <= 0 || framebuffer.y <= 0) { return vk::Result::eNotReady; }
+	if (!valid(framebuffer)) { return vk::Result::eNotReady; }
 	info = makeInfo(device, surface, framebuffer);
 	info.oldSwapchain = *swapchain.swapchain;
 	vk::SwapchainKHR vks;
@@ -86,6 +88,7 @@ vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
 }
 
 std::optional<VKSurface::Acquire> VKSurface::acquire(vk::Semaphore const signal, glm::ivec2 const framebuffer) {
+	if (!valid(framebuffer)) { return {}; }
 	static constexpr auto max_wait_v = std::numeric_limits<std::uint64_t>::max();
 	std::uint32_t idx{};
 	auto result = presentResult(device.device.acquireNextImageKHR(*swapchain.swapchain, max_wait_v, signal, {}, &idx));

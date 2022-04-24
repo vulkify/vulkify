@@ -10,7 +10,7 @@ namespace stdfs = std::filesystem;
 namespace {
 std::string spirvPath(std::string_view const glsl) { return std::string(glsl) + ".spv"; }
 
-std::pair<SpirV, std::string> loadOrCompile(std::string path) {
+SpirV loadOrCompile(std::string path) {
 	if (ShaderCache::isGlsl(path)) {
 		static bool s_glslc = SpirV::glslcAvailable();
 		auto spv = std::string{};
@@ -18,7 +18,7 @@ std::pair<SpirV, std::string> loadOrCompile(std::string path) {
 			// try-compile Glsl to Spir-V
 			spv = spirvPath(path);
 			auto ret = SpirV::compile(path.c_str(), spv);
-			if (ret.bytes) { return {std::move(ret), std::move(spv)}; }
+			if (ret.bytes) { return ret; }
 		}
 		// search for pre-compiled Spir-V
 		path = spv.empty() ? spirvPath(path) : std::move(spv);
@@ -27,7 +27,7 @@ std::pair<SpirV, std::string> loadOrCompile(std::string path) {
 	// load Spir-V
 	auto ret = SpirV::load(path);
 	if (!ret.bytes) { return {}; }
-	return {std::move(ret), std::move(path)};
+	return ret;
 }
 } // namespace
 
@@ -40,11 +40,11 @@ bool ShaderCache::isGlsl(std::string_view path) {
 bool ShaderCache::load(std::string path, bool force) {
 	if (map.contains(path) && !force) { return true; }
 	if (!device) { return false; }
-	auto [spirv, key] = loadOrCompile(std::move(path));
+	auto spirv = loadOrCompile(path);
 	if (!spirv.bytes) { return false; }
 	auto module = device.createShaderModuleUnique(vk::ShaderModuleCreateInfo({}, spirv.codesize, spirv.bytes.get()));
 	if (!module) { return false; }
-	map.insert_or_assign(std::move(key), std::move(module));
+	map.insert_or_assign(std::move(path), std::move(module));
 	return true;
 }
 
