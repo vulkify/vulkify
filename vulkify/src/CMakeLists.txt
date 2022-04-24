@@ -4,9 +4,15 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   core/rgba.cpp
 
+  instance/vf_instance.cpp
+
+  pipeline/pipeline.cpp
+
   detail/canvas_impl.hpp
   detail/defer.hpp
   detail/image_cache.hpp
+  detail/pipeline_factory.cpp
+  detail/pipeline_factory.hpp
   detail/renderer.cpp
   detail/renderer.hpp
   detail/rotator.hpp
@@ -18,6 +24,4 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/vk_surface.hpp
   detail/vram.cpp
   detail/vram.hpp
-
-  instance/vf_instance.cpp
 )

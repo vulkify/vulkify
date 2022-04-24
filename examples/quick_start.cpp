@@ -4,8 +4,13 @@
 #include <cmath>
 #include <iostream>
 
+#include <vulkify/pipeline/pipeline.hpp>
+
 namespace {
 void test(vf::UContext ctx) {
+	bool const glslc = vf::SpirV::glslcAvailable();
+	std::cout << "glslc available: " << std::boolalpha << glslc << '\n';
+	if (glslc) { auto spirv = vf::SpirV::compile("../LittleEngineVk/demo/data/shaders/basic.vert", "basic.vert.spv"); }
 	std::cout << "using GPU: " << ctx->instance().gpu().name << '\n';
 	ctx->show();
 	auto const clearA = vf::Rgba::make(0xfff000ff);

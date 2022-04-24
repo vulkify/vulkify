@@ -16,4 +16,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/instance/key_event.hpp
   include/vulkify/instance/instance.hpp
   include/vulkify/instance/vf_instance.hpp
+
+  include/vulkify/pipeline/pipeline.hpp
+  include/vulkify/pipeline/spec.hpp
 )

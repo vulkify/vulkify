@@ -13,6 +13,8 @@
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
 
+#include <detail/pipeline_factory.hpp>
+
 namespace vf {
 namespace {
 using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
@@ -185,6 +187,7 @@ struct VulkifyInstance::Impl {
 	Gpu gpu{};
 
 	std::optional<VKSurface::Acquire> acquired{};
+	PipelineFactory pipelineFactory{};
 };
 
 Gpu makeGPU(VKInstance const& vulkan) {
@@ -236,6 +239,11 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	auto renderer = Renderer::make(impl->vram, impl->surface, true);
 	if (!renderer.renderPass) { return Error::eVulkanInitFailure; }
 	impl->renderer = std::move(renderer);
+
+	impl->pipelineFactory = PipelineFactory::make("test.vert.spv", impl->surface.device, {}, {});
+
+	auto spec = PipelineSpec{"test.frag"};
+	auto test = impl->pipelineFactory.get(spec, *impl->renderer.renderPass);
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
