@@ -24,9 +24,9 @@ struct ImageCache {
 	VKImage make(vk::Extent3D extent, vk::Format format) {
 		info.extent = extent;
 		info.format = format;
-		vram.commandPool->m_device.defer(std::move(image), std::move(view));
+		vram.device.defer(std::move(image), std::move(view));
 		image = vram.makeImage(info, usage, name.c_str());
-		view = vram.commandPool->m_device.makeImageView(image->resource, format, aspect);
+		view = vram.device.makeImageView(image->resource, format, aspect);
 		return peek();
 	}
 

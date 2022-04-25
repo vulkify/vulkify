@@ -4,6 +4,7 @@
 #include <detail/vk_device.hpp>
 #include <ktl/enum_flags/enum_flags.hpp>
 #include <vulkify/core/geometry.hpp>
+#include <vulkify/core/per_thread.hpp>
 #include <vulkify/core/unique.hpp>
 
 namespace vf {
@@ -53,6 +54,16 @@ struct VmaResource {
 
 	bool operator==(VmaResource const&) const = default;
 
+	bool write(void const* data, std::size_t const size) {
+		if (!map || size == 0) { return false; }
+		std::memcpy(map, data, size);
+		return true;
+	}
+
+	template <typename U>
+		requires(std::is_trivial_v<U>)
+	bool write(U const& u) const { return write(&u, sizeof(U)); }
+
 	struct Deleter {
 		void operator()(VmaResource const&) const;
 	};
@@ -63,19 +74,50 @@ using UniqueImage = Unique<VmaImage, VmaImage::Deleter>;
 using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 
 struct VIBuffer {
-	enum class Type { eStatic, eDynamic };
+	enum class Type { eGpuOnly, eCpuToGpu };
 
 	UniqueBuffer vertex{};
 	UniqueBuffer index{};
 	Type type{};
 };
 
-struct Vram {
-	VmaAllocator allocator{};
-	CommandPool* commandPool{};
+struct InstantCommand {
+	DeferQueue defer{};
+	CommandPool& pool;
+	vk::CommandBuffer cmd{};
 
-	bool operator==(Vram const& rhs) const { return commandPool == rhs.commandPool && allocator == rhs.allocator; }
-	explicit operator bool() const { return commandPool && allocator; }
+	InstantCommand(CommandPool& pool) : pool(pool) { record(); }
+	~InstantCommand() { submit(); }
+
+	explicit operator bool() const { return cmd; }
+
+	void record() {
+		submit();
+		cmd = pool.acquire();
+	}
+
+	void submit() {
+		if (cmd) { pool.release(std::exchange(cmd, vk::CommandBuffer{}), true, std::move(defer)); }
+	}
+};
+
+struct CommandFactory {
+	struct Factory {
+		VKDevice device{};
+		CommandPool operator()() const { return device; }
+	};
+
+	PerThread<CommandPool, Factory> commandPools{};
+	CommandPool& get() const { return commandPools.get(); }
+};
+
+struct Vram {
+	VKDevice device{};
+	VmaAllocator allocator{};
+	CommandFactory* commandFactory{};
+
+	bool operator==(Vram const& rhs) const { return commandFactory == rhs.commandFactory && allocator == rhs.allocator; }
+	explicit operator bool() const { return commandFactory && allocator; }
 
 	UniqueImage makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage, char const* name, bool linear = false) const;
 	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage usage, char const* name) const;
@@ -88,10 +130,10 @@ struct Vram {
 };
 
 struct UniqueVram {
-	ktl::kunique_ptr<CommandPool> commandPool{};
+	ktl::kunique_ptr<CommandFactory> commandFactory{};
 	Unique<Vram, Vram::Deleter> vram{};
 
-	explicit operator bool() const { return vram && commandPool; }
+	explicit operator bool() const { return vram && commandFactory; }
 
 	static UniqueVram make(vk::Instance instance, VKDevice device);
 };

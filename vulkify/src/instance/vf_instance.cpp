@@ -15,6 +15,7 @@
 #include <detail/vram.hpp>
 
 #include <detail/pipeline_factory.hpp>
+#include <future>
 
 namespace vf {
 namespace {
@@ -266,9 +267,11 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
 	// TEST CODE
-	auto geo = Geometry{};
-	geo.vertices.push_back({});
-	auto buf = impl->vram.vram->makeVIBuffer(geo, VIBuffer::Type::eStatic, "test");
+	auto f = std::async(std::launch::async, [vram = impl->vram.vram.get()] {
+		auto geo = Geometry{};
+		geo.vertices.push_back({});
+		auto buf = vram.makeVIBuffer(geo, VIBuffer::Type::eGpuOnly, "test");
+	});
 	// TEST CODE
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
