@@ -1,7 +1,7 @@
 #pragma once
 #include <detail/image_cache.hpp>
 #include <detail/rotator.hpp>
-#include <detail/vk_instance.hpp>
+#include <detail/vk_device.hpp>
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
 #include <glm/vec2.hpp>

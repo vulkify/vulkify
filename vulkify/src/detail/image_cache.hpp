@@ -1,5 +1,4 @@
 #pragma once
-#include <detail/vk_instance.hpp>
 #include <detail/vram.hpp>
 
 namespace vf {
@@ -26,7 +25,7 @@ struct ImageCache {
 		info.extent = extent;
 		info.format = format;
 		image = vram.makeImage(info, usage);
-		view = makeImageView(vram.device.device, image->resource, format, aspect);
+		view = vram.device.makeImageView(image->resource, format, aspect);
 		return peek();
 	}
 

@@ -1,6 +1,6 @@
 #pragma once
 #include <vk_mem_alloc.h>
-#include <detail/vk_instance.hpp>
+#include <detail/vk_device.hpp>
 #include <ktl/enum_flags/enum_flags.hpp>
 #include <vulkify/core/geometry.hpp>
 #include <vulkify/core/unique.hpp>

@@ -1,5 +1,4 @@
 #include <detail/trace.hpp>
-#include <detail/vk_instance.hpp>
 #include <detail/vk_surface.hpp>
 #include <algorithm>
 #include <cassert>
@@ -83,7 +82,7 @@ vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
 	swapchain.swapchain = vk::UniqueSwapchainKHR(vks, device.device);
 	auto const images = device.device.getSwapchainImagesKHR(*swapchain.swapchain);
 	for (std::size_t i = 0; i < images.size(); ++i) {
-		swapchain.views.push_back(makeImageView(device.device, images[i], info.imageFormat, vk::ImageAspectFlagBits::eColor));
+		swapchain.views.push_back(device.makeImageView(images[i], info.imageFormat, vk::ImageAspectFlagBits::eColor));
 		swapchain.images.push_back({images[i], *swapchain.views[i], info.imageExtent});
 	}
 	return ret;

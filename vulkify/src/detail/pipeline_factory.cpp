@@ -1,6 +1,6 @@
 #include <detail/pipeline_factory.hpp>
 #include <detail/trace.hpp>
-#include <detail/vk_instance.hpp>
+#include <detail/vk_device.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <filesystem>
 #include <spir_v/frag.spv.hpp>
