@@ -9,6 +9,8 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   pipeline/pipeline.cpp
 
+  detail/command_pool.cpp
+  detail/command_pool.hpp
   detail/defer.hpp
   detail/image_cache.hpp
   detail/pipeline_factory.cpp
@@ -19,6 +21,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/shared_impl.hpp
   detail/trace.cpp
   detail/trace.hpp
+  detail/vk_device.hpp
   detail/vk_instance.cpp
   detail/vk_instance.hpp
   detail/vk_surface.cpp

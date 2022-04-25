@@ -229,7 +229,7 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	});
 	if (!vulkan) { return vulkan.error(); }
 	auto device = vulkan->makeDevice();
-	auto vram = makeVram(*vulkan->instance, device);
+	auto vram = makeVram(*vulkan->instance, device, &vulkan->commandPool);
 	if (!vram) { return Error::eVulkanInitFailure; }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));

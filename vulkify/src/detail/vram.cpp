@@ -32,7 +32,7 @@ void ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image) const {
 	cb.pipelineBarrier(stages.first, stages.second, {}, {}, {}, barrier);
 }
 
-UniqueVram makeVram(vk::Instance instance, VKDevice device) {
+UniqueVram makeVram(vk::Instance instance, VKDevice device, CommandPool* commandPool) {
 	VmaAllocatorCreateInfo allocatorInfo = {};
 	auto dl = VULKAN_HPP_DEFAULT_DISPATCHER;
 	allocatorInfo.instance = static_cast<VkInstance>(instance);
@@ -69,6 +69,7 @@ UniqueVram makeVram(vk::Instance instance, VKDevice device) {
 	}
 	VF_TRACE("Vram constructed");
 	ret.device = device;
+	ret.commandPool = commandPool;
 	return ret;
 }
 

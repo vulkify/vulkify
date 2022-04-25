@@ -6,6 +6,8 @@
 #include <vulkify/core/unique.hpp>
 
 namespace vf {
+class CommandPool;
+
 enum class BlitFlag { eSrc, eDst, eLinearFilter };
 using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
 
@@ -61,6 +63,7 @@ using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 struct Vram {
 	VKDevice device{};
 	VmaAllocator allocator{};
+	CommandPool* commandPool{};
 
 	bool operator==(Vram const& rhs) const { return device.device == rhs.device.device && allocator == rhs.allocator; }
 	explicit operator bool() const { return device.device && allocator; }
@@ -76,7 +79,7 @@ struct Vram {
 };
 
 using UniqueVram = Unique<Vram, Vram::Deleter>;
-UniqueVram makeVram(vk::Instance instance, VKDevice device);
+UniqueVram makeVram(vk::Instance instance, VKDevice device, CommandPool* commandPool);
 
 template <typename T>
 void VmaResource<T>::Deleter::operator()(VmaResource const& resource) const {

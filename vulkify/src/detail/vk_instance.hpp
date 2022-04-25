@@ -1,4 +1,5 @@
 #pragma once
+#include <detail/command_pool.hpp>
 #include <detail/vk_device.hpp>
 #include <ktl/async/kfunction.hpp>
 #include <vulkify/core/result.hpp>
@@ -28,6 +29,7 @@ struct VKInstance {
 	VKQueue queue{};
 	Defer defer{};
 	std::unique_ptr<std::mutex> mutex{};
+	CommandPool commandPool{};
 
 	static Result<VKInstance> make(MakeSurface makeSurface, bool validation = true);
 
