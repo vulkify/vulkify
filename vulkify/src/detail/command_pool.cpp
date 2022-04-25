@@ -31,10 +31,11 @@ vk::UniqueFence FencePool::makeFence() const { return m_device.device.createFenc
 CommandPool::CommandPool(VKDevice device, std::size_t batch) : m_fencePool(device, 0U), m_device(device), m_batch(static_cast<std::uint32_t>(batch)) {
 	if (!m_device) { return; }
 	m_pool = device.device.createCommandPoolUnique({pool_flags_v, device.queue.family});
+	assert(m_pool);
 }
 
 vk::CommandBuffer CommandPool::acquire() {
-	if (!m_device) { return {}; }
+	if (!m_device || !m_pool) { return {}; }
 	Cmd cmd;
 	for (auto& cb : m_cbs) {
 		if (!m_device.busy(cb.fence)) {
@@ -56,7 +57,7 @@ vk::CommandBuffer CommandPool::acquire() {
 	return ret;
 }
 
-vk::Result CommandPool::release(vk::CommandBuffer&& cb, bool block, Defer defer) {
+vk::Result CommandPool::release(vk::CommandBuffer&& cb, bool block, DeferQueue&& defer) {
 	auto ret = vk::Result::eErrorDeviceLost;
 	if (!m_device) { return ret; }
 	assert(!std::any_of(m_cbs.begin(), m_cbs.end(), [c = cb](Cmd const& cmd) { return cmd.cb == c; }));
@@ -68,7 +69,10 @@ vk::Result CommandPool::release(vk::CommandBuffer&& cb, bool block, Defer defer)
 		ret = m_device.queue.queue.submit(1, &si, cmd.fence);
 	}
 	if (ret == vk::Result::eSuccess) {
-		if (block) { m_device.wait(cmd.fence); }
+		if (block) {
+			m_device.wait(cmd.fence);
+			cmd.defer.entries.clear();
+		}
 	} else {
 		m_device.reset(cmd.fence, false);
 	}

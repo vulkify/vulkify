@@ -4,26 +4,26 @@
 namespace vf {
 Result<VKInstance> VKInstance::make(MakeSurface const makeSurface, bool const validation) {
 	if (!makeSurface) { return Error::eInvalidArgument; }
-	vk::DynamicLoader dl;
+	auto dl = vk::DynamicLoader{};
 	VULKAN_HPP_DEFAULT_DISPATCHER.init(dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr"));
-	vkb::InstanceBuilder vib;
+	auto vib = vkb::InstanceBuilder{};
 	if (validation) { vib.request_validation_layers(); }
 	auto vi = vib.set_app_name("vulkify").use_default_debug_messenger().build();
 	if (!vi) { return Error::eVulkanInitFailure; }
 	VULKAN_HPP_DEFAULT_DISPATCHER.init(vi->instance);
-	VKInstance ret;
+	auto ret = VKInstance{};
 	ret.instance = vk::UniqueInstance(vi->instance, {nullptr});
 	ret.messenger = vk::UniqueDebugUtilsMessengerEXT(vi->debug_messenger, {vi->instance});
 	auto surface = makeSurface(vk::Instance(vi->instance));
 	if (!surface) { return Error::eVulkanInitFailure; }
 	ret.surface = vk::UniqueSurfaceKHR(surface, {vi->instance});
-	vkb::PhysicalDeviceSelector vpds(vi.value());
+	auto vpds = vkb::PhysicalDeviceSelector(vi.value());
 	auto vpd = vpds.require_present().prefer_gpu_device_type(vkb::PreferredDeviceType::discrete).set_surface(surface).select();
 	if (!vpd) { return Error::eVulkanInitFailure; }
 	ret.gpu.properties = vk::PhysicalDeviceProperties(vpd->properties);
 	ret.gpu.device = vk::PhysicalDevice(vpd->physical_device);
 	ret.gpu.formats = ret.gpu.device.getSurfaceFormatsKHR(*ret.surface);
-	vkb::DeviceBuilder vdb(vpd.value());
+	auto vdb = vkb::DeviceBuilder(vpd.value());
 	auto vd = vdb.build();
 	if (!vd) { return Error::eVulkanInitFailure; }
 	VULKAN_HPP_DEFAULT_DISPATCHER.init(vd->device);
@@ -32,8 +32,9 @@ Result<VKInstance> VKInstance::make(MakeSurface const makeSurface, bool const va
 	auto qfam = vd->get_queue_index(vkb::QueueType::graphics);
 	if (!queue || !qfam) { return Error::eVulkanInitFailure; }
 	ret.queue = VKQueue{vk::Queue(queue.value()), qfam.value()};
-	ret.commandPool = ret.makeDevice();
-	ret.mutex = std::make_unique<std::mutex>();
+	ret.mutex = ktl::make_unique<std::mutex>();
+	ret.defer = ktl::make_unique<DeferQueue>();
+	ret.commandPool = ktl::make_unique<CommandPool>(ret.makeDevice());
 	return ret;
 }
 } // namespace vf

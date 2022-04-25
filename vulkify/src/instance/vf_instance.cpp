@@ -212,6 +212,7 @@ VulkifyInstance::VulkifyInstance(VulkifyInstance&&) noexcept = default;
 VulkifyInstance& VulkifyInstance::operator=(VulkifyInstance&&) noexcept = default;
 VulkifyInstance::~VulkifyInstance() noexcept {
 	m_impl->vulkan.device->waitIdle();
+	m_impl->vulkan.commandPool->clear();
 	g_glfw = {};
 }
 
@@ -229,7 +230,7 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	});
 	if (!vulkan) { return vulkan.error(); }
 	auto device = vulkan->makeDevice();
-	auto vram = makeVram(*vulkan->instance, device, &vulkan->commandPool);
+	auto vram = makeVram(*vulkan->instance, device, vulkan->commandPool.get());
 	if (!vram) { return Error::eVulkanInitFailure; }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
@@ -244,6 +245,12 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, {}, {});
 	if (!impl->pipelineFactory.cache.device) { return Error::eVulkanInitFailure; }
 
+	// TEST CODE
+	auto geo = Geometry{};
+	geo.vertices.push_back({});
+	// auto buf = impl->vram->makeVIBuffer(geo, VIBuffer::Type::eStatic);
+	// TEST CODE
+
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
 
@@ -257,7 +264,6 @@ void VulkifyInstance::hide() { glfwHideWindow(m_impl->window->win); }
 void VulkifyInstance::close() { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
 
 Instance::Poll VulkifyInstance::poll() {
-	m_impl->vulkan.defer.decrement();
 	m_impl->window->events.clear();
 	m_impl->window->scancodes.clear();
 	m_impl->window->fileDrops.clear();
@@ -274,7 +280,10 @@ Canvas VulkifyInstance::beginPass() {
 	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
 	if (!m_impl->acquired) { return {}; }
 	auto& r = m_impl->renderer;
-	return Canvas::Impl{this, &m_impl->pipelineFactory, *r.renderPass, r.beginPass(m_impl->acquired->image), &r.clear};
+	// m_impl->vulkan.defer.defer(42);
+	auto ret = r.beginPass(m_impl->acquired->image);
+	m_impl->vulkan.defer->decrement();
+	return Canvas::Impl{this, &m_impl->pipelineFactory, *r.renderPass, std::move(ret), &r.clear};
 }
 
 bool VulkifyInstance::endPass() {

@@ -2,6 +2,7 @@
 #include <detail/command_pool.hpp>
 #include <detail/vk_device.hpp>
 #include <ktl/async/kfunction.hpp>
+#include <ktl/kunique_ptr.hpp>
 #include <vulkify/core/result.hpp>
 #include <mutex>
 
@@ -27,12 +28,12 @@ struct VKInstance {
 	vk::UniqueDevice device{};
 	vk::UniqueSurfaceKHR surface{};
 	VKQueue queue{};
-	Defer defer{};
-	std::unique_ptr<std::mutex> mutex{};
-	CommandPool commandPool{};
+	ktl::kunique_ptr<DeferQueue> defer{};
+	ktl::kunique_ptr<std::mutex> mutex{};
+	ktl::kunique_ptr<CommandPool> commandPool{};
 
 	static Result<VKInstance> make(MakeSurface makeSurface, bool validation = true);
 
-	VKDevice makeDevice() { return {queue, gpu.device, *device, &defer, mutex.get()}; }
+	VKDevice makeDevice() { return {queue, gpu.device, *device, {defer.get()}, mutex.get()}; }
 };
 } // namespace vf

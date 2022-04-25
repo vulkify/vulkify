@@ -1,5 +1,5 @@
 #pragma once
-#include <detail/defer.hpp>
+#include <detail/defer_queue.hpp>
 #include <detail/vk_device.hpp>
 
 namespace vf {
@@ -24,11 +24,13 @@ class CommandPool {
 	CommandPool(VKDevice device = {}, std::size_t batch = 4);
 
 	vk::CommandBuffer acquire();
-	vk::Result release(vk::CommandBuffer&& cmd, bool block, Defer defer = {});
+	vk::Result release(vk::CommandBuffer&& cmd, bool block, DeferQueue&& defer = {});
+
+	void clear() { m_cbs.clear(); }
 
   private:
 	struct Cmd {
-		Defer defer{};
+		DeferQueue defer{};
 		vk::CommandBuffer cb{};
 		vk::Fence fence{};
 	};

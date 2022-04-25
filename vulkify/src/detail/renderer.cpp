@@ -1,4 +1,5 @@
 #include <detail/renderer.hpp>
+#include <detail/trace.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <limits>
 
@@ -94,6 +95,7 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 	// auto const colour = bestColour(surface.device.gpu.device, surface.surface).format;
 	auto const colour = surface.info.imageFormat;
 	auto const depth = bestDepth(surface.device.gpu);
+	// auto const depth = vk::Format();
 	ret.renderPass = makeRenderPass(vram.device.device, colour, depth);
 
 	static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
@@ -115,6 +117,7 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 }
 
 vk::CommandBuffer Renderer::beginPass(VKImage const& target) {
+	if (!vram.device) { return {}; }
 	clear = {};
 	attachments.colour = target;
 	auto& s = frameSync.get();
@@ -141,7 +144,7 @@ vk::CommandBuffer Renderer::endPass() {
 	barrier.stages.first = barrier.stages.second = vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests;
 	barrier.layouts.second = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 	barrier.aspects = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
-	barrier(*s.cmd.primary, depthImage.peek().image);
+	if (auto image = depthImage.peek().image) { barrier(*s.cmd.primary, image); }
 	auto const renderArea = vk::Rect2D({}, attachments.colour.extent);
 	auto const c = clear.normalize();
 	vk::ClearValue const cvs[] = {vk::ClearColorValue(std::array{c.x, c.y, c.z, c.w}), vk::ClearDepthStencilValue(1.0f)};

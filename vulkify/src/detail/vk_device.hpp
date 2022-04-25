@@ -1,5 +1,5 @@
 #pragma once
-#include <detail/defer.hpp>
+#include <detail/defer_queue.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vulkify/core/time.hpp>
 #include <mutex>
@@ -22,7 +22,7 @@ struct VKDevice {
 	VKQueue queue{};
 	vk::PhysicalDevice gpu{};
 	vk::Device device{};
-	Defer* defer{};
+	Defer defer{};
 	std::mutex* mutex{};
 
 	explicit operator bool() const { return device; }
