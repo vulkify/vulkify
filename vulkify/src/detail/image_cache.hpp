@@ -24,10 +24,9 @@ struct ImageCache {
 	VKImage make(vk::Extent3D extent, vk::Format format) {
 		info.extent = extent;
 		info.format = format;
-		if (image) { vram.device.defer(std::move(image)); }
-		if (view) { vram.device.defer(std::move(view)); }
-		image = vram.makeImage(info, usage);
-		view = vram.device.makeImageView(image->resource, format, aspect);
+		vram.commandPool->m_device.defer(std::move(image), std::move(view));
+		image = vram.makeImage(info, usage, name.c_str());
+		view = vram.commandPool->m_device.makeImageView(image->resource, format, aspect);
 		return peek();
 	}
 
@@ -39,6 +38,7 @@ struct ImageCache {
 	VKImage peek() const noexcept { return {image->resource, view ? *view : vk::ImageView(), {info.extent.width, info.extent.height}}; }
 
 	Vram vram{};
+	std::string name{};
 	vk::ImageCreateInfo info{};
 	UniqueImage image{};
 	vk::UniqueImageView view{};

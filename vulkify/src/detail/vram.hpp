@@ -1,5 +1,6 @@
 #pragma once
 #include <vk_mem_alloc.h>
+#include <detail/command_pool.hpp>
 #include <detail/vk_device.hpp>
 #include <ktl/enum_flags/enum_flags.hpp>
 #include <vulkify/core/geometry.hpp>
@@ -45,6 +46,7 @@ struct VmaResource {
 	T resource{};
 	VmaAllocator allocator{};
 	VmaAllocation handle{};
+	void* map{};
 
 	template <typename U>
 	static constexpr bool false_v = false;
@@ -60,29 +62,43 @@ using VmaBuffer = VmaResource<vk::Buffer>;
 using UniqueImage = Unique<VmaImage, VmaImage::Deleter>;
 using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 
+struct VIBuffer {
+	enum class Type { eStatic, eDynamic };
+
+	UniqueBuffer vertex{};
+	UniqueBuffer index{};
+	Type type{};
+};
+
 struct Vram {
-	VKDevice device{};
 	VmaAllocator allocator{};
 	CommandPool* commandPool{};
 
-	bool operator==(Vram const& rhs) const { return device.device == rhs.device.device && allocator == rhs.allocator; }
-	explicit operator bool() const { return device.device && allocator; }
+	bool operator==(Vram const& rhs) const { return commandPool == rhs.commandPool && allocator == rhs.allocator; }
+	explicit operator bool() const { return commandPool && allocator; }
 
-	UniqueImage makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage, bool linear = false) const;
-	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage usage) const;
+	UniqueImage makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage, char const* name, bool linear = false) const;
+	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage usage, char const* name) const;
 
-	UniqueBuffer makeVBO(Geometry const& geometry) const;
+	VIBuffer makeVIBuffer(Geometry const& geometry, VIBuffer::Type type, char const* name) const;
 
 	struct Deleter {
 		void operator()(Vram const& vram) const;
 	};
 };
 
-using UniqueVram = Unique<Vram, Vram::Deleter>;
-UniqueVram makeVram(vk::Instance instance, VKDevice device, CommandPool* commandPool);
+struct UniqueVram {
+	ktl::kunique_ptr<CommandPool> commandPool{};
+	Unique<Vram, Vram::Deleter> vram{};
+
+	explicit operator bool() const { return vram && commandPool; }
+
+	static UniqueVram make(vk::Instance instance, VKDevice device);
+};
 
 template <typename T>
 void VmaResource<T>::Deleter::operator()(VmaResource const& resource) const {
+	if (resource.map) { vmaUnmapMemory(resource.allocator, resource.handle); }
 	if constexpr (std::is_same_v<T, vk::Image>) {
 		vmaDestroyImage(resource.allocator, resource.resource, resource.handle);
 	} else if constexpr (std::is_same_v<T, vk::Buffer>) {

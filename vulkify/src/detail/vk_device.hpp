@@ -24,6 +24,7 @@ struct VKDevice {
 	vk::Device device{};
 	Defer defer{};
 	std::mutex* mutex{};
+	bool hasDebugMessenger{};
 
 	explicit operator bool() const { return device; }
 
@@ -51,6 +52,11 @@ struct VKDevice {
 		info.subresourceRange = {aspects, 0, 1, 0, 1};
 		info.image = image;
 		return device.createImageViewUnique(info);
+	}
+
+	template <typename T>
+	void setDebugName(vk::ObjectType type, T const handle, char const* name) const {
+		if (hasDebugMessenger) { device.setDebugUtilsObjectNameEXT({type, reinterpret_cast<std::uint64_t>(handle), name}); }
 	}
 };
 } // namespace vf

@@ -23,7 +23,7 @@ struct DeferQueue {
 	std::vector<Entry> entries{};
 
 	template <typename T>
-	void defer(T t, int delay = default_delay_v) {
+	void push(T t, int delay = default_delay_v) {
 		if (t) { entries.push_back(std::make_unique<Model<T>>(std::move(t), delay)); }
 	}
 
@@ -37,7 +37,7 @@ struct Defer {
 
 	template <typename... T>
 	void operator()(T&&... t) const {
-		if (queue) { (queue->defer(std::forward<T>(t)), ...); }
+		if (queue) { (queue->push(std::forward<T>(t)), ...); }
 	}
 };
 } // namespace vf

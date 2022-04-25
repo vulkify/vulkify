@@ -1,7 +1,6 @@
 #include <detail/renderer.hpp>
 #include <detail/trace.hpp>
 #include <ktl/fixed_vector.hpp>
-#include <limits>
 
 namespace vf {
 namespace {
@@ -89,6 +88,7 @@ FrameSync FrameSync::make(vk::Device device) {
 
 Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t buffering) {
 	if (!surface.device.device || !vram) { return {}; }
+	auto const& device = vram.commandPool->m_device;
 	buffering = std::clamp(buffering, std::size_t(2), surface.swapchain.images.size());
 	auto ret = Renderer{vram};
 	// TODO: off-screen
@@ -96,32 +96,32 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 	auto const colour = surface.info.imageFormat;
 	auto const depth = bestDepth(surface.device.gpu);
 	// auto const depth = vk::Format();
-	ret.renderPass = makeRenderPass(vram.device.device, colour, depth);
+	ret.renderPass = makeRenderPass(device.device, colour, depth);
 
 	static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
 	auto cpci = vk::CommandPoolCreateInfo(flags, surface.device.queue.family);
-	ret.commandPool = vram.device.device.createCommandPoolUnique(cpci);
+	ret.commandPool = device.device.createCommandPoolUnique(cpci);
 	auto const count = static_cast<std::uint32_t>(buffering);
-	auto primaries = vram.device.device.allocateCommandBuffersUnique({*ret.commandPool, vk::CommandBufferLevel::ePrimary, count});
-	auto secondaries = vram.device.device.allocateCommandBuffersUnique({*ret.commandPool, vk::CommandBufferLevel::eSecondary, count});
+	auto primaries = device.device.allocateCommandBuffersUnique({*ret.commandPool, vk::CommandBufferLevel::ePrimary, count});
+	auto secondaries = device.device.allocateCommandBuffersUnique({*ret.commandPool, vk::CommandBufferLevel::eSecondary, count});
 	for (std::size_t i = 0; i < buffering; ++i) {
-		auto sync = FrameSync::make(vram.device.device);
+		auto sync = FrameSync::make(device.device);
 		sync.cmd.primary = std::move(primaries[i]);
 		sync.cmd.secondary = std::move(secondaries[i]);
 		ret.frameSync.push(std::move(sync));
 	}
-	ret.depthImage = {vram};
+	ret.depthImage = {vram, "render_pass_depth_image"};
 	ret.depthImage.setDepth();
 	ret.depthImage.info.format = depth;
 	return ret;
 }
 
 vk::CommandBuffer Renderer::beginPass(VKImage const& target) {
-	if (!vram.device) { return {}; }
+	if (!vram) { return {}; }
 	clear = {};
 	attachments.colour = target;
 	auto& s = frameSync.get();
-	vram.device.reset(*s.drawn);
+	vram.commandPool->m_device.reset(*s.drawn);
 	attachments.depth = depthImage.refresh({target.extent.width, target.extent.height, 1}, depthImage.info.format);
 	s.framebuffer = makeFramebuffer(attachments);
 	auto const cbii = vk::CommandBufferInheritanceInfo(*renderPass, 0U, *s.framebuffer);
@@ -166,6 +166,6 @@ vk::UniqueFramebuffer Renderer::makeFramebuffer(RenderTarget const& target) cons
 	if (target.depth.view) { attachments.push_back(target.depth.view); }
 	auto const extent = target.colour.extent;
 	auto fci = vk::FramebufferCreateInfo({}, *renderPass, static_cast<std::uint32_t>(attachments.size()), attachments.data(), extent.width, extent.height, 1U);
-	return vram.device.device.createFramebufferUnique(fci);
+	return vram.commandPool->m_device.device.createFramebufferUnique(fci);
 }
 } // namespace vf

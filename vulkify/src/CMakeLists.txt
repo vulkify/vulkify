@@ -9,7 +9,6 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   pipeline/pipeline.cpp
 
-  detail/command_pool.cpp
   detail/command_pool.hpp
   detail/defer_queue.hpp
   detail/image_cache.hpp

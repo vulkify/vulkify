@@ -178,6 +178,25 @@ glm::ivec2 getWindowSize(GLFWwindow* w) {
 }
 } // namespace
 
+namespace {
+std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts() {
+	auto ret = std::vector<vk::UniqueDescriptorSetLayout>{};
+	return ret;
+}
+
+std::vector<vk::DescriptorSetLayout> makeSetLayouts(std::span<vk::UniqueDescriptorSetLayout const> layouts) {
+	auto ret = std::vector<vk::DescriptorSetLayout>{};
+	ret.reserve(layouts.size());
+	for (auto const& layout : layouts) { ret.push_back(*layout); }
+	return ret;
+}
+
+VertexInput vertexInput() {
+	auto ret = VertexInput{};
+	return ret;
+}
+} // namespace
+
 struct VulkifyInstance::Impl {
 	std::shared_ptr<UniqueGlfw> glfw{};
 	UniqueWindow window{};
@@ -188,6 +207,7 @@ struct VulkifyInstance::Impl {
 	Gpu gpu{};
 
 	std::optional<VKSurface::Acquire> acquired{};
+	std::vector<vk::UniqueDescriptorSetLayout> setLayouts{};
 	PipelineFactory pipelineFactory{};
 };
 
@@ -212,7 +232,6 @@ VulkifyInstance::VulkifyInstance(VulkifyInstance&&) noexcept = default;
 VulkifyInstance& VulkifyInstance::operator=(VulkifyInstance&&) noexcept = default;
 VulkifyInstance::~VulkifyInstance() noexcept {
 	m_impl->vulkan.device->waitIdle();
-	m_impl->vulkan.commandPool->clear();
 	g_glfw = {};
 }
 
@@ -230,7 +249,7 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	});
 	if (!vulkan) { return vulkan.error(); }
 	auto device = vulkan->makeDevice();
-	auto vram = makeVram(*vulkan->instance, device, vulkan->commandPool.get());
+	auto vram = UniqueVram::make(*vulkan->instance, device);
 	if (!vram) { return Error::eVulkanInitFailure; }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
@@ -238,17 +257,18 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	if (impl->surface.refresh(getFramebufferSize(impl->window->win)) != vk::Result::eSuccess) { return Error::eVulkanInitFailure; }
 	impl->gpu = makeGPU(*vulkan);
 
-	auto renderer = Renderer::make(impl->vram, impl->surface, true);
+	auto renderer = Renderer::make(impl->vram.vram, impl->surface, true);
 	if (!renderer.renderPass) { return Error::eVulkanInitFailure; }
 	impl->renderer = std::move(renderer);
 
-	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, {}, {});
-	if (!impl->pipelineFactory.cache.device) { return Error::eVulkanInitFailure; }
+	impl->setLayouts = makeSetLayouts();
+	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, vertexInput(), makeSetLayouts(impl->setLayouts));
+	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
 	// TEST CODE
 	auto geo = Geometry{};
 	geo.vertices.push_back({});
-	// auto buf = impl->vram->makeVIBuffer(geo, VIBuffer::Type::eStatic);
+	auto buf = impl->vram.vram->makeVIBuffer(geo, VIBuffer::Type::eStatic, "test");
 	// TEST CODE
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
@@ -280,9 +300,8 @@ Canvas VulkifyInstance::beginPass() {
 	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
 	if (!m_impl->acquired) { return {}; }
 	auto& r = m_impl->renderer;
-	// m_impl->vulkan.defer.defer(42);
 	auto ret = r.beginPass(m_impl->acquired->image);
-	m_impl->vulkan.defer->decrement();
+	m_impl->vulkan.util->defer.decrement();
 	return Canvas::Impl{this, &m_impl->pipelineFactory, *r.renderPass, std::move(ret), &r.clear};
 }
 

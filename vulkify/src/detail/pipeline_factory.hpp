@@ -54,6 +54,8 @@ struct PipelineFactory {
 
 	static PipelineFactory make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts);
 
+	explicit operator bool() const { return cache.device; }
+
 	Entry* find(PipelineSpec const& spec);
 	Entry* getOrLoad(PipelineSpec const& spec);
 
