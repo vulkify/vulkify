@@ -241,8 +241,8 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	if (!renderer.renderPass) { return Error::eVulkanInitFailure; }
 	impl->renderer = std::move(renderer);
 
-	auto const vert = SpirV::glslcAvailable() ? "test.vert" : "test.vert.spv";
-	impl->pipelineFactory = PipelineFactory::make(vert, impl->surface.device, {}, {});
+	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, {}, {});
+	if (!impl->pipelineFactory.cache.device) { return Error::eVulkanInitFailure; }
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }

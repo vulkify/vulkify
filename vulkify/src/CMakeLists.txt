@@ -24,4 +24,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/vk_surface.hpp
   detail/vram.cpp
   detail/vram.hpp
+
+  spir_v/frag.spv.hpp
+  spir_v/vert.spv.hpp
 )

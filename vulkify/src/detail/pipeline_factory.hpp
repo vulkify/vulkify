@@ -21,6 +21,7 @@ struct ShaderCache {
 	}
 
 	vk::ShaderModule getOrLoad(std::string const& path) {
+		if (path.empty()) { return {}; }
 		if (auto ret = find(path)) { return ret; }
 		load(path);
 		return find(path);
@@ -41,14 +42,17 @@ struct PipelineFactory {
 	using Shaders = std::pair<vk::ShaderModule, vk::ShaderModule>;
 	using SetLayouts = std::vector<vk::DescriptorSetLayout>;
 
-	std::string vertPath{};
 	ShaderCache cache{};
 	VertexInput vertexInput{};
 	SetLayouts setLayouts{};
 	std::vector<Entry> entries{};
 	std::pair<float, float> lineWidthLimit{};
+	struct {
+		vk::UniqueShaderModule vert{};
+		vk::UniqueShaderModule frag{};
+	} defaultShaders{};
 
-	static PipelineFactory make(std::string vertPath, VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts);
+	static PipelineFactory make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts);
 
 	Entry* find(PipelineSpec const& spec);
 	Entry* getOrLoad(PipelineSpec const& spec);

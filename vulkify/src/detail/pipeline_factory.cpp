@@ -3,6 +3,8 @@
 #include <detail/vk_instance.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <filesystem>
+#include <spir_v/frag.spv.hpp>
+#include <spir_v/vert.spv.hpp>
 
 namespace vf {
 namespace stdfs = std::filesystem;
@@ -29,6 +31,12 @@ SpirV loadOrCompile(std::string path) {
 	if (!ret.bytes) { return {}; }
 	return ret;
 }
+
+bool makeDefaultShaders(vk::Device device, vk::UniqueShaderModule& vert, vk::UniqueShaderModule& frag) {
+	vert = device.createShaderModuleUnique({{}, std::size(test_vert_v), reinterpret_cast<std::uint32_t const*>(test_vert_v)});
+	frag = device.createShaderModuleUnique({{}, std::size(test_frag_v), reinterpret_cast<std::uint32_t const*>(test_frag_v)});
+	return vert && frag;
+}
 } // namespace
 
 bool ShaderCache::isGlsl(std::string_view path) {
@@ -48,12 +56,14 @@ bool ShaderCache::load(std::string path, bool force) {
 	return true;
 }
 
-PipelineFactory PipelineFactory::make(std::string vertPath, VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts) {
+PipelineFactory PipelineFactory::make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts) {
 	if (!device.device || !device.gpu.device) { return {}; }
 	auto ret = PipelineFactory{};
+	if (!makeDefaultShaders(device.device, ret.defaultShaders.vert, ret.defaultShaders.frag)) {
+		VF_TRACE("Failed to create default shader modules");
+		return {};
+	}
 	ret.cache.device = device.device;
-	if (!ret.cache.load(vertPath)) { return {}; }
-	ret.vertPath = std::move(vertPath);
 	ret.lineWidthLimit = {device.gpu.properties.limits.lineWidthRange[0], device.gpu.properties.limits.lineWidthRange[1]};
 	ret.vertexInput = std::move(vertexInput);
 	ret.setLayouts = std::move(setLayouts);
@@ -67,6 +77,7 @@ PipelineFactory::Entry* PipelineFactory::find(PipelineSpec const& spec) {
 
 PipelineFactory::Entry* PipelineFactory::getOrLoad(PipelineSpec const& spec) {
 	if (auto ret = find(spec)) { return ret; }
+	if (!cache.device) { return {}; }
 	// if (setLayouts.empty()) { return {}; }
 	Entry entry{spec};
 	entry.layout = cache.device.createPipelineLayoutUnique({{}, static_cast<std::uint32_t>(setLayouts.size()), setLayouts.data()});
@@ -79,10 +90,10 @@ vk::Pipeline PipelineFactory::get(PipelineSpec const& spec, vk::RenderPass rende
 	if (!entry) { return {}; }
 	auto it = entry->pipelines.find(renderPass);
 	if (it != entry->pipelines.end()) { return *it->second; }
-	auto vert = cache.getOrLoad(vertPath);
-	if (!vert) { return {}; }
-	auto frag = cache.getOrLoad(spec.spirvPath);
-	if (!frag) { return {}; }
+	auto vert = cache.getOrLoad(spec.vertShader);
+	if (!vert) { vert = *defaultShaders.vert; }
+	auto frag = cache.getOrLoad(spec.fragShader);
+	if (!frag) { frag = *defaultShaders.frag; }
 	auto pipeline = makePipeline(spec, *entry->layout, {vert, frag}, renderPass);
 	if (!pipeline) { return {}; }
 	auto [i, _] = entry->pipelines.insert_or_assign(renderPass, std::move(pipeline));

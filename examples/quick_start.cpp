@@ -36,7 +36,7 @@ void test(vf::UContext ctx) {
 		for (auto const code : frame.poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
 
 		elapsed += frame.dt;
-		if (frame.canvas.bind({"test.frag"})) { frame.canvas.draw(3, 0); }
+		if (frame.canvas.bind({})) { frame.canvas.draw(3, 0); }
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
 		frame.canvas.setClear(clear.linear());
 	}
