@@ -39,7 +39,7 @@ struct DeferQueue {
 		entries.push_back(Entry{Model<T>(std::move(t), delay)});
 	}
 
-	void update() {
+	void decrement() {
 		std::erase_if(entries, [](Entry& e) { return --e.get().delay <= 0; });
 	}
 };

@@ -257,7 +257,7 @@ void VulkifyInstance::hide() { glfwHideWindow(m_impl->window->win); }
 void VulkifyInstance::close() { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
 
 Instance::Poll VulkifyInstance::poll() {
-	m_impl->vulkan.defer.update();
+	m_impl->vulkan.defer.decrement();
 	m_impl->window->events.clear();
 	m_impl->window->scancodes.clear();
 	m_impl->window->fileDrops.clear();

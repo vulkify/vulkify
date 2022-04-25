@@ -32,6 +32,7 @@ Result<VKInstance> VKInstance::make(MakeSurface const makeSurface, bool const va
 	auto qfam = vd->get_queue_index(vkb::QueueType::graphics);
 	if (!queue || !qfam) { return Error::eVulkanInitFailure; }
 	ret.queue = VKQueue{vk::Queue(queue.value()), qfam.value()};
+	ret.mutex = std::make_unique<std::mutex>();
 	return ret;
 }
 

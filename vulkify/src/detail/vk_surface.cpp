@@ -49,6 +49,7 @@ constexpr bool valid(glm::ivec2 extent) { return extent.x > 0 && extent.y > 0; }
 } // namespace
 
 vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR const surface, glm::ivec2 const framebuffer) {
+	if (!device) { return {}; }
 	vk::SwapchainCreateInfoKHR ret;
 	ret.surface = surface;
 	ret.presentMode = vk::PresentModeKHR::eFifo;
@@ -65,6 +66,7 @@ vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, VKGpu con
 }
 
 vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
+	if (!device) { return vk::Result::eErrorDeviceLost; }
 	if (!valid(framebuffer)) { return vk::Result::eNotReady; }
 	info = makeInfo(device, gpu, surface, framebuffer);
 	info.oldSwapchain = *swapchain.swapchain;
@@ -89,6 +91,7 @@ vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
 
 std::optional<VKSurface::Acquire> VKSurface::acquire(vk::Semaphore const signal, glm::ivec2 const framebuffer) {
 	if (!valid(framebuffer)) { return {}; }
+	if (!device) { return {}; }
 	static constexpr auto max_wait_v = std::numeric_limits<std::uint64_t>::max();
 	std::uint32_t idx{};
 	auto result = presentResult(device.device.acquireNextImageKHR(*swapchain.swapchain, max_wait_v, signal, {}, &idx));
@@ -103,6 +106,7 @@ std::optional<VKSurface::Acquire> VKSurface::acquire(vk::Semaphore const signal,
 }
 
 vk::Result VKSurface::submit(vk::CommandBuffer const cb, VKSync const& sync) {
+	if (!device) { return vk::Result::eErrorDeviceLost; }
 	static constexpr vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eTopOfPipe;
 	vk::SubmitInfo submitInfo;
 	submitInfo.pWaitDstStageMask = &waitStages;
@@ -112,11 +116,12 @@ vk::Result VKSurface::submit(vk::CommandBuffer const cb, VKSync const& sync) {
 	submitInfo.pWaitSemaphores = &sync.draw;
 	submitInfo.signalSemaphoreCount = 1U;
 	submitInfo.pSignalSemaphores = &sync.present;
-	auto const ret = device.queue.queue.submit(1U, &submitInfo, sync.drawn);
-	return ret;
+	auto lock = std::scoped_lock(*device.mutex);
+	return device.queue.queue.submit(1U, &submitInfo, sync.drawn);
 }
 
 PresentResult VKSurface::present(Acquire const& acquired, vk::Semaphore const wait, glm::ivec2 const framebuffer) {
+	if (!device) { return vk::Result::eErrorDeviceLost; }
 	vk::PresentInfoKHR info;
 	info.waitSemaphoreCount = 1;
 	info.pWaitSemaphores = &wait;

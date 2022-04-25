@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.hpp>
 #include <vulkify/core/result.hpp>
 #include <vulkify/core/time.hpp>
+#include <mutex>
 
 namespace vf {
 using MakeSurface = ktl::kfunction<vk::SurfaceKHR(vk::Instance)>;
@@ -26,6 +27,9 @@ struct VKDevice {
 	vk::PhysicalDevice gpu{};
 	vk::Device device{};
 	Defer* defer{};
+	std::mutex* mutex{};
+
+	explicit operator bool() const { return device; }
 
 	bool busy(vk::Fence fence) const { return fence && device.getFenceStatus(fence) == vk::Result::eNotReady; }
 
@@ -59,10 +63,11 @@ struct VKInstance {
 	vk::UniqueSurfaceKHR surface{};
 	VKQueue queue{};
 	Defer defer{};
+	std::unique_ptr<std::mutex> mutex{};
 
 	static Result<VKInstance> make(MakeSurface makeSurface, bool validation = true);
 
-	VKDevice makeDevice() { return {queue, gpu.device, *device, &defer}; }
+	VKDevice makeDevice() { return {queue, gpu.device, *device, &defer, mutex.get()}; }
 };
 
 vk::UniqueImageView makeImageView(vk::Device device, vk::Image const image, vk::Format const format, vk::ImageAspectFlags aspects);
