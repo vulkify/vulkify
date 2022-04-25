@@ -26,7 +26,7 @@ struct ImageCache {
 		info.extent = extent;
 		info.format = format;
 		image = vram.makeImage(info, usage);
-		view = makeImageView(vram.device, image->image, format, aspect);
+		view = makeImageView(vram.device.device, image->resource, format, aspect);
 		return peek();
 	}
 
@@ -35,7 +35,7 @@ struct ImageCache {
 		return peek();
 	}
 
-	VKImage peek() const noexcept { return {image->image, view ? *view : vk::ImageView(), {info.extent.width, info.extent.height}}; }
+	VKImage peek() const noexcept { return {image->resource, view ? *view : vk::ImageView(), {info.extent.width, info.extent.height}}; }
 
 	Vram vram{};
 	vk::ImageCreateInfo info{};

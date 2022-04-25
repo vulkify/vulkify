@@ -1,4 +1,4 @@
-#include <detail/canvas_impl.hpp>
+#include <detail/shared_impl.hpp>
 #include <vulkify/context/context.hpp>
 
 namespace vf {

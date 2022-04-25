@@ -1,7 +1,8 @@
 #pragma once
 #include <vk_mem_alloc.h>
+#include <detail/vk_instance.hpp>
 #include <ktl/enum_flags/enum_flags.hpp>
-#include <vulkan/vulkan.hpp>
+#include <vulkify/core/geometry.hpp>
 #include <vulkify/core/unique.hpp>
 
 namespace vf {
@@ -37,27 +38,37 @@ struct ImageBarrier {
 	void operator()(vk::CommandBuffer cb, vk::Image image) const;
 };
 
-struct VmaImage {
-	vk::Image image{};
+template <typename T>
+struct VmaResource {
+	T resource{};
 	VmaAllocator allocator{};
 	VmaAllocation handle{};
 
-	bool operator==(VmaImage const&) const = default;
+	template <typename U>
+	static constexpr bool false_v = false;
+
+	bool operator==(VmaResource const&) const = default;
 
 	struct Deleter {
-		void operator()(VmaImage const& img) const;
+		void operator()(VmaResource const&) const;
 	};
 };
+using VmaImage = VmaResource<vk::Image>;
+using VmaBuffer = VmaResource<vk::Buffer>;
 using UniqueImage = Unique<VmaImage, VmaImage::Deleter>;
+using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 
 struct Vram {
+	VKDevice device{};
 	VmaAllocator allocator{};
-	vk::Device device{};
-	std::uint32_t queue{};
 
-	bool operator==(Vram const& rhs) const { return device == rhs.device && allocator == rhs.allocator; }
+	bool operator==(Vram const& rhs) const { return device.device == rhs.device.device && allocator == rhs.allocator; }
+	explicit operator bool() const { return device.device && allocator; }
 
-	UniqueImage makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage) const;
+	UniqueImage makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage, bool linear = false) const;
+	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage usage) const;
+
+	UniqueBuffer makeVBO(Geometry const& geometry) const;
 
 	struct Deleter {
 		void operator()(Vram const& vram) const;
@@ -65,5 +76,16 @@ struct Vram {
 };
 
 using UniqueVram = Unique<Vram, Vram::Deleter>;
-UniqueVram makeVram(vk::Instance instance, vk::PhysicalDevice pd, vk::Device device, std::uint32_t queue);
+UniqueVram makeVram(vk::Instance instance, VKDevice device);
+
+template <typename T>
+void VmaResource<T>::Deleter::operator()(VmaResource const& resource) const {
+	if constexpr (std::is_same_v<T, vk::Image>) {
+		vmaDestroyImage(resource.allocator, resource.resource, resource.handle);
+	} else if constexpr (std::is_same_v<T, vk::Buffer>) {
+		vmaDestroyBuffer(resource.allocator, resource.resource, resource.handle);
+	} else {
+		static_assert(false_v<T>, "Invalid type");
+	}
+}
 } // namespace vf

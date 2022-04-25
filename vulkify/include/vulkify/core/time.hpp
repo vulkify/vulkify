@@ -4,6 +4,8 @@
 
 namespace vf {
 namespace stdch = std::chrono;
+using namespace std::chrono_literals;
+
 using Clock = stdch::steady_clock;
 using Time = stdch::duration<float>;
 

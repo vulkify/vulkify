@@ -3,6 +3,7 @@
 #include <ktl/async/kfunction.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vulkify/core/result.hpp>
+#include <vulkify/core/time.hpp>
 
 namespace vf {
 using MakeSurface = ktl::kfunction<vk::SurfaceKHR(vk::Instance)>;
@@ -19,10 +20,23 @@ struct VKQueue {
 };
 
 struct VKDevice {
-	VKGpu gpu{};
+	static constexpr auto fence_wait_v = 2s;
+
 	VKQueue queue{};
+	vk::PhysicalDevice gpu{};
 	vk::Device device{};
 	Defer* defer{};
+
+	bool busy(vk::Fence fence) const { return fence && device.getFenceStatus(fence) == vk::Result::eNotReady; }
+
+	void wait(vk::Fence fence, stdch::nanoseconds wait = fence_wait_v) const {
+		if (fence) { device.waitForFences(fence, true, static_cast<std::uint64_t>(wait.count())); }
+	}
+
+	void reset(vk::Fence fence, bool wait = true) const {
+		if (wait && busy(fence)) { this->wait(fence); }
+		device.resetFences(fence);
+	}
 };
 
 struct VKSync {
@@ -48,7 +62,7 @@ struct VKInstance {
 
 	static Result<VKInstance> make(MakeSurface makeSurface, bool validation = true);
 
-	VKDevice makeDevice() { return {gpu, queue, *device, &defer}; }
+	VKDevice makeDevice() { return {queue, gpu.device, *device, &defer}; }
 };
 
 vk::UniqueImageView makeImageView(vk::Device device, vk::Image const image, vk::Format const format, vk::ImageAspectFlags aspects);

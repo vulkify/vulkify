@@ -26,11 +26,12 @@ struct VKSurface {
 	static constexpr vk::Result refresh_v[] = {vk::Result::eErrorOutOfDateKHR, vk::Result::eSuboptimalKHR};
 
 	VKDevice device{};
+	VKGpu gpu{};
+	vk::SurfaceKHR surface{};
 	vk::SwapchainCreateInfoKHR info{};
 	VKSwapchain swapchain{};
-	vk::SurfaceKHR surface{};
 
-	static vk::SwapchainCreateInfoKHR makeInfo(VKDevice const& device, vk::SurfaceKHR surface, glm::ivec2 framebuffer);
+	static vk::SwapchainCreateInfoKHR makeInfo(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, glm::ivec2 framebuffer);
 
 	vk::Result refresh(glm::ivec2 framebuffer);
 	std::optional<Acquire> acquire(vk::Semaphore signal, glm::ivec2 framebuffer);

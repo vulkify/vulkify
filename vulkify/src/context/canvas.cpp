@@ -1,5 +1,5 @@
-#include <detail/canvas_impl.hpp>
 #include <detail/pipeline_factory.hpp>
+#include <detail/shared_impl.hpp>
 #include <vulkify/instance/instance.hpp>
 
 namespace vf {

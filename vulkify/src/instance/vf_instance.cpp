@@ -8,8 +8,8 @@
 #include <memory>
 #include <vector>
 
-#include <detail/canvas_impl.hpp>
 #include <detail/renderer.hpp>
+#include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
@@ -228,12 +228,12 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 		return vk::SurfaceKHR(surface);
 	});
 	if (!vulkan) { return vulkan.error(); }
-	auto vram = makeVram(*vulkan->instance, vulkan->gpu.device, *vulkan->device, vulkan->queue.family);
+	auto device = vulkan->makeDevice();
+	auto vram = makeVram(*vulkan->instance, device);
 	if (!vram) { return Error::eVulkanInitFailure; }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
-	impl->surface.surface = *impl->vulkan.surface;
-	impl->surface.device = impl->vulkan.makeDevice();
+	impl->surface = VKSurface{device, impl->vulkan.gpu, *impl->vulkan.surface};
 	if (impl->surface.refresh(getFramebufferSize(impl->window->win)) != vk::Result::eSuccess) { return Error::eVulkanInitFailure; }
 	impl->gpu = makeGPU(*vulkan);
 

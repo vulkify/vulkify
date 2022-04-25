@@ -48,7 +48,7 @@ constexpr PresentResult presentResult(vk::Result const result) noexcept {
 constexpr bool valid(glm::ivec2 extent) { return extent.x > 0 && extent.y > 0; }
 } // namespace
 
-vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, vk::SurfaceKHR const surface, glm::ivec2 const framebuffer) {
+vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR const surface, glm::ivec2 const framebuffer) {
 	vk::SwapchainCreateInfoKHR ret;
 	ret.surface = surface;
 	ret.presentMode = vk::PresentModeKHR::eFifo;
@@ -57,8 +57,8 @@ vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, vk::Surfa
 	ret.pQueueFamilyIndices = &device.queue.family;
 	ret.imageColorSpace = vk::ColorSpaceKHR::eVkColorspaceSrgbNonlinear;
 	ret.imageArrayLayers = 1U;
-	ret.imageFormat = imageFormat(device.gpu.formats);
-	auto const caps = device.gpu.device.getSurfaceCapabilitiesKHR(surface);
+	ret.imageFormat = imageFormat(gpu.formats);
+	auto const caps = gpu.device.getSurfaceCapabilitiesKHR(surface);
 	ret.imageExtent = imageExtent(caps, framebuffer);
 	ret.minImageCount = imageCount(caps);
 	return ret;
@@ -66,7 +66,7 @@ vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, vk::Surfa
 
 vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
 	if (!valid(framebuffer)) { return vk::Result::eNotReady; }
-	info = makeInfo(device, surface, framebuffer);
+	info = makeInfo(device, gpu, surface, framebuffer);
 	info.oldSwapchain = *swapchain.swapchain;
 	vk::SwapchainKHR vks;
 	auto const ret = device.device.createSwapchainKHR(&info, nullptr, &vks);

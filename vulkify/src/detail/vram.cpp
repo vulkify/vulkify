@@ -32,12 +32,12 @@ void ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image) const {
 	cb.pipelineBarrier(stages.first, stages.second, {}, {}, {}, barrier);
 }
 
-UniqueVram makeVram(vk::Instance instance, vk::PhysicalDevice pd, vk::Device device, std::uint32_t queue) {
+UniqueVram makeVram(vk::Instance instance, VKDevice device) {
 	VmaAllocatorCreateInfo allocatorInfo = {};
 	auto dl = VULKAN_HPP_DEFAULT_DISPATCHER;
 	allocatorInfo.instance = static_cast<VkInstance>(instance);
-	allocatorInfo.device = static_cast<VkDevice>(device);
-	allocatorInfo.physicalDevice = static_cast<VkPhysicalDevice>(pd);
+	allocatorInfo.device = static_cast<VkDevice>(device.device);
+	allocatorInfo.physicalDevice = static_cast<VkPhysicalDevice>(device.gpu);
 	VmaVulkanFunctions vkFunc = {};
 	vkFunc.vkGetPhysicalDeviceProperties = dl.vkGetPhysicalDeviceProperties;
 	vkFunc.vkGetPhysicalDeviceMemoryProperties = dl.vkGetPhysicalDeviceMemoryProperties;
@@ -69,29 +69,41 @@ UniqueVram makeVram(vk::Instance instance, vk::PhysicalDevice pd, vk::Device dev
 	}
 	VF_TRACE("Vram constructed");
 	ret.device = device;
-	ret.queue = queue;
 	return ret;
 }
 
 void Vram::Deleter::operator()(Vram const& vram) const { vmaDestroyAllocator(vram.allocator); }
-void VmaImage::Deleter::operator()(VmaImage const& img) const { vmaDestroyImage(img.allocator, img.image, img.handle); }
 
-UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage) const {
-	if (!allocator || !device) { return {}; }
-	bool const linear = usage != VMA_MEMORY_USAGE_UNKNOWN && usage != VMA_MEMORY_USAGE_GPU_ONLY && usage != VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED;
+UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage const usage, bool linear) const {
+	if (!allocator || !device.device) { return {}; }
 	info.tiling = linear ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal;
 	if (info.imageType == vk::ImageType()) { info.imageType = vk::ImageType::e2D; }
 	if (info.mipLevels == 0U) { info.mipLevels = 1U; }
 	if (info.arrayLayers == 0U) { info.arrayLayers = 1U; }
 	info.sharingMode = vk::SharingMode::eExclusive;
 	info.queueFamilyIndexCount = 1U;
-	info.pQueueFamilyIndices = &queue;
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = usage;
+	info.pQueueFamilyIndices = &device.queue.family;
+
+	auto vaci = VmaAllocationCreateInfo{};
+	vaci.usage = usage;
 	auto const& imageInfo = static_cast<VkImageCreateInfo const&>(info);
-	VkImage ret;
-	VmaAllocation handle;
-	if (auto res = vmaCreateImage(allocator, &imageInfo, &allocInfo, &ret, &handle, nullptr); res != VK_SUCCESS) { return {}; }
+	auto ret = VkImage{};
+	auto handle = VmaAllocation{};
+	if (auto res = vmaCreateImage(allocator, &imageInfo, &vaci, &ret, &handle, nullptr); res != VK_SUCCESS) { return {}; }
 	return VmaImage{vk::Image(ret), allocator, handle};
+}
+
+UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage const usage) const {
+	info.sharingMode = vk::SharingMode::eExclusive;
+	info.queueFamilyIndexCount = 1U;
+	info.pQueueFamilyIndices = &device.queue.family;
+
+	auto vaci = VmaAllocationCreateInfo{};
+	vaci.usage = usage;
+	auto const& vkBufferInfo = static_cast<VkBufferCreateInfo>(info);
+	auto ret = VkBuffer{};
+	auto handle = VmaAllocation{};
+	if (vmaCreateBuffer(allocator, &vkBufferInfo, &vaci, &ret, &handle, nullptr) != VK_SUCCESS) { return {}; }
+	return VmaBuffer{vk::Buffer(ret), allocator, handle};
 }
 } // namespace vf

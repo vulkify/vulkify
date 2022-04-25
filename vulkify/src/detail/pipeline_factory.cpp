@@ -57,14 +57,15 @@ bool ShaderCache::load(std::string path, bool force) {
 }
 
 PipelineFactory PipelineFactory::make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts) {
-	if (!device.device || !device.gpu.device) { return {}; }
+	if (!device.device || !device.gpu) { return {}; }
 	auto ret = PipelineFactory{};
 	if (!makeDefaultShaders(device.device, ret.defaultShaders.vert, ret.defaultShaders.frag)) {
 		VF_TRACE("Failed to create default shader modules");
 		return {};
 	}
 	ret.cache.device = device.device;
-	ret.lineWidthLimit = {device.gpu.properties.limits.lineWidthRange[0], device.gpu.properties.limits.lineWidthRange[1]};
+	auto const& props = device.gpu.getProperties();
+	ret.lineWidthLimit = {props.limits.lineWidthRange[0], props.limits.lineWidthRange[1]};
 	ret.vertexInput = std::move(vertexInput);
 	ret.setLayouts = std::move(setLayouts);
 	return ret;

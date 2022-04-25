@@ -25,6 +25,15 @@ struct Rgba {
 	constexpr glm::vec4 normalize() const { return {normalize(channels[0]), normalize(channels[1]), normalize(channels[2]), normalize(channels[3])}; }
 };
 
+constexpr Rgba black_v = {{{}, {}, {}, 0xff}};
+constexpr Rgba white_v = {{0xff, 0xff, 0xff, 0xff}};
+constexpr Rgba red_v = {{0xff, {}, {}, 0xff}};
+constexpr Rgba green_v = {{{}, 0xff, {}, 0xff}};
+constexpr Rgba blue_v = {{{}, {}, 0xff, 0xff}};
+constexpr Rgba yellow_v = {{0xff, 0xff, {}, 0xff}};
+constexpr Rgba cyan_v = {{0xff, 0xff, 0xff, 0xff}};
+constexpr Rgba magenta_v = {{0xff, {}, 0xff, 0xff}};
+
 // impl
 
 constexpr Rgba Rgba::make(std::uint32_t mask) {

@@ -2,13 +2,13 @@ target_sources(${PROJECT_NAME} PRIVATE
   context/canvas.cpp
   context/context.cpp
 
+  core/geometry.cpp
   core/rgba.cpp
 
   instance/vf_instance.cpp
 
   pipeline/pipeline.cpp
 
-  detail/canvas_impl.hpp
   detail/defer.hpp
   detail/image_cache.hpp
   detail/pipeline_factory.cpp
@@ -16,6 +16,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/renderer.cpp
   detail/renderer.hpp
   detail/rotator.hpp
+  detail/shared_impl.hpp
   detail/trace.cpp
   detail/trace.hpp
   detail/vk_instance.cpp

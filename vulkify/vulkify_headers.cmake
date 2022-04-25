@@ -1,5 +1,6 @@
 target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/core/defines.hpp
+  include/vulkify/core/geometry.hpp
   include/vulkify/core/ptr.hpp
   include/vulkify/core/result.hpp
   include/vulkify/core/rgba.hpp
