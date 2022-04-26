@@ -28,11 +28,16 @@ struct VKSurface {
 	VKDevice device{};
 	VKGpu gpu{};
 	vk::SurfaceKHR surface{};
+	bool linear{};
+
 	vk::SwapchainCreateInfoKHR info{};
 	VKSwapchain swapchain{};
 
-	static vk::SwapchainCreateInfoKHR makeInfo(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, glm::ivec2 framebuffer);
+	static VKSurface make(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, glm::ivec2 framebuffer, bool linear);
 
+	explicit operator bool() const { return device.device && surface; }
+
+	vk::SwapchainCreateInfoKHR makeInfo(glm::ivec2 framebuffer) const;
 	vk::Result refresh(glm::ivec2 framebuffer);
 	std::optional<Acquire> acquire(vk::Semaphore signal, glm::ivec2 framebuffer);
 	vk::Result submit(vk::CommandBuffer cb, VKSync const& sync);

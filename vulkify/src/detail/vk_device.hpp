@@ -1,5 +1,6 @@
 #pragma once
 #include <detail/defer_queue.hpp>
+#include <ktl/enum_flags/enum_flags.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vulkify/core/time.hpp>
 #include <mutex>
@@ -19,12 +20,15 @@ struct VKQueue {
 struct VKDevice {
 	static constexpr auto fence_wait_v = 2s;
 
+	enum class Flag { eDebugMsgr, eLinearSwp };
+	using Flags = ktl::enum_flags<Flag, std::uint8_t>;
+
 	VKQueue queue{};
 	vk::PhysicalDevice gpu{};
 	vk::Device device{};
 	Defer defer{};
 	std::mutex* mutex{};
-	bool hasDebugMessenger{};
+	Flags flags{};
 
 	explicit operator bool() const { return device; }
 
@@ -56,7 +60,7 @@ struct VKDevice {
 
 	template <typename T>
 	void setDebugName(vk::ObjectType type, T const handle, char const* name) const {
-		if (hasDebugMessenger) { device.setDebugUtilsObjectNameEXT({type, reinterpret_cast<std::uint64_t>(handle), name}); }
+		if (flags.test(Flag::eDebugMsgr)) { device.setDebugUtilsObjectNameEXT({type, reinterpret_cast<std::uint64_t>(handle), name}); }
 	}
 };
 } // namespace vf

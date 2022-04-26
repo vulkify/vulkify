@@ -9,7 +9,7 @@
 namespace vf {
 class VulkifyInstance : public Instance {
   public:
-	enum class Flag { eBorderless, eNoResize, eHidden, eMaximized };
+	enum class Flag { eBorderless, eNoResize, eHidden, eMaximized, eLinearSwapchain };
 	using Flags = ktl::enum_flags<Flag, std::uint8_t>;
 
 	struct Info;

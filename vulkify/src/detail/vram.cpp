@@ -116,7 +116,7 @@ UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage const usage
 	void* map{};
 	if (hostVisible(usage)) { vmaMapMemory(allocator, handle, &map); }
 
-	if (device.hasDebugMessenger) {
+	if (device.flags.test(VKDevice::Flag::eDebugMsgr)) {
 		static auto count = std::atomic<int>{};
 		auto nameFallback = std::string{};
 		name = getName(name, nameFallback, count);
@@ -143,7 +143,7 @@ UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage const us
 	void* map{};
 	if (hostVisible(usage)) { vmaMapMemory(allocator, handle, &map); }
 
-	if (device.hasDebugMessenger) {
+	if (device.flags.test(VKDevice::Flag::eDebugMsgr)) {
 		static auto id = std::atomic<int>{};
 		auto nameFallback = std::string{};
 		name = getName(name, nameFallback, id);

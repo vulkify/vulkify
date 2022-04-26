@@ -180,6 +180,11 @@ glm::ivec2 getWindowSize(GLFWwindow* w) {
 } // namespace
 
 namespace {
+VKDevice makeDevice(VKInstance const& instance) {
+	auto const flags = instance.messenger ? VKDevice::Flag::eDebugMsgr : VKDevice::Flags{};
+	return {instance.queue, instance.gpu.device, *instance.device, {&instance.util->defer}, &instance.util->mutex, flags};
+}
+
 std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts() {
 	auto ret = std::vector<vk::UniqueDescriptorSetLayout>{};
 	return ret;
@@ -266,14 +271,15 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 		return vk::SurfaceKHR(surface);
 	});
 	if (!vulkan) { return vulkan.error(); }
-	auto device = vulkan->makeDevice();
+	auto device = makeDevice(*vulkan);
 	auto vram = UniqueVram::make(*vulkan->instance, device);
 	if (!vram) { return Error::eVulkanInitFailure; }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
-	impl->surface = VKSurface{device, impl->vulkan.gpu, *impl->vulkan.surface};
-	if (impl->surface.refresh(getFramebufferSize(impl->window->win)) != vk::Result::eSuccess) { return Error::eVulkanInitFailure; }
-	impl->gpu = makeGPU(*vulkan);
+	bool const linear = info.flags.test(Flag::eLinearSwapchain);
+	impl->surface = VKSurface::make(device, impl->vulkan.gpu, *impl->vulkan.surface, getFramebufferSize(impl->window->win), linear);
+	if (!impl->surface) { return Error::eVulkanInitFailure; }
+	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
 
 	auto renderer = Renderer::make(impl->vram.vram, impl->surface, true);
 	if (!renderer.renderPass) { return Error::eVulkanInitFailure; }
@@ -286,16 +292,15 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 
 	// TEST CODE
 	auto f = std::async(std::launch::async, [vram = impl->vram.vram.get()] {
-		auto geo = Geometry{};
-		auto const colour = white_v.normalize();
-		geo.vertices = {
-			{{-0.5, -0.5}, {}, colour},
-			{{+0.5, -0.5}, {}, colour},
-			{{+0.0, +0.5}, {}, colour},
-		};
-		g_testVBO = vram.makeVIBuffer(makeQuad(glm::vec2(1.0f)), VIBuffer::Type::eCpuToGpu, "test");
+		auto geo = makeQuad(glm::vec2(1.0f));
+		geo.vertices[0].rgba = red_v.normalize();
+		geo.vertices[1].rgba = green_v.normalize();
+		geo.vertices[2].rgba = blue_v.normalize();
+		g_testVBO = vram.makeVIBuffer(geo, VIBuffer::Type::eCpuToGpu, "test");
 	});
 	// TEST CODE
+
+	impl->gpu = makeGPU(*vulkan);
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }

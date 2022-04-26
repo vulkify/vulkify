@@ -35,7 +35,5 @@ struct VKInstance {
 	ktl::kunique_ptr<Util> util{};
 
 	static Result<VKInstance> make(MakeSurface makeSurface, bool validation = true);
-
-	VKDevice makeDevice() { return {queue, gpu.device, *device, {&util->defer}, &util->mutex, static_cast<bool>(messenger)}; }
 };
 } // namespace vf

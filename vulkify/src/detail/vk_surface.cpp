@@ -3,22 +3,30 @@
 #include <algorithm>
 #include <cassert>
 #include <limits>
-#include <map>
 #include <span>
 
 namespace vf {
 namespace {
-vk::Format imageFormat(std::span<vk::SurfaceFormatKHR const> formats) noexcept {
-	static constexpr vk::Format targets[] = {vk::Format::eR8G8B8A8Srgb, vk::Format::eB8G8R8A8Srgb, vk::Format::eR8G8B8A8Unorm, vk::Format::eB8G8R8A8Unorm};
-	auto map = std::map<std::size_t, vk::Format>{};
-	for (auto const format : formats) {
+constexpr vk::Format srgb_formats_v[] = {vk::Format::eR8G8B8A8Srgb, vk::Format::eB8G8R8A8Srgb};
+constexpr vk::Format linear_formats_v[] = {vk::Format::eR8G8B8A8Unorm, vk::Format::eB8G8R8A8Unorm};
+
+constexpr bool isLinear(vk::Format format) { return std::find(std::begin(linear_formats_v), std::end(linear_formats_v), format) != std::end(linear_formats_v); }
+
+template <std::size_t N>
+vk::Format imageFormat(std::span<vk::SurfaceFormatKHR const> available, std::span<vk::Format const, N> targets) noexcept {
+	assert(!available.empty());
+	vk::Format ranked[N]{};
+	for (auto const format : available) {
 		if (format.colorSpace == vk::ColorSpaceKHR::eVkColorspaceSrgbNonlinear) {
-			for (std::size_t i = 0; i < std::size(targets); ++i) {
-				if (format == targets[i]) { map[i] = format.format; }
+			for (std::size_t i = 0; i < targets.size(); ++i) {
+				if (format == targets[i]) { ranked[i] = format.format; }
 			}
 		}
 	}
-	return map.empty() ? vk::Format() : map.begin()->second;
+	for (auto const format : ranked) {
+		if (format != vk::Format()) { return format; }
+	}
+	return available.front().format;
 }
 
 constexpr std::uint32_t imageCount(vk::SurfaceCapabilitiesKHR const& caps) noexcept {
@@ -45,10 +53,8 @@ constexpr PresentResult presentResult(vk::Result const result) noexcept {
 }
 
 constexpr bool valid(glm::ivec2 extent) { return extent.x > 0 && extent.y > 0; }
-} // namespace
 
-vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR const surface, glm::ivec2 const framebuffer) {
-	if (!device) { return {}; }
+vk::SwapchainCreateInfoKHR makeSwci(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, glm::ivec2 framebuffer, bool linear) {
 	vk::SwapchainCreateInfoKHR ret;
 	ret.surface = surface;
 	ret.presentMode = vk::PresentModeKHR::eFifo;
@@ -57,17 +63,29 @@ vk::SwapchainCreateInfoKHR VKSurface::makeInfo(VKDevice const& device, VKGpu con
 	ret.pQueueFamilyIndices = &device.queue.family;
 	ret.imageColorSpace = vk::ColorSpaceKHR::eVkColorspaceSrgbNonlinear;
 	ret.imageArrayLayers = 1U;
-	ret.imageFormat = imageFormat(gpu.formats);
+	std::span const targets = linear ? linear_formats_v : srgb_formats_v;
+	ret.imageFormat = imageFormat(gpu.formats, targets);
 	auto const caps = gpu.device.getSurfaceCapabilitiesKHR(surface);
 	ret.imageExtent = imageExtent(caps, framebuffer);
 	ret.minImageCount = imageCount(caps);
 	return ret;
 }
+} // namespace
+
+VKSurface VKSurface::make(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, glm::ivec2 framebuffer, bool linear) {
+	if (!device) { return {}; }
+	auto ret = VKSurface{device, gpu, surface, linear};
+	if (ret.refresh(framebuffer) != vk::Result::eSuccess) { return {}; }
+	ret.linear = isLinear(ret.info.imageFormat);
+	return ret;
+}
+
+vk::SwapchainCreateInfoKHR VKSurface::makeInfo(glm::ivec2 const framebuffer) const { return makeSwci(device, gpu, surface, framebuffer, linear); }
 
 vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
 	if (!device) { return vk::Result::eErrorDeviceLost; }
 	if (!valid(framebuffer)) { return vk::Result::eNotReady; }
-	info = makeInfo(device, gpu, surface, framebuffer);
+	info = makeInfo(framebuffer);
 	info.oldSwapchain = *swapchain.swapchain;
 	vk::SwapchainKHR vks;
 	auto const ret = device.device.createSwapchainKHR(&info, nullptr, &vks);
