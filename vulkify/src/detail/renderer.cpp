@@ -126,7 +126,8 @@ vk::CommandBuffer Renderer::beginPass(VKImage const& target) {
 	s.framebuffer = makeFramebuffer(attachments);
 	auto const cbii = vk::CommandBufferInheritanceInfo(*renderPass, 0U, *s.framebuffer);
 	s.cmd.secondary->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue, &cbii});
-	s.cmd.secondary->setViewport(0, vk::Viewport({}, {}, static_cast<float>(target.extent.width), static_cast<float>(target.extent.height)));
+	auto const height = static_cast<float>(target.extent.height);
+	s.cmd.secondary->setViewport(0, vk::Viewport({}, height, static_cast<float>(target.extent.width), -height));
 	s.cmd.secondary->setScissor(0, vk::Rect2D({}, target.extent));
 	return *s.cmd.secondary;
 }

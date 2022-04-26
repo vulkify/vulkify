@@ -192,10 +192,23 @@ std::vector<vk::DescriptorSetLayout> makeSetLayouts(std::span<vk::UniqueDescript
 	return ret;
 }
 
-VertexInput vertexInput() {
-	auto ret = VertexInput{};
-	return ret;
-}
+struct VIStorage {
+	std::vector<vk::VertexInputBindingDescription> bindings{};
+	std::vector<vk::VertexInputAttributeDescription> attributes{};
+
+	VertexInput operator()() const { return {bindings, attributes}; }
+
+	static VIStorage make() {
+		auto ret = VIStorage{};
+		auto vertex = vk::VertexInputBindingDescription(0, sizeof(Vertex));
+		ret.bindings = {vertex};
+		auto xy = vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, xy));
+		auto uv = vk::VertexInputAttributeDescription(1, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, uv));
+		auto rgba = vk::VertexInputAttributeDescription(2, 0, vk::Format::eR32G32B32A32Sfloat, offsetof(Vertex, rgba));
+		ret.attributes = {xy, uv, rgba};
+		return ret;
+	}
+};
 } // namespace
 
 struct VulkifyInstance::Impl {
@@ -209,6 +222,7 @@ struct VulkifyInstance::Impl {
 
 	std::optional<VKSurface::Acquire> acquired{};
 	std::vector<vk::UniqueDescriptorSetLayout> setLayouts{};
+	VIStorage vertexInput{};
 	PipelineFactory pipelineFactory{};
 };
 
@@ -226,6 +240,8 @@ Gpu makeGPU(VKInstance const& vulkan) {
 	return ret;
 }
 
+static VIBuffer g_testVBO{};
+
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
 	g_glfw = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->fileDrops};
 }
@@ -234,6 +250,7 @@ VulkifyInstance& VulkifyInstance::operator=(VulkifyInstance&&) noexcept = defaul
 VulkifyInstance::~VulkifyInstance() noexcept {
 	m_impl->vulkan.device->waitIdle();
 	g_glfw = {};
+	g_testVBO = {};
 }
 
 VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
@@ -263,14 +280,20 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	impl->renderer = std::move(renderer);
 
 	impl->setLayouts = makeSetLayouts();
-	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, vertexInput(), makeSetLayouts(impl->setLayouts));
+	impl->vertexInput = VIStorage::make();
+	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, impl->vertexInput(), makeSetLayouts(impl->setLayouts));
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
 	// TEST CODE
 	auto f = std::async(std::launch::async, [vram = impl->vram.vram.get()] {
 		auto geo = Geometry{};
-		geo.vertices.push_back({});
-		auto buf = vram.makeVIBuffer(geo, VIBuffer::Type::eGpuOnly, "test");
+		auto const colour = white_v.normalize();
+		geo.vertices = {
+			{{-0.5, -0.5}, {}, colour},
+			{{+0.5, -0.5}, {}, colour},
+			{{+0.0, +0.5}, {}, colour},
+		};
+		g_testVBO = vram.makeVIBuffer(makeQuad(glm::vec2(1.0f)), VIBuffer::Type::eCpuToGpu, "test");
 	});
 	// TEST CODE
 
@@ -294,6 +317,8 @@ Instance::Poll VulkifyInstance::poll() {
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->fileDrops};
 }
 
+static vk::CommandBuffer g_temp{};
+
 Canvas VulkifyInstance::beginPass() {
 	if (m_impl->acquired) {
 		VF_TRACE("RenderPass already begun");
@@ -305,11 +330,20 @@ Canvas VulkifyInstance::beginPass() {
 	auto& r = m_impl->renderer;
 	auto ret = r.beginPass(m_impl->acquired->image);
 	m_impl->vulkan.util->defer.decrement();
+	g_temp = ret;
 	return Canvas::Impl{this, &m_impl->pipelineFactory, *r.renderPass, std::move(ret), &r.clear};
 }
 
 bool VulkifyInstance::endPass() {
 	if (!m_impl->acquired) { return false; }
+
+	// test
+	auto pipe = m_impl->pipelineFactory.get({}, *m_impl->renderer.renderPass);
+	if (g_testVBO.vbo) { g_temp.bindVertexBuffers(0, g_testVBO.vbo->resource, vk::DeviceSize(0)); }
+	if (g_testVBO.ibo) { g_temp.bindIndexBuffer(g_testVBO.ibo->resource, {}, vk::IndexType::eUint32); }
+	g_temp.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe);
+	g_temp.drawIndexed(6, 1, 0, 0, 0);
+	// test
 	auto const cb = m_impl->renderer.endPass();
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();

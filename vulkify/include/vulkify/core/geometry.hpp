@@ -6,14 +6,14 @@
 
 namespace vf {
 struct Vertex {
-	glm::vec4 rgba{};
 	glm::vec2 xy{};
 	glm::vec2 uv{};
+	glm::vec4 rgba{};
 };
 
 struct Geometry {
 	std::vector<Vertex> vertices{};
-	std::vector<std::size_t> indices{};
+	std::vector<std::uint32_t> indices{};
 };
 
 struct QuadUV {

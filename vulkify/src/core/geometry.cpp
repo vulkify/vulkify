@@ -7,10 +7,10 @@ auto vf::makeQuad(glm::vec2 const size, glm::vec2 const origin, Rgba const rgba,
 	auto const colour = rgba.normalize();
 	auto const hs = size * 0.5f;
 	ret.vertices = {
-		{colour, origin + v2(-hs.x, hs.y), uv.topLeft},
-		{colour, origin + v2(-hs.x, -hs.y), {uv.topLeft.x, uv.bottomRight.y}},
-		{colour, origin + v2(hs.x, -hs.y), uv.bottomRight},
-		{colour, origin + v2(hs.x, hs.y), {uv.bottomRight.x, uv.topLeft.y}},
+		{origin + v2(-hs.x, hs.y), uv.topLeft, colour},
+		{origin + v2(-hs.x, -hs.y), {uv.topLeft.x, uv.bottomRight.y}, colour},
+		{origin + v2(hs.x, -hs.y), uv.bottomRight, colour},
+		{origin + v2(hs.x, hs.y), {uv.bottomRight.x, uv.topLeft.y}, colour},
 	};
 	ret.indices = {0, 1, 2, 2, 3, 0};
 	return ret;

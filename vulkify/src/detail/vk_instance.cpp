@@ -8,7 +8,7 @@ Result<VKInstance> VKInstance::make(MakeSurface const makeSurface, bool const va
 	VULKAN_HPP_DEFAULT_DISPATCHER.init(dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr"));
 	auto vib = vkb::InstanceBuilder{};
 	if (validation) { vib.request_validation_layers(); }
-	auto vi = vib.set_app_name("vulkify").use_default_debug_messenger().build();
+	auto vi = vib.set_app_name("vulkify").use_default_debug_messenger().require_api_version(VK_MAKE_VERSION(1, 1, 0)).build();
 	if (!vi) { return Error::eVulkanInitFailure; }
 	VULKAN_HPP_DEFAULT_DISPATCHER.init(vi->instance);
 	auto ret = VKInstance{};

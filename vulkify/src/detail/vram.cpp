@@ -122,7 +122,10 @@ UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage const usage
 		name = getName(name, nameFallback, count);
 		device.setDebugName(vk::ObjectType::eImage, ret, name);
 	}
-	return VmaImage{vk::Image(ret), allocator, handle, map};
+
+	auto vi = VmaAllocationInfo{};
+	vmaGetAllocationInfo(allocator, handle, &vi);
+	return VmaImage{vk::Image(ret), allocator, handle, vi.size, map};
 }
 
 UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage const usage, char const* name) const {
@@ -147,11 +150,27 @@ UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage const us
 		device.setDebugName(vk::ObjectType::eBuffer, ret, name);
 	}
 
-	return VmaBuffer{vk::Buffer(ret), allocator, handle, map};
+	return VmaBuffer{vk::Buffer(ret), allocator, handle, info.size, map};
+}
+
+template <typename Span, std::output_iterator<UniqueBuffer> Out>
+static void copy(Vram const& vram, VmaBuffer dst, vk::CommandBuffer cmd, Span const& data, char const* name, Out out) {
+	auto const size = sizeof(decltype(data[0])) * std::size(data);
+	if (!dst.resource || size == 0) { return; }
+	auto bci = vk::BufferCreateInfo({}, static_cast<vk::DeviceSize>(size), vk::BufferUsageFlagBits::eTransferSrc);
+	auto str = ktl::str_format("{}_staging", name);
+	auto stage = vram.makeBuffer(bci, VMA_MEMORY_USAGE_CPU_TO_GPU, str.c_str());
+	assert(stage);
+	stage->write(data.data(), data.size());
+	cmd.copyBuffer(stage->resource, dst.resource, vk::BufferCopy({}, {}, bci.size));
+	*out++ = std::move(stage);
 }
 
 VIBuffer Vram::makeVIBuffer(Geometry const& geometry, VIBuffer::Type type, char const* name) const {
-	if (!device || geometry.vertices.empty()) { return {}; }
+	static constexpr auto s_vert = Vertex{};
+	if (!device) { return {}; }
+	auto verts = std::span<Vertex const>(geometry.vertices);
+	if (verts.empty()) { verts = {&s_vert, 1}; }
 	auto ret = VIBuffer{};
 	ret.type = type;
 	bool const gpuOnly = type == VIBuffer::Type::eGpuOnly;
@@ -163,34 +182,24 @@ VIBuffer Vram::makeVIBuffer(Geometry const& geometry, VIBuffer::Type type, char 
 	static auto count = std::atomic<int>{};
 	auto nameFallback = std::string{};
 	name = getName(name, nameFallback, count);
-	bci.size = geometry.vertices.size() * sizeof(Vertex);
+	bci.size = verts.size_bytes();
 	auto str = ktl::str_format("{}_vbo", name);
-	ret.vertex = makeBuffer(bci, usage, str.c_str());
+	ret.vbo = makeBuffer(bci, usage, str.c_str());
 	if (!geometry.indices.empty()) {
 		bci.usage = vk::BufferUsageFlagBits::eIndexBuffer;
-		bci.size = geometry.indices.size();
+		bci.size = geometry.indices.size() * sizeof(decltype(geometry.indices[0]));
 		str = ktl::str_format("{}_ibo", name);
-		ret.index = makeBuffer(bci, usage, str.c_str());
+		ret.ibo = makeBuffer(bci, usage, str.c_str());
 	}
 
 	auto cmd = InstantCommand(commandFactory->get());
 	auto scratch = ktl::fixed_vector<UniqueBuffer, 4>{};
-	auto copy = [&]<typename T>(UniqueBuffer& out, std::vector<T> const& data) {
-		if (!out) { return; }
-		bci.usage = vk::BufferUsageFlagBits::eTransferSrc;
-		bci.size = data.size() * sizeof(T);
-		str = ktl::str_format("{}_staging", name);
-		auto stage = makeBuffer(bci, VMA_MEMORY_USAGE_CPU_TO_GPU, str.c_str());
-		stage->write(data.data(), data.size());
-		cmd.cmd.copyBuffer(stage->resource, out->resource, vk::BufferCopy({}, {}, bci.size));
-		scratch.push_back(std::move(stage));
-	};
 	if (gpuOnly) {
-		copy(ret.vertex, geometry.vertices);
-		copy(ret.index, geometry.indices);
+		copy(*this, ret.vbo.get(), cmd.cmd, verts, name, std::back_inserter(scratch));
+		copy(*this, ret.vbo.get(), cmd.cmd, geometry.indices, name, std::back_inserter(scratch));
 	} else {
-		ret.vertex->write(geometry.vertices.data(), geometry.vertices.size());
-		ret.index->write(geometry.indices.data(), geometry.indices.size());
+		ret.vbo->write(verts.data());
+		ret.ibo->write(geometry.indices.data());
 	}
 	cmd.submit();
 

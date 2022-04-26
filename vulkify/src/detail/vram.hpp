@@ -47,14 +47,17 @@ struct VmaResource {
 	T resource{};
 	VmaAllocator allocator{};
 	VmaAllocation handle{};
+	std::size_t size{};
 	void* map{};
 
 	template <typename U>
 	static constexpr bool false_v = false;
+	static constexpr auto full_v = std::numeric_limits<std::size_t>::max();
 
 	bool operator==(VmaResource const&) const = default;
 
-	bool write(void const* data, std::size_t const size) {
+	bool write(void const* data, std::size_t size = full_v) {
+		if (size == full_v) { size = this->size; }
 		if (!map || size == 0) { return false; }
 		std::memcpy(map, data, size);
 		return true;
@@ -62,7 +65,7 @@ struct VmaResource {
 
 	template <typename U>
 		requires(std::is_trivial_v<U>)
-	bool write(U const& u) const { return write(&u, sizeof(U)); }
+	bool writeT(U const& u) const { return write(&u, sizeof(U)); }
 
 	struct Deleter {
 		void operator()(VmaResource const&) const;
@@ -76,8 +79,8 @@ using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 struct VIBuffer {
 	enum class Type { eGpuOnly, eCpuToGpu };
 
-	UniqueBuffer vertex{};
-	UniqueBuffer index{};
+	UniqueBuffer vbo{};
+	UniqueBuffer ibo{};
 	Type type{};
 };
 

@@ -29,8 +29,8 @@ struct ShaderCache {
 };
 
 struct VertexInput {
-	std::span<vk::VertexInputBindingDescription> bindings{};
-	std::span<vk::VertexInputAttributeDescription> attributes{};
+	std::span<vk::VertexInputBindingDescription const> bindings{};
+	std::span<vk::VertexInputAttributeDescription const> attributes{};
 };
 
 struct PipelineFactory {
