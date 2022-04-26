@@ -6,6 +6,8 @@
 #include <span>
 
 namespace vf {
+struct Vram;
+
 class Instance {
   public:
 	static constexpr std::size_t max_events_v = 16;
@@ -31,6 +33,8 @@ class Instance {
 
 	virtual Canvas beginPass() = 0;
 	virtual bool endPass() = 0;
+
+	virtual Vram const& vram() const = 0;
 };
 
 using UInstance = ktl::kunique_ptr<Instance>;

@@ -33,6 +33,8 @@ class Context {
 
 	Frame frame();
 
+	Vram const& vram() const { return m_instance->vram(); }
+
   private:
 	Context(UInstance&& instance) noexcept;
 

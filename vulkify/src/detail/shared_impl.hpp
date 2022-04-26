@@ -1,8 +1,6 @@
 #pragma once
 #include <detail/vram.hpp>
-#include <ktl/either.hpp>
 #include <ktl/unique_val.hpp>
-#include <vulkan/vulkan.hpp>
 #include <vulkify/context/canvas.hpp>
 
 namespace vf {
@@ -20,6 +18,6 @@ struct Canvas::Impl {
 
 struct GfxResource {
 	Vram vram{};
-	ktl::either<UniqueBuffer, UniqueImage> resource{};
+	BufferObject buffer{};
 };
 } // namespace vf

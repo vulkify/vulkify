@@ -1,6 +1,7 @@
 #pragma once
 #include <ktl/hash_table.hpp>
-#include <vulkify/pipeline/spec.hpp>
+#include <memory>
+#include <string>
 
 namespace vf {
 struct SpirV {

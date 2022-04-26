@@ -22,6 +22,8 @@ class HeadlessInstance : public Instance {
 	Canvas beginPass() override { return {}; }
 	bool endPass() override { return true; }
 
+	Vram const& vram() const override;
+
 	Poll m_poll{};
 	glm::ivec2 m_framebufferSize{};
 	glm::ivec2 m_windowSize{};

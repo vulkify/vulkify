@@ -4,7 +4,8 @@
 #include <cmath>
 #include <iostream>
 
-#include <vulkify/pipeline/pipeline.hpp>
+#include <vulkify/graphics/buffer.hpp>
+#include <vulkify/graphics/spir_v.hpp>
 
 namespace {
 void test(vf::UContext ctx) {
@@ -14,6 +15,12 @@ void test(vf::UContext ctx) {
 	ctx->show();
 	auto const clearA = vf::Rgba::make(0xfff000ff);
 	auto const clearB = vf::Rgba::make(0x000fffff);
+	auto quad = vf::GeometryBuffer(ctx->vram(), "test_quad");
+	auto geo = vf::makeQuad(glm::vec2(1.0f));
+	geo.vertices[0].rgba = vf::red_v.normalize();
+	geo.vertices[1].rgba = vf::green_v.normalize();
+	geo.vertices[2].rgba = vf::blue_v.normalize();
+	quad.write(std::move(geo));
 	auto elapsed = vf::Time{};
 	while (!ctx->closing()) {
 		auto const frame = ctx->frame();
@@ -36,7 +43,7 @@ void test(vf::UContext ctx) {
 		for (auto const code : frame.poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
 
 		elapsed += frame.dt;
-		// if (frame.canvas.bind({})) { frame.canvas.draw(3, 0); }
+		if (frame.canvas.bind({})) { frame.canvas.draw(quad); }
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
 		frame.canvas.setClear(clear.linear());
 	}

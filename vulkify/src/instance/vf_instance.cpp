@@ -4,6 +4,7 @@
 #include <detail/vk_instance.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/core/unique.hpp>
+#include <vulkify/instance/headless_instance.hpp>
 #include <vulkify/instance/vf_instance.hpp>
 #include <memory>
 #include <vector>
@@ -245,8 +246,6 @@ Gpu makeGPU(VKInstance const& vulkan) {
 	return ret;
 }
 
-static VIBuffer g_testVBO{};
-
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
 	g_glfw = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->fileDrops};
 }
@@ -255,7 +254,6 @@ VulkifyInstance& VulkifyInstance::operator=(VulkifyInstance&&) noexcept = defaul
 VulkifyInstance::~VulkifyInstance() noexcept {
 	m_impl->vulkan.device->waitIdle();
 	g_glfw = {};
-	g_testVBO = {};
 }
 
 VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
@@ -296,7 +294,7 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 		geo.vertices[0].rgba = red_v.normalize();
 		geo.vertices[1].rgba = green_v.normalize();
 		geo.vertices[2].rgba = blue_v.normalize();
-		g_testVBO = vram.makeVIBuffer(geo, VIBuffer::Type::eCpuToGpu, "test");
+		[[maybe_unused]] auto vbo = vram.makeVIBuffer(geo, BufferObject::Type::eCpuToGpu, "test");
 	});
 	// TEST CODE
 
@@ -309,7 +307,12 @@ Gpu const& VulkifyInstance::gpu() const { return m_impl->gpu; }
 glm::ivec2 VulkifyInstance::framebufferSize() const { return getFramebufferSize(m_impl->window->win); }
 glm::ivec2 VulkifyInstance::windowSize() const { return getWindowSize(m_impl->window->win); }
 
-bool VulkifyInstance::closing() const { return glfwWindowShouldClose(m_impl->window->win); }
+bool VulkifyInstance::closing() const {
+	auto const ret = glfwWindowShouldClose(m_impl->window->win);
+	if (ret) { m_impl->vulkan.device->waitIdle(); }
+	return ret;
+}
+
 void VulkifyInstance::show() { glfwShowWindow(m_impl->window->win); }
 void VulkifyInstance::hide() { glfwHideWindow(m_impl->window->win); }
 void VulkifyInstance::close() { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
@@ -322,8 +325,6 @@ Instance::Poll VulkifyInstance::poll() {
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->fileDrops};
 }
 
-static vk::CommandBuffer g_temp{};
-
 Canvas VulkifyInstance::beginPass() {
 	if (m_impl->acquired) {
 		VF_TRACE("RenderPass already begun");
@@ -335,20 +336,11 @@ Canvas VulkifyInstance::beginPass() {
 	auto& r = m_impl->renderer;
 	auto ret = r.beginPass(m_impl->acquired->image);
 	m_impl->vulkan.util->defer.decrement();
-	g_temp = ret;
 	return Canvas::Impl{this, &m_impl->pipelineFactory, *r.renderPass, std::move(ret), &r.clear};
 }
 
 bool VulkifyInstance::endPass() {
 	if (!m_impl->acquired) { return false; }
-
-	// test
-	auto pipe = m_impl->pipelineFactory.get({}, *m_impl->renderer.renderPass);
-	if (g_testVBO.vbo) { g_temp.bindVertexBuffers(0, g_testVBO.vbo->resource, vk::DeviceSize(0)); }
-	if (g_testVBO.ibo) { g_temp.bindIndexBuffer(g_testVBO.ibo->resource, {}, vk::IndexType::eUint32); }
-	g_temp.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe);
-	g_temp.drawIndexed(6, 1, 0, 0, 0);
-	// test
 	auto const cb = m_impl->renderer.endPass();
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();
@@ -358,4 +350,11 @@ bool VulkifyInstance::endPass() {
 	m_impl->renderer.next();
 	return ret.has_value();
 }
+
+Vram const& HeadlessInstance::vram() const {
+	static const auto ret = Vram{};
+	return ret;
+}
+
+Vram const& VulkifyInstance::vram() const { return m_impl->vram.vram; }
 } // namespace vf

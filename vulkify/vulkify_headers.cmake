@@ -11,6 +11,10 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/context/canvas.hpp
   include/vulkify/context/context.hpp
 
+  include/vulkify/graphics/buffer.hpp
+  include/vulkify/graphics/spir_v.hpp
+  include/vulkify/graphics/pipeline_spec.hpp
+
   include/vulkify/instance/event_type.hpp
   include/vulkify/instance/event.hpp
   include/vulkify/instance/gpu.hpp
@@ -18,7 +22,4 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/instance/key_event.hpp
   include/vulkify/instance/instance.hpp
   include/vulkify/instance/vf_instance.hpp
-
-  include/vulkify/pipeline/pipeline.hpp
-  include/vulkify/pipeline/spec.hpp
 )

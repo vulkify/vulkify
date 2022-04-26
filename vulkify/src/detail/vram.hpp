@@ -76,12 +76,14 @@ using VmaBuffer = VmaResource<vk::Buffer>;
 using UniqueImage = Unique<VmaImage, VmaImage::Deleter>;
 using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 
-struct VIBuffer {
+struct BufferObject {
 	enum class Type { eGpuOnly, eCpuToGpu };
 
-	UniqueBuffer vbo{};
-	UniqueBuffer ibo{};
+	std::vector<UniqueBuffer> buffers{};
 	Type type{};
+
+	explicit operator bool() const { return !buffers.empty(); }
+	bool operator==(BufferObject const& rhs) const { return buffers.empty() && rhs.buffers.empty(); }
 };
 
 struct InstantCommand {
@@ -125,7 +127,7 @@ struct Vram {
 	UniqueImage makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage, char const* name, bool linear = false) const;
 	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage usage, char const* name) const;
 
-	VIBuffer makeVIBuffer(Geometry const& geometry, VIBuffer::Type type, char const* name) const;
+	BufferObject makeVIBuffer(Geometry const& geometry, BufferObject::Type type, char const* name) const;
 
 	struct Deleter {
 		void operator()(Vram const& vram) const;

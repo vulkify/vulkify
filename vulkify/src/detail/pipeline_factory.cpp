@@ -2,6 +2,7 @@
 #include <detail/trace.hpp>
 #include <detail/vk_device.hpp>
 #include <ktl/fixed_vector.hpp>
+#include <vulkify/graphics/spir_v.hpp>
 #include <filesystem>
 #include <spir_v/frag.spv.hpp>
 #include <spir_v/vert.spv.hpp>

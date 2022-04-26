@@ -1,5 +1,6 @@
 #include <detail/pipeline_factory.hpp>
 #include <detail/shared_impl.hpp>
+#include <vulkify/graphics/buffer.hpp>
 #include <vulkify/instance/instance.hpp>
 
 namespace vf {
@@ -23,6 +24,20 @@ bool Canvas::bind(PipelineSpec const& pipeline) const {
 	auto const pipe = m_impl->pipelineFactory->get(pipeline, m_impl->renderPass);
 	if (!pipe) { return false; }
 	m_impl->commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe);
+	return true;
+}
+
+bool Canvas::draw(GeometryBuffer const& vbo) const {
+	auto const& buffers = vbo.resource().buffer.buffers;
+	if (buffers.empty() || !m_impl->commandBuffer) { return false; }
+	m_impl->commandBuffer.bindVertexBuffers(0, buffers[0]->resource, vk::DeviceSize{});
+	auto const& geometry = vbo.geometry();
+	if (buffers.size() > 1) {
+		m_impl->commandBuffer.bindIndexBuffer(buffers[1]->resource, vk::DeviceSize{}, vk::IndexType::eUint32);
+		m_impl->commandBuffer.drawIndexed(static_cast<std::uint32_t>(6), 1, 0, 0, 0);
+	} else {
+		m_impl->commandBuffer.draw(static_cast<std::uint32_t>(geometry.vertices.size()), 1, 0, 0);
+	}
 	return true;
 }
 

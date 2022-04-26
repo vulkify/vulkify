@@ -1,9 +1,11 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
 #include <vulkify/core/rgba.hpp>
-#include <vulkify/pipeline/spec.hpp>
+#include <vulkify/graphics/pipeline_spec.hpp>
 
 namespace vf {
+class GeometryBuffer;
+
 class Canvas {
   public:
 	struct Impl;
@@ -18,6 +20,7 @@ class Canvas {
 
 	void setClear(Rgba rgba) const;
 	bool bind(PipelineSpec const& pipeline) const;
+	bool draw(GeometryBuffer const& vbo) const;
 	void draw(std::size_t vertexCount, std::size_t indexCount) const;
 
   private:

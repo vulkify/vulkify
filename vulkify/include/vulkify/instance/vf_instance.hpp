@@ -34,6 +34,8 @@ class VulkifyInstance : public Instance {
 	Canvas beginPass() override;
 	bool endPass() override;
 
+	Vram const& vram() const override;
+
   private:
 	struct Impl;
 	ktl::kunique_ptr<Impl> m_impl;

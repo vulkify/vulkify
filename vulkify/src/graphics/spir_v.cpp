@@ -1,5 +1,5 @@
 #include <detail/trace.hpp>
-#include <vulkify/pipeline/pipeline.hpp>
+#include <vulkify/graphics/spir_v.hpp>
 #include <fstream>
 
 namespace vf {

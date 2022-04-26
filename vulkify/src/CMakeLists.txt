@@ -5,9 +5,10 @@ target_sources(${PROJECT_NAME} PRIVATE
   core/geometry.cpp
   core/rgba.cpp
 
-  instance/vf_instance.cpp
+  graphics/buffer.cpp
+  graphics/spir_v.cpp
 
-  pipeline/pipeline.cpp
+  instance/vf_instance.cpp
 
   detail/command_pool.hpp
   detail/defer_queue.hpp

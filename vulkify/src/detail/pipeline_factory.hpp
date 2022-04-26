@@ -1,7 +1,7 @@
 #pragma once
 #include <ktl/hash_table.hpp>
 #include <vulkan/vulkan.hpp>
-#include <vulkify/pipeline/pipeline.hpp>
+#include <vulkify/graphics/pipeline_spec.hpp>
 #include <span>
 
 namespace vf {
