@@ -2,6 +2,7 @@
 #include <GLFW/glfw3.h>
 
 #include <detail/vk_instance.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/core/unique.hpp>
 #include <vulkify/instance/headless_instance.hpp>
@@ -240,7 +241,20 @@ struct VIStorage {
 		return ret;
 	}
 };
+
 } // namespace
+
+namespace ubo {
+struct Mat {
+	glm::mat4 mat_vp = glm::mat4(1.0f);
+};
+
+constexpr Mat mat(vk::Extent2D const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
+	if (extent.width == 0 || extent.height == 0) { return {glm::identity<glm::mat4>()}; }
+	auto const half = glm::vec2(static_cast<float>(extent.width), static_cast<float>(extent.height)) * 0.5f;
+	return {glm::ortho(-half.x, half.x, -half.y, half.y, nf.x, nf.y)};
+}
+} // namespace ubo
 
 struct VulkifyInstance::Impl {
 	std::shared_ptr<UniqueGlfw> glfw{};
@@ -367,17 +381,18 @@ Canvas VulkifyInstance::beginPass() {
 	auto ret = r.beginPass(m_impl->acquired->image);
 	m_impl->vulkan.util->defer.decrement();
 
+	auto mat = m_impl->descriptorPool.get(0, 0, "uniform:Mat");
+	mat.write(0, ubo::mat(m_impl->acquired->image.extent));
+
 	// TEST
-	auto const layout = m_impl->pipelineFactory.layout({});
-	auto set = m_impl->descriptorPool.postInc(0, "test_quad_set0");
-	set.write(0, glm::mat4(1.0f));
-	set.bind(ret, layout);
-	set = m_impl->descriptorPool.postInc(1, "test_quad_set1");
+	auto layout = m_impl->pipelineFactory.layout({});
+	auto set = m_impl->descriptorPool.postInc(1, "test_quad_set1");
 	set.write(0, magenta_v.normalize());
 	set.bind(ret, layout);
 	// TEST
 
-	return Canvas::Impl{this, &m_impl->pipelineFactory, *r.renderPass, std::move(ret), &r.clear};
+	auto const mat_vp = ShaderInput{mat.set, mat.number};
+	return Canvas::Impl{this, &m_impl->pipelineFactory, *r.renderPass, std::move(ret), mat_vp, &r.clear};
 }
 
 bool VulkifyInstance::endPass() {

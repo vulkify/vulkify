@@ -2,6 +2,7 @@
 #include <ktl/fixed_pimpl.hpp>
 #include <vulkify/core/geometry.hpp>
 #include <string>
+#include <type_traits>
 
 namespace vf {
 struct GfxResource;
@@ -51,7 +52,7 @@ class UniformBuffer : public Buffer {
 	bool write(void const* data, std::size_t size);
 
 	template <typename T>
-		requires(std::is_trivial_v<T>)
+		requires(std::is_standard_layout_v<T>)
 	bool write(T const& t) { return write(&t, sizeof(T)); }
 };
 } // namespace vf

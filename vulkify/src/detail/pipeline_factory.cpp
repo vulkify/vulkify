@@ -92,11 +92,11 @@ vk::PipelineLayout PipelineFactory::layout(PipelineSpec const& spec) {
 	return {};
 }
 
-vk::Pipeline PipelineFactory::pipeline(PipelineSpec const& spec, vk::RenderPass renderPass) {
+std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::pipeline(PipelineSpec const& spec, vk::RenderPass renderPass) {
 	auto entry = getOrLoad(spec);
 	if (!entry) { return {}; }
 	auto it = entry->pipelines.find(renderPass);
-	if (it != entry->pipelines.end()) { return *it->second; }
+	if (it != entry->pipelines.end()) { return {*it->second, *entry->layout}; }
 	auto vert = cache.getOrLoad(spec.vertShader);
 	if (!vert) { vert = *defaultShaders.vert; }
 	auto frag = cache.getOrLoad(spec.fragShader);
@@ -104,7 +104,7 @@ vk::Pipeline PipelineFactory::pipeline(PipelineSpec const& spec, vk::RenderPass 
 	auto pipeline = makePipeline(spec, *entry->layout, {vert, frag}, renderPass);
 	if (!pipeline) { return {}; }
 	auto [i, _] = entry->pipelines.insert_or_assign(renderPass, std::move(pipeline));
-	return *i->second;
+	return {*i->second, *entry->layout};
 }
 
 vk::UniquePipeline PipelineFactory::makePipeline(PipelineSpec spec, vk::PipelineLayout pipelineLayout, Shaders shaders, vk::RenderPass renderPass) const {

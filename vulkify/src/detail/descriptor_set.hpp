@@ -32,7 +32,7 @@ struct DescriptorSet {
 	}
 
 	template <typename T>
-		requires(std::is_trivial_v<T>)
+		requires(std::is_standard_layout_v<T>)
 	bool write(std::uint32_t binding, T const& t) { return write(binding, &t, sizeof(T)); }
 
 	void bind(vk::CommandBuffer cmd, vk::PipelineLayout const layout) const {

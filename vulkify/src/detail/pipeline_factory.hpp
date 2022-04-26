@@ -64,7 +64,7 @@ struct PipelineFactory {
 	Entry* find(PipelineSpec const& spec);
 	Entry* getOrLoad(PipelineSpec const& spec);
 
-	vk::Pipeline pipeline(PipelineSpec const& spec, vk::RenderPass renderPass);
+	std::pair<vk::Pipeline, vk::PipelineLayout> pipeline(PipelineSpec const& spec, vk::RenderPass renderPass);
 	vk::PipelineLayout layout(PipelineSpec const& spec);
 
 	vk::UniquePipelineLayout makeLayout() const;

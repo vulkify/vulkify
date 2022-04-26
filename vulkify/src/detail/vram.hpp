@@ -63,10 +63,6 @@ struct VmaResource {
 		return true;
 	}
 
-	template <typename U>
-		requires(std::is_trivial_v<U>)
-	bool writeT(U const& u) { return write(&u, sizeof(U)); }
-
 	struct Deleter {
 		void operator()(VmaResource const&) const;
 	};

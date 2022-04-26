@@ -19,9 +19,8 @@ void test(vf::UContext ctx) {
 	auto const clearA = vf::Rgba::make(0xfff000ff);
 	auto const clearB = vf::Rgba::make(0x000fffff);
 
-	auto proj = glm::ortho(-640.0f, 640.0f, -360.0f, 360.0f, -10.0f, 10.0f);
 	auto model = glm::translate(glm::mat4(1.0f), {-100.0f, 100.0f, 0.0f});
-	auto const mat = proj * model;
+	auto const& mat = model;
 	auto quad = vf::GeometryBuffer(ctx->vram(), "test_quad");
 	auto geo = vf::makeQuad(glm::vec2(100.0f));
 	geo.vertices[0].rgba = vf::red_v.normalize();

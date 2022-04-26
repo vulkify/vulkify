@@ -22,9 +22,10 @@ void Canvas::setClear(Rgba rgba) const {
 
 bool Canvas::bind(PipelineSpec const& pipeline) const {
 	if (!m_impl->pipelineFactory || !m_impl->renderPass) { return false; }
-	auto const pipe = m_impl->pipelineFactory->pipeline(pipeline, m_impl->renderPass);
+	auto const [pipe, layout] = m_impl->pipelineFactory->pipeline(pipeline, m_impl->renderPass);
 	if (!pipe) { return false; }
 	m_impl->commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe);
+	m_impl->commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, layout, m_impl->mat.number, m_impl->mat.set, {});
 	return true;
 }
 
