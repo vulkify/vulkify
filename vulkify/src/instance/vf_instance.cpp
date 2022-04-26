@@ -15,8 +15,11 @@
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
 
+#include <detail/descriptor_set.hpp>
 #include <detail/pipeline_factory.hpp>
 #include <future>
+
+#include <glm/mat4x4.hpp>
 
 namespace vf {
 namespace {
@@ -186,8 +189,30 @@ VKDevice makeDevice(VKInstance const& instance) {
 	return {instance.queue, instance.gpu.device, *instance.device, {&instance.util->defer}, &instance.util->mutex, flags};
 }
 
-std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts() {
+vk::UniqueDescriptorSetLayout makeSetLayout(vk::Device device, std::span<vk::DescriptorSetLayoutBinding const> bindings) {
+	auto info = vk::DescriptorSetLayoutCreateInfo({}, static_cast<std::uint32_t>(bindings.size()), bindings.data());
+	return device.createDescriptorSetLayoutUnique(info);
+}
+
+std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
+	static constexpr auto stages = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
 	auto ret = std::vector<vk::UniqueDescriptorSetLayout>{};
+	auto uniformAndSampler = [device](std::uint32_t uniform = 0, std::uint32_t sampler = 1) {
+		auto b0 = vk::DescriptorSetLayoutBinding(uniform, vk::DescriptorType::eUniformBuffer, 1, stages);
+		auto b1 = vk::DescriptorSetLayoutBinding(sampler, vk::DescriptorType::eCombinedImageSampler, 1, stages);
+		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1};
+		return makeSetLayout(device, binds);
+	};
+	// set 0: scene data
+	{
+		// binding 0: matrices
+		auto b0 = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, stages);
+		ret.push_back(makeSetLayout(device, {&b0, 1}));
+	}
+	// set 1: object data
+	ret.push_back(uniformAndSampler());
+	// set 2: custom
+	ret.push_back(uniformAndSampler());
 	return ret;
 }
 
@@ -230,6 +255,7 @@ struct VulkifyInstance::Impl {
 	std::vector<vk::UniqueDescriptorSetLayout> setLayouts{};
 	VIStorage vertexInput{};
 	PipelineFactory pipelineFactory{};
+	DescriptorPool descriptorPool{};
 };
 
 Gpu makeGPU(VKInstance const& vulkan) {
@@ -283,10 +309,14 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	if (!renderer.renderPass) { return Error::eVulkanInitFailure; }
 	impl->renderer = std::move(renderer);
 
-	impl->setLayouts = makeSetLayouts();
+	impl->setLayouts = makeSetLayouts(impl->surface.device.device);
 	impl->vertexInput = VIStorage::make();
 	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, impl->vertexInput(), makeSetLayouts(impl->setLayouts));
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
+
+	auto const buffering = impl->renderer.frameSync.storage.size();
+	impl->descriptorPool = DescriptorPool::make(impl->vram.vram, impl->pipelineFactory.setLayouts, buffering);
+	if (!impl->descriptorPool) { return Error::eVulkanInitFailure; }
 
 	// TEST CODE
 	auto f = std::async(std::launch::async, [vram = impl->vram.vram.get()] {
@@ -336,6 +366,17 @@ Canvas VulkifyInstance::beginPass() {
 	auto& r = m_impl->renderer;
 	auto ret = r.beginPass(m_impl->acquired->image);
 	m_impl->vulkan.util->defer.decrement();
+
+	// TEST
+	auto const layout = m_impl->pipelineFactory.layout({});
+	auto set = m_impl->descriptorPool.postInc(0, "test_quad_set0");
+	set.write(0, glm::mat4(1.0f));
+	set.bind(ret, layout);
+	set = m_impl->descriptorPool.postInc(1, "test_quad_set1");
+	set.write(0, magenta_v.normalize());
+	set.bind(ret, layout);
+	// TEST
+
 	return Canvas::Impl{this, &m_impl->pipelineFactory, *r.renderPass, std::move(ret), &r.clear};
 }
 
@@ -348,6 +389,7 @@ bool VulkifyInstance::endPass() {
 	auto const ret = m_impl->surface.present(*m_impl->acquired, sync.present, framebufferSize());
 	m_impl->acquired.reset();
 	m_impl->renderer.next();
+	m_impl->descriptorPool.next();
 	return ret.has_value();
 }
 

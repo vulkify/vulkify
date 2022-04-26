@@ -87,7 +87,12 @@ PipelineFactory::Entry* PipelineFactory::getOrLoad(PipelineSpec const& spec) {
 	return &entries.back();
 }
 
-vk::Pipeline PipelineFactory::get(PipelineSpec const& spec, vk::RenderPass renderPass) {
+vk::PipelineLayout PipelineFactory::layout(PipelineSpec const& spec) {
+	if (auto entry = getOrLoad(spec)) { return *entry->layout; }
+	return {};
+}
+
+vk::Pipeline PipelineFactory::pipeline(PipelineSpec const& spec, vk::RenderPass renderPass) {
 	auto entry = getOrLoad(spec);
 	if (!entry) { return {}; }
 	auto it = entry->pipelines.find(renderPass);

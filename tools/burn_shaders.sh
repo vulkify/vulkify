@@ -29,14 +29,14 @@ fi
 
 if [[ ! -d $shabu_out/CMakeCache.txt ]]; then
   cmake -S $shabu_in -B $shabu_out -DCMAKE_BUILD_TYPE=Release
-  if [[ ! $? ]]; then
+  if [[ $? != 0 ]]; then
     echo -e "failed to configure shabu\n"
     exit 1
   fi
 fi
 
 cmake --build $shabu_out
-if [[ ! $? ]]; then
+if [[ $? != 0 ]]; then
   echo -e "failed to build shabu\n"
   exit 1
 fi
@@ -47,14 +47,14 @@ for i in ${!shaders[@]}; do
   file=${files[$i]}
   
   glslc $in_dir/$shader -o $in_dir/$shader.spv
-  if [[ ! $? ]]; then
+  if [[ $? != 0 ]]; then
     echo -e "failed to compile [$in_dir/$shader] to [$in_dir/$shader.spv]\n"
     exit 1
   fi
   echo "== compiled [$in_dir/$shader] to [$in_dir/$shader.spv]"
 
   $exe $in_dir/$shader.spv $name > $out_dir/$file
-  if [[ ! $? ]]; then
+  if [[ $? != 0 ]]; then
     echo -e "failed to burn [$shader.spv] to [$out_dir/$file]\n"
     exit 1
   fi

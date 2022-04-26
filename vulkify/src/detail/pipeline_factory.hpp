@@ -33,6 +33,11 @@ struct VertexInput {
 	std::span<vk::VertexInputAttributeDescription const> attributes{};
 };
 
+struct VKPipeline {
+	vk::Pipeline pipeline{};
+	vk::PipelineLayout layout{};
+};
+
 struct PipelineFactory {
 	struct Entry {
 		PipelineSpec spec{};
@@ -59,7 +64,8 @@ struct PipelineFactory {
 	Entry* find(PipelineSpec const& spec);
 	Entry* getOrLoad(PipelineSpec const& spec);
 
-	vk::Pipeline get(PipelineSpec const& spec, vk::RenderPass renderPass);
+	vk::Pipeline pipeline(PipelineSpec const& spec, vk::RenderPass renderPass);
+	vk::PipelineLayout layout(PipelineSpec const& spec);
 
 	vk::UniquePipelineLayout makeLayout() const;
 	vk::UniquePipeline makePipeline(PipelineSpec spec, vk::PipelineLayout pipelineLayout, Shaders shaders, vk::RenderPass renderPass) const;
