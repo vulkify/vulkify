@@ -1,0 +1,32 @@
+name: ci
+on:
+  push:
+    tags-ignore: v*.*
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: init
+        run: sudo apt install -yqq ninja-build xorg-dev
+      - name: configure
+        run: cp cmake/CMakePresets.json . && cmake -S . --preset=nc-release -B build
+      - name: build
+        run: cmake --build build
+      - name: test
+        run: cd build && ctest
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: configure
+        run: cp cmake/CMakePresets.json . && cmake -S . --preset=vs22 -B build
+      - name: build
+        run: cmake --build build --config=Release
+      - name: test
+        run: cd build && ctest --config=Release

@@ -57,16 +57,6 @@ vk::UniqueRenderPass makeRenderPass(vk::Device device, vk::Format colour, vk::Fo
 	return device.createRenderPassUnique(createInfo);
 }
 
-[[maybe_unused]] vk::SurfaceFormatKHR bestColour(vk::PhysicalDevice pd, vk::SurfaceKHR surface) {
-	auto const formats = pd.getSurfaceFormatsKHR(surface);
-	for (auto const& format : formats) {
-		if (format.colorSpace == vk::ColorSpaceKHR::eVkColorspaceSrgbNonlinear) {
-			if (format.format == vk::Format::eR8G8B8A8Srgb || format.format == vk::Format::eB8G8R8A8Srgb) { return format; }
-		}
-	}
-	return formats.empty() ? vk::SurfaceFormatKHR() : formats.front();
-}
-
 [[maybe_unused]] vk::Format bestDepth(vk::PhysicalDevice pd) {
 	static constexpr vk::Format formats[] = {vk::Format::eD32SfloatS8Uint, vk::Format::eD32Sfloat, vk::Format::eD24UnormS8Uint};
 	static constexpr auto features = vk::FormatFeatureFlagBits::eDepthStencilAttachment;
@@ -92,10 +82,8 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 	buffering = std::clamp(buffering, std::size_t(2), surface.swapchain.images.size());
 	auto ret = Renderer{vram};
 	// TODO: off-screen
-	// auto const colour = bestColour(surface.device.gpu.device, surface.surface).format;
 	auto const colour = surface.info.imageFormat;
 	auto const depth = bestDepth(surface.device.gpu);
-	// auto const depth = vk::Format();
 	ret.renderPass = makeRenderPass(device.device, colour, depth);
 
 	static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
