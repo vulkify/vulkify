@@ -198,12 +198,6 @@ vk::UniqueDescriptorSetLayout makeSetLayout(vk::Device device, std::span<vk::Des
 std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
 	static constexpr auto stages = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
 	auto ret = std::vector<vk::UniqueDescriptorSetLayout>{};
-	auto uniformAndSampler = [device](std::uint32_t uniform = 0, std::uint32_t sampler = 1) {
-		auto b0 = vk::DescriptorSetLayoutBinding(uniform, vk::DescriptorType::eUniformBuffer, 1, stages);
-		auto b1 = vk::DescriptorSetLayoutBinding(sampler, vk::DescriptorType::eCombinedImageSampler, 1, stages);
-		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1};
-		return makeSetLayout(device, binds);
-	};
 	// set 0: scene data
 	{
 		// binding 0: matrices
@@ -211,9 +205,20 @@ std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
 		ret.push_back(makeSetLayout(device, {&b0, 1}));
 	}
 	// set 1: object data
-	ret.push_back(uniformAndSampler());
+	{
+		auto b0 = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, stages);
+		auto b1 = vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eUniformBuffer, 1, stages);
+		auto b2 = vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eCombinedImageSampler, 1, stages);
+		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1, b2};
+		ret.push_back(makeSetLayout(device, binds));
+	}
 	// set 2: custom
-	ret.push_back(uniformAndSampler());
+	{
+		auto b0 = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, stages);
+		auto b1 = vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eCombinedImageSampler, 1, stages);
+		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1};
+		ret.push_back(makeSetLayout(device, binds));
+	}
 	return ret;
 }
 
@@ -387,7 +392,8 @@ Canvas VulkifyInstance::beginPass() {
 	// TEST
 	auto layout = m_impl->pipelineFactory.layout({});
 	auto set = m_impl->descriptorPool.postInc(1, "test_quad_set1");
-	set.write(0, magenta_v.normalize());
+	set.write(0, glm::mat4(1.0f));
+	set.write(1, magenta_v.normalize());
 	set.bind(ret, layout);
 	// TEST
 

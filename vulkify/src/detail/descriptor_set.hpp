@@ -4,25 +4,28 @@
 #include <detail/vram.hpp>
 #include <ktl/enumerate.hpp>
 #include <ktl/fixed_vector.hpp>
+#include <array>
 #include <vector>
 
 namespace vf {
 struct DescriptorSet {
+	static constexpr std::size_t max_bindings_v = 8;
+
 	Vram* vram{};
-	UniqueBuffer* buffer{};
+	std::array<UniqueBuffer, max_bindings_v>* buffers{};
 	vk::DescriptorSet set{};
 	char const* name = "";
 	std::uint32_t number{};
 
-	explicit operator bool() const { return vram && *vram && buffer && set; }
+	explicit operator bool() const { return vram && *vram && buffers && set; }
 
 	bool write(std::uint32_t binding, void const* data, std::size_t size) {
 		if (!static_cast<bool>(*this)) { return false; }
-		auto buf = buffer->get();
+		auto buf = buffers->at(binding).get();
 		if (!buf.resource || buf.size < size) {
 			auto bci = vk::BufferCreateInfo({}, size, vk::BufferUsageFlagBits::eUniformBuffer);
-			*buffer = vram->makeBuffer(bci, VMA_MEMORY_USAGE_CPU_ONLY, name);
-			buf = *buffer;
+			buffers->at(binding) = vram->makeBuffer(bci, VMA_MEMORY_USAGE_CPU_ONLY, name);
+			buf = buffers->at(binding).get();
 		}
 		bool const ret = buf.write(data, size);
 		auto dbi = vk::DescriptorBufferInfo(buf.resource, {}, size);
@@ -47,7 +50,7 @@ struct DescriptorPool {
 	struct Set {
 		vk::DescriptorSet set{};
 		std::uint32_t number{};
-		UniqueBuffer buffer{};
+		std::array<UniqueBuffer, DescriptorSet::max_bindings_v> buffers{};
 	};
 
 	struct Pool {
@@ -72,7 +75,7 @@ struct DescriptorPool {
 		DescriptorSet get(char const* name) {
 			reserve(index + 1);
 			auto& set = sets[index];
-			return {&vram, &set.buffer, set.set, name, number};
+			return {&vram, &set.buffers, set.set, name, number};
 		}
 	};
 	using Storage = ktl::fixed_vector<Pool, max_sets_v>;

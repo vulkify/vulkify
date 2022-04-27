@@ -9,8 +9,14 @@
 #include <vulkify/graphics/buffer.hpp>
 #include <vulkify/graphics/spir_v.hpp>
 
+#include <vulkify/core/transform.hpp>
+
 namespace {
 void test(vf::UContext ctx) {
+	auto tr = vf::Transform::Data{};
+	tr.orientation = {1.0f, {}};
+	auto m = tr.matrix();
+
 	bool const glslc = vf::SpirV::glslcAvailable();
 	std::cout << "glslc available: " << std::boolalpha << glslc << '\n';
 	std::cout << "using GPU: " << ctx->instance().gpu().name << '\n';
