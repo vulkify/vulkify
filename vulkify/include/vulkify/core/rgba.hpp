@@ -8,7 +8,7 @@ struct Rgba {
 
 	glm::tvec4<Channel> channels{};
 
-	static constexpr Rgba make(glm::vec4 const& v) { return {{unnormalize(v.x), unnormalize(v.y), unnormalize(v.z), unnormalize(v.w)}}; }
+	static Rgba make(glm::vec4 const& v) { return {{unnormalize(v.x), unnormalize(v.y), unnormalize(v.z), unnormalize(v.w)}}; }
 	static constexpr Rgba make(std::span<Channel const, 4> channels) { return {{channels[0], channels[1], channels[2], channels[3]}}; }
 	static constexpr Rgba make(std::uint32_t mask);
 
@@ -22,7 +22,7 @@ struct Rgba {
 	Rgba srgb() const;
 	Rgba linear() const;
 
-	constexpr glm::vec4 normalize() const { return {normalize(channels[0]), normalize(channels[1]), normalize(channels[2]), normalize(channels[3])}; }
+	glm::vec4 normalize() const { return {normalize(channels[0]), normalize(channels[1]), normalize(channels[2]), normalize(channels[3])}; }
 };
 
 constexpr Rgba black_v = {{{}, {}, {}, 0xff}};

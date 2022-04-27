@@ -28,9 +28,20 @@ class PerThread {
 
 	T& operator()() const { return get(); }
 
-	std::size_t size() const { return ktl::klock(m_map)->size(); }
-	bool empty() const { return ktl::klock(m_map)->empty(); }
-	void clear() { ktl::klock(m_map)->clear(); }
+	std::size_t size() const {
+		auto lock = ktl::klock(m_map);
+		return lock->size();
+	}
+
+	bool empty() const {
+		auto lock = ktl::klock(m_map);
+		return lock->empty();
+	}
+
+	void clear() {
+		auto lock = ktl::klock(m_map);
+		lock->clear();
+	}
 
 	Factory& factory() { return m_factory; }
 	Factory const& factory() const { return m_factory; }

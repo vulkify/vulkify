@@ -149,7 +149,8 @@ vk::CommandBuffer Renderer::endPass() {
 	auto const renderArea = vk::Rect2D({}, attachments.colour.extent);
 	auto const c = clear.normalize();
 	vk::ClearValue const cvs[] = {vk::ClearColorValue(std::array{c.x, c.y, c.z, c.w}), vk::ClearDepthStencilValue(1.0f)};
-	s.cmd.primary->beginRenderPass({*renderPass, *s.framebuffer, renderArea, std::size(cvs), cvs}, vk::SubpassContents::eSecondaryCommandBuffers);
+	auto const cvsize = static_cast<std::uint32_t>(std::size(cvs));
+	s.cmd.primary->beginRenderPass({*renderPass, *s.framebuffer, renderArea, cvsize, cvs}, vk::SubpassContents::eSecondaryCommandBuffers);
 	s.cmd.primary->executeCommands(*s.cmd.secondary);
 	s.cmd.primary->endRenderPass();
 	barrier.access = {vk::AccessFlagBits::eColorAttachmentWrite, {}};
