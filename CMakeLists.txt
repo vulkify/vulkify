@@ -31,11 +31,12 @@ endif()
 
 # options
 option(VULKIFY_BUILD_EXAMPLES "Build vulkify examples" ${is_root_project})
-option(VULKIFY_UBSAN "Enable UBSan" OFF)
 option(VULKIFY_DEBUG_TRACE "Enable debug trace messages" ${is_root_project})
 option(VULKIFY_INSTALL "Install vulkify" ${is_root_project})
-option(VULKIFY_PCH "Enable PCH" ON)
+option(VULKIFY_USE_PCH "Enable PCH" ON)
 option(VULKIFY_REQUIRE_VULKAN_1_1_0 "Require Vulkan 1.1 (needed for negative viewports - expect validation spam without it)" ON)
+
+# option(VULKIFY_BURN_SHADERS "")
 
 # ktl
 if(VULKIFY_INSTALL)
@@ -66,14 +67,6 @@ find_package(Git QUIET)
 
 if(GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   git_get_commit_hash(${PROJECT_NAME}_GIT_COMMIT_HASH) # store commit hash in ${PROJECT_NAME}_GIT_COMIT_HASH
-
-  if(is_root_project)
-    option(GIT_UPDATE_SUBMODULES "Init/Update submodules during generation" ${is_root_project})
-
-    if(GIT_UPDATE_SUBMODULES)
-      git_update_submodules(WARNING) # update git submodules and warn on failure
-    endif()
-  endif()
 endif()
 
 # external

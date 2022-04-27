@@ -42,22 +42,6 @@
 			}
 		},
 		{
-			"name": "vs19",
-			"description": "Build configuration using Visual Studio 16 (2019)",
-			"generator": "Visual Studio 16 2019",
-			"binaryDir": "out/vs",
-			"architecture": {
-				"value": "x64",
-				"strategy": "external"
-			}
-		},
-		{
-			"name": "vs22",
-			"description": "Build configuration using Visual Studio 17 (2022)",
-			"inherits": "vs19",
-			"generator": "Visual Studio 17 2022"
-		},
-		{
 			"name": "nc-release",
 			"description": "Release build using Ninja/clang",
 			"inherits": "ninja-clang",
@@ -74,36 +58,33 @@
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "RelWithDebInfo"
 			}
-		}
-	],
-	"buildPresets": [
-		{
-			"name": "default",
-			"configurePreset": "default"
-		},
-		{
-			"name": "nc-debug",
-			"configurePreset": "nc-debug"
-		},
-		{
-			"name": "mg-debug",
-			"configurePreset": "mg-debug"
 		},
 		{
 			"name": "vs19",
-			"configurePreset": "vs19"
+			"description": "Build configuration using Visual Studio 16 (2019)",
+			"generator": "Visual Studio 16 2019",
+			"binaryDir": "out/vs",
+			"architecture": {
+				"value": "x64",
+				"strategy": "external"
+			}
 		},
 		{
 			"name": "vs22",
-			"configurePreset": "vs22"
+			"description": "Build configuration using Visual Studio 17 (2022)",
+			"inherits": "vs19",
+			"generator": "Visual Studio 17 2022"
 		},
 		{
-			"name": "nc-release",
-			"configurePreset": "nc-release"
-		},
-		{
-			"name": "nc-relw",
-			"configurePreset": "nc-relw"
+			"name": "nc-ubsan",
+			"description": "UBsan debug build using Ninja/clang",
+			"inherits": "nc-debug",
+			"binaryDir": "out/ubsan",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+				"CMAKE_CXX_FLAGS": "-fsanitize=undefined"
+			}
 		}
 	]
 }

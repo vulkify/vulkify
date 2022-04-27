@@ -38,7 +38,7 @@ include(vulkify_headers.cmake)
 add_subdirectory(src)
 target_source_group(TARGET ${PROJECT_NAME})
 
-if(VULKIFY_ENABLE_PCH)
+if(VULKIFY_USE_PCH)
   target_precompile_headers(${PROJECT_NAME} PRIVATE
     <vulkan/vulkan.hpp>
     <vector>
