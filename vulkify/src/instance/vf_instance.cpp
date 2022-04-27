@@ -21,6 +21,7 @@
 #include <future>
 
 #include <glm/mat4x4.hpp>
+#include <vulkify/core/transform.hpp>
 
 namespace vf {
 namespace {
@@ -207,9 +208,8 @@ std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
 	// set 1: object data
 	{
 		auto b0 = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, stages);
-		auto b1 = vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eUniformBuffer, 1, stages);
-		auto b2 = vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eCombinedImageSampler, 1, stages);
-		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1, b2};
+		auto b1 = vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eCombinedImageSampler, 1, stages);
+		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1};
 		ret.push_back(makeSetLayout(device, binds));
 	}
 	// set 2: custom
@@ -250,11 +250,7 @@ struct VIStorage {
 } // namespace
 
 namespace ubo {
-struct Mat {
-	glm::mat4 mat_vp = glm::mat4(1.0f);
-};
-
-constexpr Mat mat(vk::Extent2D const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
+constexpr View mat(vk::Extent2D const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
 	if (extent.width == 0 || extent.height == 0) { return {glm::identity<glm::mat4>()}; }
 	auto const half = glm::vec2(static_cast<float>(extent.width), static_cast<float>(extent.height)) * 0.5f;
 	return {glm::ortho(-half.x, half.x, -half.y, half.y, nf.x, nf.y)};
@@ -309,7 +305,7 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 
 	auto vulkan = VKInstance::make([&window](vk::Instance inst) {
 		auto surface = VkSurfaceKHR{};
-		auto const res = glfwCreateWindowSurface(static_cast<VkInstance>(inst), window->win, {}, &surface);
+		[[maybe_unused]] auto const res = glfwCreateWindowSurface(static_cast<VkInstance>(inst), window->win, {}, &surface);
 		assert(res == VK_SUCCESS);
 		return vk::SurfaceKHR(surface);
 	});
@@ -374,7 +370,7 @@ Instance::Poll VulkifyInstance::poll() {
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->fileDrops};
 }
 
-Canvas VulkifyInstance::beginPass() {
+Surface VulkifyInstance::beginPass() {
 	if (m_impl->acquired) {
 		VF_TRACE("RenderPass already begun");
 		return {};
@@ -383,22 +379,18 @@ Canvas VulkifyInstance::beginPass() {
 	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
 	if (!m_impl->acquired) { return {}; }
 	auto& r = m_impl->renderer;
-	auto ret = r.beginPass(m_impl->acquired->image);
+	auto cmd = r.beginPass(m_impl->acquired->image);
 	m_impl->vulkan.util->defer.decrement();
 
-	auto mat = m_impl->descriptorPool.get(0, 0, "uniform:Mat");
+	auto mat = m_impl->descriptorPool.get(0, 0, "uniform:View");
 	mat.write(0, ubo::mat(m_impl->acquired->image.extent));
 
 	// TEST
-	auto layout = m_impl->pipelineFactory.layout({});
-	auto set = m_impl->descriptorPool.postInc(1, "test_quad_set1");
-	set.write(0, glm::mat4(1.0f));
-	set.write(1, magenta_v.normalize());
-	set.bind(ret, layout);
+
 	// TEST
 
-	auto const mat_vp = ShaderInput{mat.set, mat.number};
-	return Canvas::Impl{this, &m_impl->pipelineFactory, *r.renderPass, std::move(ret), mat_vp, &r.clear};
+	auto const mat_vp = ShaderInput{mat, {1, 0}};
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderPass, std::move(cmd), mat_vp, &r.clear};
 }
 
 bool VulkifyInstance::endPass() {

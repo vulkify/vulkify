@@ -9,14 +9,10 @@
 #include <vulkify/graphics/buffer.hpp>
 #include <vulkify/graphics/spir_v.hpp>
 
-#include <vulkify/core/transform.hpp>
+#include <vulkify/graphics/drawable.hpp>
 
 namespace {
 void test(vf::UContext ctx) {
-	auto tr = vf::Transform::Data{};
-	tr.orientation = {1.0f, {}};
-	auto m = tr.matrix();
-
 	bool const glslc = vf::SpirV::glslcAvailable();
 	std::cout << "glslc available: " << std::boolalpha << glslc << '\n';
 	std::cout << "using GPU: " << ctx->instance().gpu().name << '\n';
@@ -25,21 +21,16 @@ void test(vf::UContext ctx) {
 	auto const clearA = vf::Rgba::make(0xfff000ff);
 	auto const clearB = vf::Rgba::make(0x000fffff);
 
-	auto model = glm::translate(glm::mat4(1.0f), {-100.0f, 100.0f, 0.0f});
-	auto const& mat = model;
-	auto quad = vf::GeometryBuffer(ctx->vram(), "test_quad");
+	// auto model = glm::translate(glm::mat4(1.0f), {-100.0f, 100.0f, 0.0f});
+	auto quad = vf::Drawable(ctx->vram(), "test_quad");
 	auto geo = vf::makeQuad(glm::vec2(100.0f));
 	geo.vertices[0].rgba = vf::red_v.normalize();
 	geo.vertices[1].rgba = vf::green_v.normalize();
 	geo.vertices[2].rgba = vf::blue_v.normalize();
-	for (auto& vert : geo.vertices) {
-		auto pos = glm::vec4(vert.xy, 0.0f, 1.0f);
-		pos = mat * pos;
-		vert.xy = mat * glm::vec4(vert.xy, 0.0f, 1.0f);
-	}
-	quad.write(std::move(geo));
+	quad.setGeometry(std::move(geo));
 
 	auto elapsed = vf::Time{};
+	quad.transform().setPosition({-100.0f, 100.0f});
 	while (!ctx->closing()) {
 		auto const frame = ctx->frame();
 		for (auto const& event : frame.poll.events) {
@@ -61,9 +52,12 @@ void test(vf::UContext ctx) {
 		for (auto const code : frame.poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
 
 		elapsed += frame.dt;
-		if (frame.canvas.bind({})) { frame.canvas.draw(quad); }
+		quad.transform().setRotation(vf::Radian{elapsed.count()});
+		quad.params().tint = vf::magenta_v;
+
+		if (frame.surface.bind({})) { quad.draw(frame.surface); }
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
-		frame.canvas.setClear(clear.linear());
+		frame.surface.setClear(clear.linear());
 	}
 }
 } // namespace

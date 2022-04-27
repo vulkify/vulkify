@@ -19,7 +19,7 @@ class HeadlessInstance : public Instance {
 	void close() override {}
 	Poll poll() override { return std::move(m_poll); }
 
-	Canvas beginPass() override { return {}; }
+	Surface beginPass() override { return {}; }
 	bool endPass() override { return true; }
 
 	Vram const& vram() const override;

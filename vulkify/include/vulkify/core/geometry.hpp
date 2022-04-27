@@ -17,8 +17,8 @@ struct Geometry {
 };
 
 struct QuadUV {
-	glm::vec2 topLeft = {0.0f, 0.0f};
-	glm::vec2 bottomRight = {1.0f, 1.0f};
+	glm::vec2 topLeft{0.0f, 0.0f};
+	glm::vec2 bottomRight{1.0f, 1.0f};
 };
 
 Geometry makeQuad(glm::vec2 size, glm::vec2 origin = {}, Rgba rgba = white_v, QuadUV const& uv = {});

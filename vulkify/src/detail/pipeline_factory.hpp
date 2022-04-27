@@ -1,7 +1,7 @@
 #pragma once
 #include <ktl/hash_table.hpp>
 #include <vulkan/vulkan.hpp>
-#include <vulkify/graphics/pipeline_spec.hpp>
+#include <vulkify/graphics/pipeline_state.hpp>
 #include <span>
 
 namespace vf {
@@ -36,6 +36,18 @@ struct VertexInput {
 struct VKPipeline {
 	vk::Pipeline pipeline{};
 	vk::PipelineLayout layout{};
+};
+
+struct PipelineSpec {
+	PipelineState state{};
+	struct Shaders {
+		std::string vert{};
+		std::string frag{};
+
+		bool operator==(Shaders const&) const = default;
+	} shaders{};
+
+	bool operator==(PipelineSpec const&) const = default;
 };
 
 struct PipelineFactory {

@@ -16,7 +16,7 @@ vf::Result<ktl::kunique_ptr<Context>> Context::make(Info, UInstance&& instance) 
 
 Frame Context::frame() {
 	auto poll = m_instance->poll();
-	auto canvas = m_instance->beginPass();
-	return Frame{std::move(poll), std::move(canvas), diffExchg(m_stamp)};
+	auto surface = m_instance->beginPass();
+	return Frame{std::move(poll), std::move(surface), diffExchg(m_stamp)};
 }
 } // namespace vf

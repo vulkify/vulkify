@@ -13,7 +13,7 @@ class Buffer {
 	Buffer() noexcept;
 	Buffer(Buffer&&) noexcept;
 	Buffer& operator=(Buffer&&) noexcept;
-	virtual ~Buffer() noexcept;
+	virtual ~Buffer();
 
 	Buffer(Buffer const&) = delete;
 	Buffer& operator=(Buffer const&) = delete;
@@ -22,6 +22,8 @@ class Buffer {
 
 	explicit operator bool() const;
 	GfxResource const& resource() const { return m_resource.get(); }
+
+	void defer() &&;
 
   protected:
 	Vram const& vram() const;
@@ -39,7 +41,7 @@ class GeometryBuffer : public Buffer {
 	Geometry const& geometry() const { return m_geometry; }
 
   private:
-	Geometry m_geometry;
+	Geometry m_geometry{};
 };
 
 class UniformBuffer : public Buffer {

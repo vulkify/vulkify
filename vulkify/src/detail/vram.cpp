@@ -93,6 +93,7 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device) {
 }
 
 void Vram::Deleter::operator()(Vram const& vram) const {
+	vram.device.defer.queue->entries.clear();
 	vram.commandFactory->commandPools.clear();
 	vmaDestroyAllocator(vram.allocator);
 }

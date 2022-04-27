@@ -2,16 +2,22 @@
 #include <vulkify/graphics/buffer.hpp>
 
 namespace vf {
+static void deferBuffer(Vram const& vram, BufferObject&& buffer) {
+	if (vram && buffer) { vram.device.defer(std::move(buffer)); }
+}
+
 Buffer::Buffer() noexcept = default;
 Buffer::Buffer(Buffer&&) noexcept = default;
 Buffer& Buffer::operator=(Buffer&&) noexcept = default;
-Buffer::~Buffer() noexcept = default;
+Buffer::~Buffer() { deferBuffer(m_resource->vram, std::move(m_resource->buffer)); }
 
 Buffer::Buffer(Vram const& vram, std::string name) : m_name(std::move(name)) { m_resource->vram = vram; }
 
 Buffer::operator bool() const { return static_cast<bool>(vram()); }
 
 Vram const& Buffer::vram() const { return m_resource->vram; }
+
+void Buffer::defer() && { deferBuffer(m_resource->vram, std::move(m_resource->buffer)); }
 
 GeometryBuffer::GeometryBuffer(Vram const& vram, std::string name) : Buffer(vram, std::move(name)) {}
 

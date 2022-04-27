@@ -31,7 +31,7 @@ class VulkifyInstance : public Instance {
 	void close() override;
 	Poll poll() override;
 
-	Canvas beginPass() override;
+	Surface beginPass() override;
 	bool endPass() override;
 
 	Vram const& vram() const override;

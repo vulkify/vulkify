@@ -1,6 +1,6 @@
 #pragma once
 #include <ktl/kunique_ptr.hpp>
-#include <vulkify/context/canvas.hpp>
+#include <vulkify/graphics/surface.hpp>
 #include <vulkify/instance/event.hpp>
 #include <vulkify/instance/gpu.hpp>
 #include <span>
@@ -31,7 +31,7 @@ class Instance {
 	virtual void close() = 0;
 	virtual Poll poll() = 0;
 
-	virtual Canvas beginPass() = 0;
+	virtual Surface beginPass() = 0;
 	virtual bool endPass() = 0;
 
 	virtual Vram const& vram() const = 0;

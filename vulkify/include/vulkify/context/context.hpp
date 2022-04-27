@@ -10,7 +10,7 @@ using UContext = ktl::kunique_ptr<Context>;
 
 struct Frame {
 	Instance::Poll poll{};
-	Canvas canvas{};
+	Surface surface{};
 	Time dt{};
 };
 

@@ -1,12 +1,13 @@
 target_sources(${PROJECT_NAME} PRIVATE
-  context/canvas.cpp
   context/context.cpp
 
   core/geometry.cpp
   core/rgba.cpp
 
   graphics/buffer.cpp
+  graphics/drawable.cpp
   graphics/spir_v.cpp
+  graphics/surface.cpp
 
   instance/vf_instance.cpp
 
