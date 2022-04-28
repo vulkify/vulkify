@@ -1,14 +1,13 @@
 #pragma once
 #include <detail/descriptor_set.hpp>
 #include <detail/vram.hpp>
-#include <glm/mat4x4.hpp>
 #include <ktl/unique_val.hpp>
-#include <vulkify/core/rgba.hpp>
+#include <vulkify/graphics/drawable.hpp>
 
 namespace vf {
 struct PipelineFactory;
 class Instance;
-struct DrawParams;
+struct DrawInstanceData;
 
 struct SetBind {
 	std::uint32_t set{};
@@ -17,7 +16,7 @@ struct SetBind {
 
 struct ShaderInput {
 	DescriptorSet setZero{};
-	SetBind modelMat{};
+	SetBind model{};
 };
 
 struct RenderPass {
@@ -26,12 +25,13 @@ struct RenderPass {
 	DescriptorPool* descriptorPool{};
 	vk::RenderPass renderPass{};
 	vk::CommandBuffer commandBuffer{};
-	ShaderInput mat{};
+	ShaderInput shaderInput{};
 	Rgba* clear{};
 
 	mutable vk::PipelineLayout bound{};
 
-	void writeDrawParams(DrawParams const& params) const;
+	void writeInstanceData(std::span<DrawInstanceData const> instances, char const* name) const;
+	// void writeInstanceData(std::span<DrawInstanceData const> instances, char const* name) const;
 };
 
 struct GfxResource {
@@ -44,9 +44,6 @@ struct View {
 	glm::mat4 mat_vp = glm::mat4(1.0f);
 };
 
-struct Model {
-	glm::mat4 mat_m = glm::mat4(1.0f);
-	glm::vec4 tint = white_v.normalize();
-};
+using Model = Drawable::InstanceData;
 } // namespace ubo
 } // namespace vf

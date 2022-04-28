@@ -14,8 +14,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/context/context.hpp
 
   include/vulkify/graphics/buffer.hpp
+  include/vulkify/graphics/draw_instance_data.hpp
   include/vulkify/graphics/drawable.hpp
-  include/vulkify/graphics/draw_params.hpp
   include/vulkify/graphics/spir_v.hpp
   include/vulkify/graphics/surface.hpp
   include/vulkify/graphics/pipeline_state.hpp

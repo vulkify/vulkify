@@ -2,14 +2,15 @@
 #include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
 #include <vulkify/graphics/buffer.hpp>
-#include <vulkify/graphics/draw_params.hpp>
 #include <vulkify/graphics/pipeline_state.hpp>
 #include <vulkify/instance/instance.hpp>
 
 namespace vf {
-void RenderPass::writeDrawParams(DrawParams const& params) const {
-	auto set = descriptorPool->postInc(mat.modelMat.set, params.name);
-	set.write(mat.modelMat.binding, ubo::Model{params.modelMatrix, params.tint.normalize()});
+void RenderPass::writeInstanceData(std::span<DrawInstanceData const> instances, char const* name) const {
+	if (instances.empty()) { return; }
+	auto const binding = shaderInput.model.binding;
+	auto set = descriptorPool->postInc(shaderInput.model.set, name);
+	set.write(binding, instances.data(), instances.size() * sizeof(decltype(instances[0])));
 	set.bind(commandBuffer, bound);
 }
 
@@ -33,23 +34,23 @@ bool Surface::bind(PipelineState const& pipeline) const {
 	auto const [pipe, layout] = m_renderPass->pipelineFactory->pipeline({pipeline}, m_renderPass->renderPass);
 	if (!pipe) { return false; }
 	m_renderPass->commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe);
-	m_renderPass->mat.setZero.bind(m_renderPass->commandBuffer, layout);
+	m_renderPass->shaderInput.setZero.bind(m_renderPass->commandBuffer, layout);
 	m_renderPass->bound = layout;
 	return true;
 }
 
-bool Surface::draw(GeometryBuffer const& geometry, DrawParams const& params) const {
+bool Surface::draw(GeometryBuffer const& geometry, char const* name, std::span<DrawInstanceData const> instances) const {
 	if (!m_renderPass->descriptorPool || !m_renderPass->bound) { return false; }
-	m_renderPass->writeDrawParams(params);
+	m_renderPass->writeInstanceData(instances, name);
 	auto const& buffers = geometry.resource().buffer.buffers;
 	if (buffers.empty() || !m_renderPass->commandBuffer) { return false; }
 	m_renderPass->commandBuffer.bindVertexBuffers(0, buffers[0]->resource, vk::DeviceSize{});
 	auto const& geo = geometry.geometry();
 	if (buffers.size() > 1) {
 		m_renderPass->commandBuffer.bindIndexBuffer(buffers[1]->resource, vk::DeviceSize{}, vk::IndexType::eUint32);
-		m_renderPass->commandBuffer.drawIndexed(static_cast<std::uint32_t>(geo.indices.size()), 1, 0, 0, 0);
+		m_renderPass->commandBuffer.drawIndexed(static_cast<std::uint32_t>(geo.indices.size()), static_cast<std::uint32_t>(instances.size()), 0, 0, 0);
 	} else {
-		m_renderPass->commandBuffer.draw(static_cast<std::uint32_t>(geo.vertices.size()), 1, 0, 0);
+		m_renderPass->commandBuffer.draw(static_cast<std::uint32_t>(geo.vertices.size()), static_cast<std::uint32_t>(instances.size()), 0, 0);
 	}
 	return true;
 }

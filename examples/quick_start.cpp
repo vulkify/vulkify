@@ -53,7 +53,7 @@ void test(vf::UContext ctx) {
 
 		elapsed += frame.dt;
 		quad.transform().setRotation(vf::Radian{elapsed.count()});
-		quad.params().tint = vf::magenta_v;
+		quad.tint() = vf::magenta_v;
 
 		if (frame.surface.bind({})) { quad.draw(frame.surface); }
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);

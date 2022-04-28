@@ -1,21 +1,14 @@
 #pragma once
 #include <vulkify/core/transform.hpp>
 #include <vulkify/graphics/buffer.hpp>
-#include <vulkify/graphics/draw_params.hpp>
+#include <vulkify/graphics/draw_instance_data.hpp>
 
 namespace vf {
 class Surface;
 
-struct Drawer {
-	Transform transform{};
-	mutable DrawParams drawParams{};
-
-	void operator()(Surface const& surface, GeometryBuffer const& geometry) const;
-};
-
 class Drawable {
   public:
-	using Params = DrawParams;
+	using InstanceData = DrawInstanceData;
 
 	Drawable() = default;
 	Drawable(Vram const& vram, std::string name);
@@ -25,10 +18,10 @@ class Drawable {
 
 	explicit operator bool() const { return static_cast<bool>(m_geometry); }
 
-	Transform& transform() { return m_drawer.transform; }
-	Transform const& transform() const { return m_drawer.transform; }
-	Params& params() { return m_drawer.drawParams; }
-	Params const& params() const { return m_drawer.drawParams; }
+	Transform& transform() { return m_transform; }
+	Transform const& transform() const { return m_transform; }
+	Rgba& tint() { return m_tint; }
+	Rgba const& tint() const { return m_tint; }
 	Geometry const& geometry() const { return m_geometry.geometry(); }
 	bool setGeometry(Geometry geometry);
 
@@ -36,6 +29,7 @@ class Drawable {
 
   protected:
 	GeometryBuffer m_geometry{};
-	Drawer m_drawer{};
+	Transform m_transform{};
+	Rgba m_tint{};
 };
 } // namespace vf

@@ -199,6 +199,14 @@ vk::UniqueDescriptorSetLayout makeSetLayout(vk::Device device, std::span<vk::Des
 std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
 	static constexpr auto stages = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
 	auto ret = std::vector<vk::UniqueDescriptorSetLayout>{};
+	auto uboSsboSampler = [&] {
+		auto b0 = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, stages);
+		auto b1 = vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, stages);
+		auto b2 = vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eCombinedImageSampler, 1, stages);
+		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1, b2};
+		ret.push_back(makeSetLayout(device, binds));
+	};
+
 	// set 0: scene data
 	{
 		// binding 0: matrices
@@ -206,19 +214,9 @@ std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
 		ret.push_back(makeSetLayout(device, {&b0, 1}));
 	}
 	// set 1: object data
-	{
-		auto b0 = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, stages);
-		auto b1 = vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eCombinedImageSampler, 1, stages);
-		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1};
-		ret.push_back(makeSetLayout(device, binds));
-	}
+	uboSsboSampler();
 	// set 2: custom
-	{
-		auto b0 = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, stages);
-		auto b1 = vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eCombinedImageSampler, 1, stages);
-		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1};
-		ret.push_back(makeSetLayout(device, binds));
-	}
+	uboSsboSampler();
 	return ret;
 }
 
@@ -382,15 +380,15 @@ Surface VulkifyInstance::beginPass() {
 	auto cmd = r.beginPass(m_impl->acquired->image);
 	m_impl->vulkan.util->defer.decrement();
 
-	auto mat = m_impl->descriptorPool.get(0, 0, "uniform:View");
-	mat.write(0, ubo::mat(m_impl->acquired->image.extent));
+	auto view = m_impl->descriptorPool.get(0, 0, "uniform:View");
+	view.write(0, ubo::mat(m_impl->acquired->image.extent));
 
 	// TEST
 
 	// TEST
 
-	auto const mat_vp = ShaderInput{mat, {1, 0}};
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderPass, std::move(cmd), mat_vp, &r.clear};
+	auto const input = ShaderInput{view, {1, 1}};
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderPass, std::move(cmd), input, &r.clear};
 }
 
 bool VulkifyInstance::endPass() {

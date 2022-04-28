@@ -17,6 +17,11 @@ struct VKQueue {
 	std::uint32_t family{};
 };
 
+struct DescriptorLayout {
+	vk::DescriptorSetLayout layout{};
+	vk::BufferUsageFlagBits bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer;
+};
+
 struct VKDevice {
 	static constexpr auto fence_wait_v = 2s;
 

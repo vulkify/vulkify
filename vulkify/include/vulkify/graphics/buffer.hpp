@@ -22,6 +22,7 @@ class Buffer {
 
 	explicit operator bool() const;
 	GfxResource const& resource() const { return m_resource.get(); }
+	std::string const& name() const { return m_name; }
 
 	void defer() &&;
 
