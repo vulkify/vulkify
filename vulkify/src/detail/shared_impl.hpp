@@ -2,12 +2,12 @@
 #include <detail/descriptor_set.hpp>
 #include <detail/vram.hpp>
 #include <ktl/unique_val.hpp>
-#include <vulkify/graphics/drawable.hpp>
+#include <vulkify/graphics/draw_model.hpp>
 
 namespace vf {
 struct PipelineFactory;
 class Instance;
-struct DrawInstanceData;
+struct DrawModel;
 
 struct SetBind {
 	std::uint32_t set{};
@@ -30,7 +30,7 @@ struct RenderPass {
 
 	mutable vk::PipelineLayout bound{};
 
-	void writeInstanceData(std::span<DrawInstanceData const> instances, char const* name) const;
+	void writeInstanceData(std::span<DrawModel const> instances, char const* name) const;
 	// void writeInstanceData(std::span<DrawInstanceData const> instances, char const* name) const;
 };
 
@@ -41,9 +41,10 @@ struct GfxResource {
 
 namespace ubo {
 struct View {
-	glm::mat4 mat_vp = glm::mat4(1.0f);
+	glm::mat4 mat_v = glm::mat4(1.0f);
+	glm::mat4 mat_p = glm::mat4(1.0f);
 };
 
-using Model = Drawable::InstanceData;
+using Model = DrawModel;
 } // namespace ubo
 } // namespace vf

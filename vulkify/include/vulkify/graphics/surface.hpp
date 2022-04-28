@@ -8,7 +8,7 @@ namespace vf {
 class GeometryBuffer;
 struct RenderPass;
 struct PipelineState;
-struct DrawInstanceData;
+struct DrawModel;
 
 class Surface {
   public:
@@ -22,7 +22,7 @@ class Surface {
 
 	void setClear(Rgba rgba) const;
 	bool bind(PipelineState const& pipeline = {}) const;
-	bool draw(GeometryBuffer const& geometry, char const* name, std::span<DrawInstanceData const> instances) const;
+	bool draw(GeometryBuffer const& geometry, char const* name, std::span<DrawModel const> instances) const;
 
   private:
 	ktl::fixed_pimpl<RenderPass, 128> m_renderPass;

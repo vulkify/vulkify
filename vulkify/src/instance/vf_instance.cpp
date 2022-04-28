@@ -248,10 +248,10 @@ struct VIStorage {
 } // namespace
 
 namespace ubo {
-constexpr View mat(vk::Extent2D const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
-	if (extent.width == 0 || extent.height == 0) { return {glm::identity<glm::mat4>()}; }
+constexpr View view(vk::Extent2D const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
+	if (extent.width == 0 || extent.height == 0) { return {}; }
 	auto const half = glm::vec2(static_cast<float>(extent.width), static_cast<float>(extent.height)) * 0.5f;
-	return {glm::ortho(-half.x, half.x, -half.y, half.y, nf.x, nf.y)};
+	return {glm::mat4(1.0f), glm::ortho(-half.x, half.x, -half.y, half.y, nf.x, nf.y)};
 }
 } // namespace ubo
 
@@ -381,7 +381,7 @@ Surface VulkifyInstance::beginPass() {
 	m_impl->vulkan.util->defer.decrement();
 
 	auto view = m_impl->descriptorPool.get(0, 0, "uniform:View");
-	view.write(0, ubo::mat(m_impl->acquired->image.extent));
+	view.write(0, ubo::view(m_impl->acquired->image.extent));
 
 	// TEST
 

@@ -2,8 +2,9 @@
 #include <glm/mat4x4.hpp>
 
 namespace vf {
-struct DrawInstanceData {
-	glm::mat4 model{1.0f};
+struct DrawModel {
+	glm::vec4 pos_rot{};
+	glm::vec4 scl{1.0f};
 	glm::vec4 tint{1.0f};
 };
 } // namespace vf

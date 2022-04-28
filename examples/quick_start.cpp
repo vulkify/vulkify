@@ -21,7 +21,6 @@ void test(vf::UContext ctx) {
 	auto const clearA = vf::Rgba::make(0xfff000ff);
 	auto const clearB = vf::Rgba::make(0x000fffff);
 
-	// auto model = glm::translate(glm::mat4(1.0f), {-100.0f, 100.0f, 0.0f});
 	auto quad = vf::Drawable(ctx->vram(), "test_quad");
 	auto geo = vf::makeQuad(glm::vec2(100.0f));
 	geo.vertices[0].rgba = vf::red_v.normalize();
@@ -30,7 +29,7 @@ void test(vf::UContext ctx) {
 	quad.setGeometry(std::move(geo));
 
 	auto elapsed = vf::Time{};
-	quad.transform().setPosition({-100.0f, 100.0f});
+	quad.transform().position = {-100.0f, 100.0f};
 	while (!ctx->closing()) {
 		auto const frame = ctx->frame();
 		for (auto const& event : frame.poll.events) {
@@ -52,7 +51,7 @@ void test(vf::UContext ctx) {
 		for (auto const code : frame.poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
 
 		elapsed += frame.dt;
-		quad.transform().setRotation(vf::Radian{elapsed.count()});
+		quad.transform().rotation = vf::Radian{elapsed.count()};
 		quad.tint() = vf::magenta_v;
 
 		if (frame.surface.bind({})) { quad.draw(frame.surface); }
@@ -61,10 +60,6 @@ void test(vf::UContext ctx) {
 	}
 }
 } // namespace
-
-struct foo {
-	void operator()(int x) const { std::cout << "Deleting" << x << std::endl; }
-};
 
 int main() {
 	auto instance = vf::VulkifyInstance::make({});

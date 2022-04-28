@@ -6,7 +6,7 @@
 #include <vulkify/instance/instance.hpp>
 
 namespace vf {
-void RenderPass::writeInstanceData(std::span<DrawInstanceData const> instances, char const* name) const {
+void RenderPass::writeInstanceData(std::span<DrawModel const> instances, char const* name) const {
 	if (instances.empty()) { return; }
 	auto const binding = shaderInput.model.binding;
 	auto set = descriptorPool->postInc(shaderInput.model.set, name);
@@ -39,7 +39,7 @@ bool Surface::bind(PipelineState const& pipeline) const {
 	return true;
 }
 
-bool Surface::draw(GeometryBuffer const& geometry, char const* name, std::span<DrawInstanceData const> instances) const {
+bool Surface::draw(GeometryBuffer const& geometry, char const* name, std::span<DrawModel const> instances) const {
 	if (!m_renderPass->descriptorPool || !m_renderPass->bound) { return false; }
 	m_renderPass->writeInstanceData(instances, name);
 	auto const& buffers = geometry.resource().buffer.buffers;
