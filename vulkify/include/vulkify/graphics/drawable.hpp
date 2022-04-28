@@ -10,7 +10,7 @@ struct DrawInstance {
 	Transform transform{};
 	Rgba tint{};
 
-	DrawModel model() const { return DrawModel::make(transform, tint); }
+	DrawModel model() const;
 };
 
 class Drawable {
@@ -36,4 +36,14 @@ class Drawable {
 	GeometryBuffer m_geometry{};
 	DrawInstance m_instance{};
 };
+
+// impl
+
+inline DrawModel DrawInstance::model() const {
+	auto ret = DrawModel{};
+	ret.pos_orn = {transform.position, static_cast<glm::vec2>(transform.orientation)};
+	auto const utint = tint.toU32();
+	ret.scl_tint = {transform.scale, *reinterpret_cast<float const*>(&utint), 0.0f};
+	return ret;
+}
 } // namespace vf

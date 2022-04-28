@@ -19,9 +19,12 @@ struct Rgba {
 	static glm::vec4 linear(glm::vec4 const& srgb);
 	static Rgba lerp(Rgba a, Rgba b, float t);
 
+	constexpr bool operator==(Rgba const& rhs) const = default;
+
 	Rgba srgb() const;
 	Rgba linear() const;
 
+	constexpr std::uint32_t toU32() const;
 	glm::vec4 normalize() const { return {normalize(channels[0]), normalize(channels[1]), normalize(channels[2]), normalize(channels[3])}; }
 };
 
@@ -46,5 +49,10 @@ constexpr Rgba Rgba::make(std::uint32_t mask) {
 	mask >>= 8;
 	ret.channels[0] = mask & 0xff;
 	return ret;
+}
+
+constexpr std::uint32_t Rgba::toU32() const {
+	using u32 = std::uint32_t;
+	return (u32(channels[0]) << 24) | (u32(channels[1]) << 16) | (u32(channels[2]) << 8) | u32(channels[3]);
 }
 } // namespace vf

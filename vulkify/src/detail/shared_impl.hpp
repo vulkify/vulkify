@@ -1,6 +1,7 @@
 #pragma once
 #include <detail/descriptor_set.hpp>
 #include <detail/vram.hpp>
+#include <glm/mat4x4.hpp>
 #include <ktl/unique_val.hpp>
 #include <vulkify/graphics/draw_model.hpp>
 

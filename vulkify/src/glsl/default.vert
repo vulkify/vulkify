@@ -1,9 +1,8 @@
 #version 450 core
 
 struct Model {
-	vec4 pos_rot;
-	vec4 scl;
-	vec4 tint;
+	vec4 pos_orn;
+	vec4 scl_tint;
 };
 
 struct View {
@@ -36,26 +35,31 @@ void main() {
 	f_rgba = v_rgba;
 	
 	Model m = model[gl_InstanceIndex];
-	f_tint = m.tint;
+	uint tint = floatBitsToUint(m.scl_tint.z);
+	float tr = float((tint >> 24) & 0xff) / 255.0;
+	float tg = float((tint >> 16) & 0xff) / 255.0;
+	float tb = float((tint >>  8) & 0xff) / 255.0;
+	float ta = float((tint >>  0) & 0xff) / 255.0;
+	f_tint = vec4(tr, tg, tb, ta);
 	
-	vec2 pos = m.pos_rot.xy;
-	vec2 rot = m.pos_rot.zw;
-
+	vec2 pos = m.pos_orn.xy;
 	mat3 t = mat3(
 		1.0, 0.0, 0.0,
 		0.0, 1.0, 0.0,
 		pos.x, pos.y, 1.0
 	);
 
+	vec2 orn = m.pos_orn.zw;
 	mat3 r = mat3(
-		rot.x, rot.y, 0.0,
-		-rot.y, rot.x, 0.0,
+		orn.x, orn.y, 0.0,
+		-orn.y, orn.x, 0.0,
 		0.0, 0.0, 1.0
 	);
 	
+	vec2 scl = m.scl_tint.xy;
 	mat3 s = mat3(
-		m.scl.x, 0.0, 0.0,
-		0.0, m.scl.y, 0.0,
+		m.scl_tint.x, 0.0, 0.0,
+		0.0, m.scl_tint.y, 0.0,
 		0.0, 0.0, 1.0
 	);
 
