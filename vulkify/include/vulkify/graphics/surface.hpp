@@ -9,6 +9,7 @@ class GeometryBuffer;
 struct RenderPass;
 struct PipelineState;
 struct DrawModel;
+struct DrawInstance2;
 
 class Surface {
   public:

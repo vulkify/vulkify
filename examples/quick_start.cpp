@@ -51,7 +51,8 @@ void test(vf::UContext ctx) {
 		for (auto const code : frame.poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
 
 		elapsed += frame.dt;
-		quad.transform().rotation = vf::Radian{elapsed.count()};
+		quad.transform().orientation.rotate(vf::Degree{frame.dt.count() * 180.0f});
+		// quad.transform().rotation = quad.transform().rotation.rotate(vf::Degree{elapsed.count() * 180.0f});
 		quad.tint() = vf::magenta_v;
 
 		if (frame.surface.bind({})) { quad.draw(frame.surface); }

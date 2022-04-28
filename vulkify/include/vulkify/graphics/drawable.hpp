@@ -10,7 +10,7 @@ struct DrawInstance {
 	Transform transform{};
 	Rgba tint{};
 
-	DrawModel model() const;
+	DrawModel model() const { return DrawModel::make(transform, tint); }
 };
 
 class Drawable {

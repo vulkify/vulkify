@@ -8,7 +8,7 @@ struct Degree {
 	float value{};
 
 	bool operator==(Degree const&) const = default;
-	constexpr explicit operator Radian() const;
+	constexpr operator Radian() const;
 	constexpr operator float() const { return value; }
 };
 
@@ -16,7 +16,7 @@ struct Radian {
 	float value{};
 
 	bool operator==(Radian const&) const = default;
-	constexpr explicit operator Degree() const;
+	constexpr operator Degree() const;
 	constexpr operator float() const { return value; }
 };
 
