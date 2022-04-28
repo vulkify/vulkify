@@ -4,8 +4,8 @@
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/graphics/spir_v.hpp>
 #include <filesystem>
-#include <spir_v/frag.spv.hpp>
-#include <spir_v/vert.spv.hpp>
+#include <spir_v/default.frag.hpp>
+#include <spir_v/default.vert.hpp>
 
 namespace vf {
 namespace stdfs = std::filesystem;
@@ -34,8 +34,8 @@ SpirV loadOrCompile(std::string path) {
 }
 
 bool makeDefaultShaders(vk::Device device, vk::UniqueShaderModule& vert, vk::UniqueShaderModule& frag) {
-	vert = device.createShaderModuleUnique({{}, std::size(test_vert_v), reinterpret_cast<std::uint32_t const*>(test_vert_v)});
-	frag = device.createShaderModuleUnique({{}, std::size(test_frag_v), reinterpret_cast<std::uint32_t const*>(test_frag_v)});
+	vert = device.createShaderModuleUnique({{}, std::size(default_vert_v), reinterpret_cast<std::uint32_t const*>(default_vert_v)});
+	frag = device.createShaderModuleUnique({{}, std::size(default_frag_v), reinterpret_cast<std::uint32_t const*>(default_frag_v)});
 	return vert && frag;
 }
 } // namespace

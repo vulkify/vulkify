@@ -1,16 +1,17 @@
 #!/bin/bash
 
-shabu_in="shabu"
-shabu_out="out"
+shabu_in="tools/shabu"
+shabu_out="tools/out"
 exe=$shabu_out/shabu
 
-in_dir=".."
-out_dir="../vulkify/src/spir_v"
-shaders=("test.vert" "test.frag")
-names=("test_vert_v" "test_frag_v")
-files=("vert.spv.hpp" "frag.spv.hpp")
+in_dir="vulkify/src/glsl"
+out_dir="vulkify/src/spir_v"
+shaders=("default.vert" "default.frag")
+names=("default_vert_v" "default_frag_v")
+files=("default.vert.hpp" "default.frag.hpp")
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
+cd ..
 
 cf_available=false
 if [[ $(clang-format --version) ]]; then
@@ -46,14 +47,14 @@ for i in ${!shaders[@]}; do
   name=${names[$i]}
   file=${files[$i]}
   
-  glslc $in_dir/$shader -o $in_dir/$shader.spv
+  glslc $in_dir/$shader -o $out_dir/$shader.spv
   if [[ $? != 0 ]]; then
     echo -e "failed to compile [$in_dir/$shader] to [$in_dir/$shader.spv]\n"
     exit 1
   fi
-  echo "== compiled [$in_dir/$shader] to [$in_dir/$shader.spv]"
+  echo "== compiled [$in_dir/$shader] to [$out_dir/$shader.spv]"
 
-  $exe $in_dir/$shader.spv $name > $out_dir/$file
+  $exe $out_dir/$shader.spv $name > $out_dir/$file
   if [[ $? != 0 ]]; then
     echo -e "failed to burn [$shader.spv] to [$out_dir/$file]\n"
     exit 1

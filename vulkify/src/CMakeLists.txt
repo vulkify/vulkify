@@ -30,6 +30,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/vram.cpp
   detail/vram.hpp
 
-  spir_v/frag.spv.hpp
-  spir_v/vert.spv.hpp
+  spir_v/default.frag.hpp
+  spir_v/default.vert.hpp
 )
