@@ -19,7 +19,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/draw_object.hpp
   include/vulkify/graphics/spir_v.hpp
   include/vulkify/graphics/surface.hpp
-  include/vulkify/graphics/pipeline_state.hpp
+  include/vulkify/graphics/pipeline.hpp
 
   include/vulkify/instance/event_type.hpp
   include/vulkify/instance/event.hpp

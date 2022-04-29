@@ -1,13 +1,13 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
 #include <vulkify/core/rgba.hpp>
-#include <vulkify/graphics/pipeline_state.hpp>
+#include <vulkify/graphics/pipeline.hpp>
 #include <span>
 
 namespace vf {
 class GeometryBuffer;
 struct RenderPass;
-struct PipelineState;
+struct Pipeline;
 struct DrawModel;
 struct DrawInstance2;
 
@@ -22,7 +22,7 @@ class Surface {
 	explicit operator bool() const;
 
 	void setClear(Rgba rgba) const;
-	bool bind(PipelineState const& pipeline = {}) const;
+	bool bind(Pipeline const& pipeline = {}) const;
 	bool draw(GeometryBuffer const& geometry, char const* name, std::span<DrawModel const> models) const;
 
   private:

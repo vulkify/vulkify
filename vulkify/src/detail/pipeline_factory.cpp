@@ -107,10 +107,10 @@ std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::pipeline(PipelineSp
 	return {*i->second, *entry->layout};
 }
 
-vk::UniquePipeline PipelineFactory::makePipeline(PipelineSpec spec, vk::PipelineLayout pipelineLayout, Shaders shaders, vk::RenderPass renderPass) const {
+vk::UniquePipeline PipelineFactory::makePipeline(PipelineSpec const& spec, vk::PipelineLayout layout, Shaders shaders, vk::RenderPass renderPass) const {
 	auto gpci = vk::GraphicsPipelineCreateInfo{};
 	gpci.renderPass = renderPass;
-	gpci.layout = pipelineLayout;
+	gpci.layout = layout;
 
 	auto pvisci = vk::PipelineVertexInputStateCreateInfo{};
 	pvisci.pVertexBindingDescriptions = vertexInput.bindings.data();
@@ -128,15 +128,15 @@ vk::UniquePipeline PipelineFactory::makePipeline(PipelineSpec spec, vk::Pipeline
 	auto piasci = vk::PipelineInputAssemblyStateCreateInfo({}, vk::PrimitiveTopology::eTriangleList);
 	gpci.pInputAssemblyState = &piasci;
 
-	using Flag = PipelineState::Flag;
+	using Flag = Pipeline::Flag;
 	auto prsci = vk::PipelineRasterizationStateCreateInfo();
-	prsci.lineWidth = std::clamp(spec.state.lineWidth, lineWidthLimit.first, lineWidthLimit.second);
+	prsci.lineWidth = std::clamp(spec.pipeline.lineWidth, lineWidthLimit.first, lineWidthLimit.second);
 	prsci.polygonMode = vk::PolygonMode::eFill;
-	if (spec.state.flags.test(Flag::eWireframe)) { prsci.polygonMode = vk::PolygonMode::eLine; }
+	if (spec.pipeline.flags.test(Flag::eWireframe)) { prsci.polygonMode = vk::PolygonMode::eLine; }
 	gpci.pRasterizationState = &prsci;
 
 	auto pcbas = vk::PipelineColorBlendAttachmentState{};
-	if (!spec.state.flags.test(Flag::eNoAlphaBlend)) {
+	if (!spec.pipeline.flags.test(Flag::eNoAlphaBlend)) {
 		using CCF = vk::ColorComponentFlagBits;
 		pcbas.colorWriteMask = CCF::eR | CCF::eG | CCF::eB | CCF::eA;
 		pcbas.blendEnable = true;
@@ -153,11 +153,11 @@ vk::UniquePipeline PipelineFactory::makePipeline(PipelineSpec spec, vk::Pipeline
 	gpci.pColorBlendState = &pcbsci;
 
 	auto pdssci = vk::PipelineDepthStencilStateCreateInfo{};
-	if (!spec.state.flags.test(Flag::eNoDepthTest)) {
+	if (!spec.pipeline.flags.test(Flag::eNoDepthTest)) {
 		pdssci.depthTestEnable = true;
 		pdssci.depthCompareOp = vk::CompareOp::eLess;
 	}
-	if (!spec.state.flags.test(Flag::eNoDepthWrite)) { pdssci.depthWriteEnable = true; }
+	if (!spec.pipeline.flags.test(Flag::eNoDepthWrite)) { pdssci.depthWriteEnable = true; }
 	gpci.pDepthStencilState = &pdssci;
 
 	auto pdscis = ktl::fixed_vector<vk::DynamicState, 4>{};

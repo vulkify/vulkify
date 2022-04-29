@@ -2,7 +2,7 @@
 #include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
 #include <vulkify/graphics/buffer.hpp>
-#include <vulkify/graphics/pipeline_state.hpp>
+#include <vulkify/graphics/pipeline.hpp>
 #include <vulkify/instance/instance.hpp>
 
 namespace vf {
@@ -29,7 +29,7 @@ void Surface::setClear(Rgba rgba) const {
 	if (m_renderPass->clear) { *m_renderPass->clear = rgba; }
 }
 
-bool Surface::bind(PipelineState const& pipeline) const {
+bool Surface::bind(Pipeline const& pipeline) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
 	auto const [pipe, layout] = m_renderPass->pipelineFactory->pipeline({pipeline}, m_renderPass->renderPass);
 	if (!pipe || !layout) { return false; }
