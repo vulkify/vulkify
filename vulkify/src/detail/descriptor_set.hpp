@@ -10,7 +10,17 @@
 namespace vf {
 struct DescriptorSet {
 	static constexpr std::size_t max_bindings_v = 8;
-	inline static std::uint32_t s_ssbo_binding = 1;
+	static constexpr std::size_t max_buffers_v = 2;
+
+	struct BufferLayout {
+		vk::DescriptorType type{};
+		vk::BufferUsageFlagBits usage{};
+	};
+
+	static constexpr BufferLayout buffer_layouts_v[] = {
+		{vk::DescriptorType::eUniformBuffer, vk::BufferUsageFlagBits::eUniformBuffer},
+		{vk::DescriptorType::eStorageBuffer, vk::BufferUsageFlagBits::eStorageBuffer},
+	};
 
 	Vram* vram{};
 	std::array<UniqueBuffer, max_bindings_v>* buffers{};
@@ -20,25 +30,18 @@ struct DescriptorSet {
 
 	explicit operator bool() const { return vram && *vram && buffers && set; }
 
-	vk::BufferUsageFlagBits usage(std::uint32_t const binding) const {
-		return binding == s_ssbo_binding ? vk::BufferUsageFlagBits::eStorageBuffer : vk::BufferUsageFlagBits::eUniformBuffer;
-	}
-
-	vk::DescriptorType type(std::uint32_t const binding) const {
-		return binding == s_ssbo_binding ? vk::DescriptorType::eStorageBuffer : vk::DescriptorType::eUniformBuffer;
-	}
-
 	void refresh(UniqueBuffer& out, std::size_t const size, vk::BufferUsageFlagBits const usage) const {
 		if (!out->resource || out->size < size) { out = vram->makeBuffer({{}, size, usage}, VMA_MEMORY_USAGE_CPU_ONLY, name); }
 	}
 
 	bool write(std::uint32_t binding, void const* data, std::size_t size) {
+		assert(binding < max_buffers_v);
 		if (!static_cast<bool>(*this)) { return false; }
-		refresh(buffers->at(binding), size, usage(binding));
+		refresh(buffers->at(binding), size, buffer_layouts_v[binding].usage);
 		auto buf = buffers->at(binding).get();
 		bool const ret = buf.write(data, size);
 		auto dbi = vk::DescriptorBufferInfo(buf.resource, {}, size);
-		auto wds = vk::WriteDescriptorSet(set, binding, 0, 1, type(binding), {}, &dbi);
+		auto wds = vk::WriteDescriptorSet(set, binding, 0, 1, buffer_layouts_v[binding].type, {}, &dbi);
 		vram->device.device.updateDescriptorSets(1, &wds, 0, {});
 		return ret;
 	}

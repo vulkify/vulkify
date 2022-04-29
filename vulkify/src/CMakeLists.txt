@@ -5,7 +5,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   core/rgba.cpp
 
   graphics/buffer.cpp
-  graphics/drawable.cpp
+  graphics/draw_object.cpp
   graphics/spir_v.cpp
   graphics/surface.cpp
 

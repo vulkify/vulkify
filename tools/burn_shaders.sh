@@ -53,6 +53,13 @@ for i in ${!shaders[@]}; do
     exit 1
   fi
   echo "== compiled [$in_dir/$shader] to [$out_dir/$shader.spv]"
+done
+
+
+for i in ${!shaders[@]}; do
+  shader=${shaders[$i]}
+  name=${names[$i]}
+  file=${files[$i]}
 
   $exe $out_dir/$shader.spv $name > $out_dir/$file
   if [[ $? != 0 ]]; then

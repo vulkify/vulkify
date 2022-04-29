@@ -31,8 +31,7 @@ struct RenderPass {
 
 	mutable vk::PipelineLayout bound{};
 
-	void writeInstanceData(std::span<DrawModel const> instances, char const* name) const;
-	// void writeInstanceData(std::span<DrawInstanceData const> instances, char const* name) const;
+	void writeModels(std::span<DrawModel const> instances, char const* name) const;
 };
 
 struct GfxResource {

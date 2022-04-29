@@ -197,11 +197,11 @@ vk::UniqueDescriptorSetLayout makeSetLayout(vk::Device device, std::span<vk::Des
 }
 
 std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
-	static constexpr auto stages = vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment;
+	using DSet = DescriptorSet;
 	auto ret = std::vector<vk::UniqueDescriptorSetLayout>{};
-	auto uboSsboSampler = [&] {
-		auto b0 = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, stages);
-		auto b1 = vk::DescriptorSetLayoutBinding(1, vk::DescriptorType::eStorageBuffer, 1, stages);
+	auto addSet = [&](vk::ShaderStageFlags stages) {
+		auto b0 = vk::DescriptorSetLayoutBinding(0, DSet::buffer_layouts_v[0].type, 1, stages);
+		auto b1 = vk::DescriptorSetLayoutBinding(1, DSet::buffer_layouts_v[1].type, 1, stages);
 		auto b2 = vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eCombinedImageSampler, 1, stages);
 		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1, b2};
 		ret.push_back(makeSetLayout(device, binds));
@@ -210,13 +210,13 @@ std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
 	// set 0: scene data
 	{
 		// binding 0: matrices
-		auto b0 = vk::DescriptorSetLayoutBinding(0, vk::DescriptorType::eUniformBuffer, 1, stages);
+		auto b0 = vk::DescriptorSetLayoutBinding(0, DSet::buffer_layouts_v[0].type, 1, vk::ShaderStageFlagBits::eVertex);
 		ret.push_back(makeSetLayout(device, {&b0, 1}));
 	}
 	// set 1: object data
-	uboSsboSampler();
+	addSet(vk::ShaderStageFlagBits::eVertex);
 	// set 2: custom
-	uboSsboSampler();
+	addSet(vk::ShaderStageFlagBits::eFragment);
 	return ret;
 }
 

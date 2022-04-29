@@ -9,7 +9,8 @@
 #include <vulkify/graphics/buffer.hpp>
 #include <vulkify/graphics/spir_v.hpp>
 
-#include <vulkify/graphics/drawable.hpp>
+#include <vulkify/graphics/draw_object.hpp>
+#include <array>
 
 namespace {
 void test(vf::UContext ctx) {
@@ -21,15 +22,20 @@ void test(vf::UContext ctx) {
 	auto const clearA = vf::Rgba::make(0xfff000ff);
 	auto const clearB = vf::Rgba::make(0x000fffff);
 
-	auto quad = vf::Drawable(ctx->vram(), "test_quad");
+	using Primitive = vf::InstancedPrimitive<std::array<vf::DrawInstance, 2>>;
+	auto primitive = Primitive::make(ctx->vram(), "test_quad");
 	auto geo = vf::makeQuad(glm::vec2(100.0f));
 	geo.vertices[0].rgba = vf::red_v.normalize();
 	geo.vertices[1].rgba = vf::green_v.normalize();
 	geo.vertices[2].rgba = vf::blue_v.normalize();
-	quad.setGeometry(std::move(geo));
+	primitive.buffer.write(std::move(geo));
 
 	auto elapsed = vf::Time{};
-	quad.transform().position = {-100.0f, 100.0f};
+	primitive.instances[0].transform.position = {-100.0f, 100.0f};
+	primitive.instances[0].tint = vf::magenta_v;
+	primitive.instances[1].transform.position = primitive.instances[0].transform.position + glm::vec2(200.0f, 0.0f);
+	auto quad = vf::DrawObject(std::move(primitive));
+
 	while (!ctx->closing()) {
 		auto const frame = ctx->frame();
 		for (auto const& event : frame.poll.events) {
@@ -51,10 +57,14 @@ void test(vf::UContext ctx) {
 		for (auto const code : frame.poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
 
 		elapsed += frame.dt;
-		quad.transform().orientation.rotate(vf::Degree{frame.dt.count() * 180.0f});
-		quad.tint() = vf::magenta_v;
+		auto& primitive = *quad.as<Primitive>();
+		primitive.instances[0].transform.orientation.rotate(vf::Degree{frame.dt.count() * 180.0f});
+		primitive.instances[1].transform.orientation = primitive.instances[0].transform.orientation;
 
-		if (frame.surface.bind({})) { quad.draw(frame.surface); }
+		// auto spec = vf::PipelineState{};
+		// spec.flags.set(vf::PipelineState::Flag::eWireframe);
+		// frame.surface.bind(spec);
+		quad.draw(frame.surface);
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
 		frame.surface.setClear(clear.linear());
 	}

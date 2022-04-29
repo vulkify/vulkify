@@ -36,8 +36,6 @@ option(VULKIFY_INSTALL "Install vulkify" ${is_root_project})
 option(VULKIFY_USE_PCH "Enable PCH" ON)
 option(VULKIFY_REQUIRE_VULKAN_1_1_0 "Require Vulkan 1.1 (needed for negative viewports - expect validation spam without it)" ON)
 
-# option(VULKIFY_BURN_SHADERS "")
-
 # ktl
 if(VULKIFY_INSTALL)
   set(KTL_INSTALL ON)

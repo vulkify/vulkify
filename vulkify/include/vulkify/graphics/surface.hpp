@@ -23,7 +23,7 @@ class Surface {
 
 	void setClear(Rgba rgba) const;
 	bool bind(PipelineState const& pipeline = {}) const;
-	bool draw(GeometryBuffer const& geometry, char const* name, std::span<DrawModel const> instances) const;
+	bool draw(GeometryBuffer const& geometry, char const* name, std::span<DrawModel const> models) const;
 
   private:
 	ktl::fixed_pimpl<RenderPass, 128> m_renderPass;
