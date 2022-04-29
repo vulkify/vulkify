@@ -3,14 +3,16 @@
 #include <detail/trace.hpp>
 #include <vulkify/graphics/buffer.hpp>
 #include <vulkify/graphics/pipeline.hpp>
+#include <vulkify/graphics/texture.hpp>
 #include <vulkify/instance/instance.hpp>
 
 namespace vf {
-void RenderPass::writeModels(std::span<DrawModel const> instances, char const* name) const {
-	if (instances.empty()) { return; }
-	auto const binding = shaderInput.model.binding;
-	auto set = descriptorPool->postInc(shaderInput.model.set, name);
-	set.write(binding, instances.data(), instances.size() * sizeof(decltype(instances[0])));
+void RenderPass::writeSetOne(std::span<DrawModel const> instances, Tex tex, char const* name) const {
+	if (instances.empty() || !tex.sampler || !tex.view) { return; }
+	auto const& sb = shaderInput.one;
+	auto set = descriptorPool->postInc(sb.set, name);
+	set.write(sb.bindings.ssbo, instances.data(), instances.size() * sizeof(decltype(instances[0])));
+	set.update(sb.bindings.sampler, tex.sampler, tex.view);
 	set.bind(commandBuffer, bound);
 }
 
@@ -40,9 +42,17 @@ bool Surface::bind(Pipeline const& pipeline) const {
 	return true;
 }
 
-bool Surface::draw(GeometryBuffer const& geometry, char const* name, std::span<DrawModel const> models) const {
-	if (!m_renderPass->descriptorPool || !m_renderPass->bound) { return false; }
-	m_renderPass->writeModels(models, name);
+bool Surface::draw(GeometryBuffer const& geometry, char const* name, std::span<DrawModel const> models, Texture const* texture) const {
+	if (!m_renderPass->descriptorPool || !m_renderPass->bound || !m_renderPass->shaderInput.textures) { return false; }
+	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
+	if (texture) {
+		if (*texture) {
+			tex = {*texture->resource().image.sampler, *texture->resource().image.cache.view};
+		} else {
+			tex.view = *m_renderPass->shaderInput.textures->magenta.view;
+		}
+	}
+	m_renderPass->writeSetOne(models, tex, name);
 	auto const& buffers = geometry.resource().buffer.buffers;
 	if (buffers.empty() || !m_renderPass->commandBuffer) { return false; }
 	m_renderPass->commandBuffer.bindVertexBuffers(0, buffers[0]->resource, vk::DeviceSize{});

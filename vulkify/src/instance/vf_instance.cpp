@@ -199,10 +199,10 @@ vk::UniqueDescriptorSetLayout makeSetLayout(vk::Device device, std::span<vk::Des
 std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
 	using DSet = DescriptorSet;
 	auto ret = std::vector<vk::UniqueDescriptorSetLayout>{};
-	auto addSet = [&](vk::ShaderStageFlags stages) {
-		auto b0 = vk::DescriptorSetLayoutBinding(0, DSet::buffer_layouts_v[0].type, 1, stages);
-		auto b1 = vk::DescriptorSetLayoutBinding(1, DSet::buffer_layouts_v[1].type, 1, stages);
-		auto b2 = vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eCombinedImageSampler, 1, stages);
+	auto addSet = [&](vk::ShaderStageFlags bufferStages) {
+		auto b0 = vk::DescriptorSetLayoutBinding(0, DSet::buffer_layouts_v[0].type, 1, bufferStages);
+		auto b1 = vk::DescriptorSetLayoutBinding(1, DSet::buffer_layouts_v[1].type, 1, bufferStages);
+		auto b2 = vk::DescriptorSetLayoutBinding(2, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment);
 		vk::DescriptorSetLayoutBinding const binds[] = {b0, b1, b2};
 		ret.push_back(makeSetLayout(device, binds));
 	};
@@ -245,6 +245,31 @@ struct VIStorage {
 	}
 };
 
+ShaderInput::Textures makeShaderTextures(Vram const& vram) {
+	auto ret = ShaderInput::Textures{};
+	auto sci = samplerInfo(vram, vk::SamplerAddressMode::eClampToBorder, vk::Filter::eNearest);
+	ret.sampler = vram.device.device.createSamplerUnique(sci);
+	ret.white = {vram, "white"};
+	ret.magenta = {vram, "magenta"};
+	ret.white.setTexture(false);
+	ret.magenta.setTexture(false);
+	ret.white.usage = ret.magenta.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+	ret.white.refresh(vk::Extent3D(1, 1, 1));
+	ret.magenta.refresh(vk::Extent3D(1, 1, 1));
+	if (!ret.white.view || !ret.magenta.view) { return {}; }
+	std::byte imageBytes[4]{};
+	rgbaToByte(white_v, imageBytes);
+	auto cmd = InstantCommand(vram.commandFactory->get());
+	auto writer = ImageWriter{vram, cmd.cmd};
+	auto const layouts = std::make_pair(vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+	writer(ret.white.image.get(), imageBytes, std::size(imageBytes), {}, {}, &layouts);
+	rgbaToByte(magenta_v, imageBytes);
+	writer(ret.magenta.image.get(), imageBytes, std::size(imageBytes), {}, {}, &layouts);
+	cmd.submit();
+
+	return ret;
+}
 } // namespace
 
 namespace ubo {
@@ -269,6 +294,7 @@ struct VulkifyInstance::Impl {
 	VIStorage vertexInput{};
 	PipelineFactory pipelineFactory{};
 	DescriptorPool descriptorPool{};
+	ShaderInput::Textures shaderTextures{};
 };
 
 Gpu makeGPU(VKInstance const& vulkan) {
@@ -321,6 +347,7 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	auto renderer = Renderer::make(impl->vram.vram, impl->surface, true);
 	if (!renderer.renderPass) { return Error::eVulkanInitFailure; }
 	impl->renderer = std::move(renderer);
+	impl->vram.vram->textureFormat = impl->renderer.textureFormat();
 
 	impl->setLayouts = makeSetLayouts(impl->surface.device.device);
 	impl->vertexInput = VIStorage::make();
@@ -331,13 +358,16 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	impl->descriptorPool = DescriptorPool::make(impl->vram.vram, impl->pipelineFactory.setLayouts, buffering);
 	if (!impl->descriptorPool) { return Error::eVulkanInitFailure; }
 
+	impl->shaderTextures = makeShaderTextures(impl->vram.vram);
+	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
+
 	// TEST CODE
 	auto f = std::async(std::launch::async, [vram = impl->vram.vram.get()] {
 		auto geo = makeQuad(glm::vec2(1.0f));
 		geo.vertices[0].rgba = red_v.normalize();
 		geo.vertices[1].rgba = green_v.normalize();
 		geo.vertices[2].rgba = blue_v.normalize();
-		[[maybe_unused]] auto vbo = vram.makeVIBuffer(geo, BufferObject::Type::eCpuToGpu, "test");
+		[[maybe_unused]] auto vbo = vram.makeVIBuffer(geo, BufferCache::Type::eCpuToGpu, "test");
 	});
 	// TEST CODE
 
@@ -387,7 +417,7 @@ Surface VulkifyInstance::beginPass() {
 
 	// TEST
 
-	auto const input = ShaderInput{view, {1, 1}};
+	auto const input = ShaderInput{view, &m_impl->shaderTextures};
 	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderPass, std::move(cmd), input, &r.clear};
 }
 

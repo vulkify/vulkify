@@ -1,5 +1,6 @@
 #pragma once
 #include <detail/descriptor_set.hpp>
+#include <detail/image_cache.hpp>
 #include <detail/vram.hpp>
 #include <glm/mat4x4.hpp>
 #include <ktl/unique_val.hpp>
@@ -9,18 +10,49 @@ namespace vf {
 struct PipelineFactory;
 class Instance;
 struct DrawModel;
+class Texture;
+
+inline vk::SamplerCreateInfo samplerInfo(Vram const& vram, vk::SamplerAddressMode mode, vk::Filter filter) {
+	auto ret = vk::SamplerCreateInfo{};
+	ret.minFilter = ret.magFilter = filter;
+	ret.anisotropyEnable = vram.maxAnisotropy > 0.0f;
+	ret.maxAnisotropy = vram.maxAnisotropy;
+	ret.borderColor = vk::BorderColor::eIntOpaqueBlack;
+	ret.mipmapMode = vk::SamplerMipmapMode::eNearest;
+	ret.addressModeU = ret.addressModeV = ret.addressModeW = mode;
+	return ret;
+}
 
 struct SetBind {
 	std::uint32_t set{};
-	std::uint32_t binding{};
+	struct {
+		std::uint32_t ubo{0};
+		std::uint32_t ssbo{1};
+		std::uint32_t sampler{2};
+	} bindings{};
 };
 
 struct ShaderInput {
+	struct Textures {
+		vk::UniqueSampler sampler{};
+		ImageCache white{};
+		ImageCache magenta{};
+
+		explicit operator bool() const { return sampler && white.image && magenta.image; }
+	};
+
 	DescriptorSet setZero{};
-	SetBind model{};
+	Textures* textures{};
+	SetBind one{1};
+	SetBind two{2};
 };
 
 struct RenderPass {
+	struct Tex {
+		vk::Sampler sampler{};
+		vk::ImageView view{};
+	};
+
 	ktl::unique_val<Instance*> instance{};
 	PipelineFactory* pipelineFactory{};
 	DescriptorPool* descriptorPool{};
@@ -31,13 +63,28 @@ struct RenderPass {
 
 	mutable vk::PipelineLayout bound{};
 
-	void writeModels(std::span<DrawModel const> instances, char const* name) const;
+	void writeSetOne(std::span<DrawModel const> instances, Tex tex, char const* name) const;
 };
 
-struct GfxResource {
-	Vram vram{};
-	BufferObject buffer{};
+struct ImageSampler {
+	ImageCache cache{};
+	vk::UniqueSampler sampler{};
 };
+
+struct GfxAllocation {
+	Vram vram{};
+	BufferCache buffer{};
+	ImageSampler image{};
+};
+
+template <std::output_iterator<std::byte> Out>
+void rgbaToByte(Rgba const rgba, Out out) {
+	auto add = [&out](Rgba::Channel const channel) { *out++ = static_cast<std::byte>(channel); };
+	add(rgba.channels[0]);
+	add(rgba.channels[1]);
+	add(rgba.channels[2]);
+	add(rgba.channels[3]);
+}
 
 namespace ubo {
 struct View {

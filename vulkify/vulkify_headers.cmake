@@ -14,12 +14,15 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   include/vulkify/context/context.hpp
 
+  include/vulkify/graphics/bitmap.hpp
   include/vulkify/graphics/buffer.hpp
   include/vulkify/graphics/draw_model.hpp
   include/vulkify/graphics/draw_object.hpp
+  include/vulkify/graphics/pipeline.hpp
+  include/vulkify/graphics/resource.hpp
   include/vulkify/graphics/spir_v.hpp
   include/vulkify/graphics/surface.hpp
-  include/vulkify/graphics/pipeline.hpp
+  include/vulkify/graphics/texture.hpp
 
   include/vulkify/instance/event_type.hpp
   include/vulkify/instance/event.hpp

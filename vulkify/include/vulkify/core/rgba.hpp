@@ -34,7 +34,7 @@ constexpr Rgba red_v = {{0xff, {}, {}, 0xff}};
 constexpr Rgba green_v = {{{}, 0xff, {}, 0xff}};
 constexpr Rgba blue_v = {{{}, {}, 0xff, 0xff}};
 constexpr Rgba yellow_v = {{0xff, 0xff, {}, 0xff}};
-constexpr Rgba cyan_v = {{0xff, 0xff, 0xff, 0xff}};
+constexpr Rgba cyan_v = {{{}, 0xff, 0xff, 0xff}};
 constexpr Rgba magenta_v = {{0xff, {}, 0xff, 0xff}};
 
 // impl

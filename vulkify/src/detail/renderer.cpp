@@ -101,6 +101,7 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 	ret.depthImage = {vram, "render_pass_depth_image"};
 	ret.depthImage.setDepth();
 	ret.depthImage.info.format = depth;
+	ret.colour = colour;
 	return ret;
 }
 
@@ -110,7 +111,7 @@ vk::CommandBuffer Renderer::beginPass(VKImage const& target) {
 	attachments.colour = target;
 	auto& s = frameSync.get();
 	vram.device.reset(*s.drawn);
-	attachments.depth = depthImage.refresh({target.extent.width, target.extent.height, 1}, depthImage.info.format);
+	attachments.depth = depthImage.refresh({target.extent.width, target.extent.height, 1});
 	s.framebuffer = makeFramebuffer(attachments);
 	auto const cbii = vk::CommandBufferInheritanceInfo(*renderPass, 0U, *s.framebuffer);
 	s.cmd.secondary->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue, &cbii});

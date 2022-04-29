@@ -4,10 +4,13 @@ target_sources(${PROJECT_NAME} PRIVATE
   core/geometry.cpp
   core/rgba.cpp
 
+  graphics/bitmap.cpp
   graphics/buffer.cpp
   graphics/draw_object.cpp
+  graphics/resource.cpp
   graphics/spir_v.cpp
   graphics/surface.cpp
+  graphics/texture.cpp
 
   instance/vf_instance.cpp
 

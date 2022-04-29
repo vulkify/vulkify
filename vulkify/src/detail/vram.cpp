@@ -50,6 +50,27 @@ void ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image) const {
 	cb.pipelineBarrier(stages.first, stages.second, {}, {}, {}, barrier);
 }
 
+bool VmaBuffer::write(void const* data, std::size_t size) {
+	if (size == full_v) { size = this->size; }
+	if (!map || size == 0) { return false; }
+	std::memcpy(map, data, size);
+	return true;
+}
+
+void VmaBuffer::Deleter::operator()(VmaBuffer const& buffer) const {
+	if (buffer.map) { vmaUnmapMemory(buffer.allocator, buffer.handle); }
+	vmaDestroyBuffer(buffer.allocator, buffer.resource, buffer.handle);
+}
+
+void VmaImage::transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier barrier) {
+	if (layout == to) { return; }
+	barrier.layouts = {layout, to};
+	barrier(cb, resource);
+	layout = to;
+}
+
+void VmaImage::Deleter::operator()(const VmaImage& image) const { vmaDestroyImage(image.allocator, image.resource, image.handle); }
+
 UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device) {
 	VmaAllocatorCreateInfo allocatorInfo = {};
 	auto dl = VULKAN_HPP_DEFAULT_DISPATCHER;
@@ -89,6 +110,7 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device) {
 	auto factory = ktl::make_unique<CommandFactory>();
 	factory->commandPools.factory().device = device;
 	vram.commandFactory = factory.get();
+	vram.maxAnisotropy = device.gpu.getProperties().limits.maxSamplerAnisotropy;
 	return {std::move(factory), vram};
 }
 
@@ -114,8 +136,6 @@ UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage const usage
 	auto ret = VkImage{};
 	auto handle = VmaAllocation{};
 	if (auto res = vmaCreateImage(allocator, &imageInfo, &vaci, &ret, &handle, nullptr); res != VK_SUCCESS) { return {}; }
-	void* map{};
-	if (hostVisible(usage)) { vmaMapMemory(allocator, handle, &map); }
 
 	if (device.flags.test(VKDevice::Flag::eDebugMsgr)) {
 		static auto count = std::atomic<int>{};
@@ -124,9 +144,7 @@ UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage const usage
 		device.setDebugName(vk::ObjectType::eImage, ret, name);
 	}
 
-	auto vi = VmaAllocationInfo{};
-	vmaGetAllocationInfo(allocator, handle, &vi);
-	return VmaImage{vk::Image(ret), allocator, handle, vi.size, map};
+	return VmaImage{{vk::Image(ret), allocator, handle}, info.initialLayout, info.extent};
 }
 
 UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage const usage, char const* name) const {
@@ -151,7 +169,7 @@ UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage const us
 		device.setDebugName(vk::ObjectType::eBuffer, ret, name);
 	}
 
-	return VmaBuffer{vk::Buffer(ret), allocator, handle, info.size, map};
+	return VmaBuffer{{vk::Buffer(ret), allocator, handle}, info.size, map};
 }
 
 template <typename Span, std::output_iterator<UniqueBuffer> Out>
@@ -167,14 +185,14 @@ static void copy(Vram const& vram, VmaBuffer dst, vk::CommandBuffer cmd, Span co
 	*out++ = std::move(stage);
 }
 
-BufferObject Vram::makeVIBuffer(Geometry const& geometry, BufferObject::Type type, char const* name) const {
+BufferCache Vram::makeVIBuffer(Geometry const& geometry, BufferCache::Type type, char const* name) const {
 	static constexpr auto s_vert = Vertex{};
-	if (!device) { return {}; }
+	if (!device || !commandFactory) { return {}; }
 	auto verts = std::span<Vertex const>(geometry.vertices);
 	if (verts.empty()) { verts = {&s_vert, 1}; }
-	auto ret = BufferObject{};
+	auto ret = BufferCache{};
 	ret.type = type;
-	bool const gpuOnly = type == BufferObject::Type::eGpuOnly;
+	bool const gpuOnly = type == BufferCache::Type::eGpuOnly;
 	auto const usage = gpuOnly ? VMA_MEMORY_USAGE_GPU_ONLY : VMA_MEMORY_USAGE_CPU_TO_GPU;
 
 	auto bci = vk::BufferCreateInfo{};
@@ -205,5 +223,26 @@ BufferObject Vram::makeVIBuffer(Geometry const& geometry, BufferObject::Type typ
 	cmd.submit();
 
 	return ret;
+}
+
+bool ImageWriter::operator()(VmaImage& out, void const* data, std::size_t size, glm::uvec2 extent, glm::ivec2 offset, TPair<vk::ImageLayout> const* il) {
+	auto bci = vk::BufferCreateInfo({}, size, vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
+	auto buffer = vram.makeBuffer(bci, VMA_MEMORY_USAGE_CPU_TO_GPU, "image_copy_staging");
+	if (!buffer || !buffer->write(data)) { return false; }
+
+	if (extent.x == 0 && extent.y == 0) {
+		if (offset.x != 0 || offset.y != 0) { return false; }
+		extent = {out.extent.width, out.extent.height};
+	}
+	if (extent.x == 0 || extent.y == 0) { return false; }
+
+	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
+	auto icr = vk::ImageCopy(isrl, {}, isrl, {}, vk::Extent3D(extent.x, extent.y, 1));
+	auto bic = vk::BufferImageCopy({}, {}, {}, isrl, {offset.x, offset.y, 0}, icr.extent);
+	if (il) { out.transition(cb, il->first); }
+	cb.copyBufferToImage(buffer->resource, out.resource, vk::ImageLayout::eTransferDstOptimal, bic);
+	if (il) { out.transition(cb, il->second); }
+	scratch.push_back(std::move(buffer));
+	return true;
 }
 } // namespace vf

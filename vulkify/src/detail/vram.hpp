@@ -3,6 +3,7 @@
 #include <detail/command_pool.hpp>
 #include <detail/vk_device.hpp>
 #include <ktl/enum_flags/enum_flags.hpp>
+#include <ktl/fixed_vector.hpp>
 #include <vulkify/core/geometry.hpp>
 #include <vulkify/core/per_thread.hpp>
 #include <vulkify/core/unique.hpp>
@@ -32,12 +33,18 @@ struct LayerMip {
 	static LayerMip make(std::uint32_t mipCount, std::uint32_t firstMip = 0U) noexcept { return LayerMip{{}, {firstMip, mipCount}}; }
 };
 
+template <typename T, typename U = T>
+using TPair = std::pair<T, U>;
+
 struct ImageBarrier {
+	static constexpr auto access_flags_v = vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite;
+	static constexpr vk::PipelineStageFlags stage_flags_v = vk::PipelineStageFlagBits::eAllCommands;
+
+	TPair<vk::ImageLayout> layouts{};
+	TPair<vk::AccessFlags> access{access_flags_v, access_flags_v};
+	TPair<vk::PipelineStageFlags> stages{stage_flags_v, stage_flags_v};
+	vk::ImageAspectFlags aspects{vk::ImageAspectFlagBits::eColor};
 	LayerMip layerMip{};
-	std::pair<vk::AccessFlags, vk::AccessFlags> access{};
-	std::pair<vk::PipelineStageFlags, vk::PipelineStageFlags> stages{};
-	std::pair<vk::ImageLayout, vk::ImageLayout> layouts{};
-	vk::ImageAspectFlags aspects = vk::ImageAspectFlagBits::eColor;
 
 	void operator()(vk::CommandBuffer cb, vk::Image image) const;
 };
@@ -47,39 +54,51 @@ struct VmaResource {
 	T resource{};
 	VmaAllocator allocator{};
 	VmaAllocation handle{};
+};
+
+template <typename T>
+constexpr bool operator==(VmaResource<T> const& a, VmaResource<T> const& b) {
+	return a.allocator == b.allocator && a.handle == b.handle;
+}
+
+struct VmaBuffer : VmaResource<vk::Buffer> {
+	static constexpr auto full_v = std::numeric_limits<std::size_t>::max();
+
 	std::size_t size{};
 	void* map{};
 
-	template <typename U>
-	static constexpr bool false_v = false;
-	static constexpr auto full_v = std::numeric_limits<std::size_t>::max();
-
-	bool operator==(VmaResource const&) const = default;
-
-	bool write(void const* data, std::size_t size = full_v) {
-		if (size == full_v) { size = this->size; }
-		if (!map || size == 0) { return false; }
-		std::memcpy(map, data, size);
-		return true;
-	}
+	bool write(void const* data, std::size_t size = full_v);
 
 	struct Deleter {
-		void operator()(VmaResource const&) const;
+		void operator()(VmaBuffer const&) const;
 	};
 };
-using VmaImage = VmaResource<vk::Image>;
-using VmaBuffer = VmaResource<vk::Buffer>;
+
+struct VmaImage : VmaResource<vk::Image> {
+	vk::ImageLayout layout{};
+	vk::Extent3D extent{};
+
+	void transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier barrier = {});
+	VKImage image(vk::ImageView view = {}) const { return {resource, view, {extent.width, extent.height}}; }
+
+	struct Deleter {
+		void operator()(VmaImage const&) const;
+	};
+};
+
 using UniqueImage = Unique<VmaImage, VmaImage::Deleter>;
 using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 
-struct BufferObject {
+struct BufferCache {
 	enum class Type { eGpuOnly, eCpuToGpu };
 
-	std::vector<UniqueBuffer> buffers{};
+	static constexpr std::size_t max_buffers_v = 4;
+
+	ktl::fixed_vector<UniqueBuffer, max_buffers_v> buffers{};
 	Type type{};
 
 	explicit operator bool() const { return !buffers.empty(); }
-	bool operator==(BufferObject const& rhs) const { return buffers.empty() && rhs.buffers.empty(); }
+	bool operator==(BufferCache const& rhs) const { return buffers.empty() && rhs.buffers.empty(); }
 };
 
 struct InstantCommand {
@@ -116,6 +135,8 @@ struct Vram {
 	VKDevice device{};
 	VmaAllocator allocator{};
 	CommandFactory* commandFactory{};
+	float maxAnisotropy{};
+	vk::Format textureFormat = vk::Format::eR8G8B8A8Srgb;
 
 	bool operator==(Vram const& rhs) const { return commandFactory == rhs.commandFactory && allocator == rhs.allocator; }
 	explicit operator bool() const { return commandFactory && allocator; }
@@ -123,11 +144,20 @@ struct Vram {
 	UniqueImage makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage, char const* name, bool linear = false) const;
 	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage usage, char const* name) const;
 
-	BufferObject makeVIBuffer(Geometry const& geometry, BufferObject::Type type, char const* name) const;
+	BufferCache makeVIBuffer(Geometry const& geometry, BufferCache::Type type, char const* name) const;
 
 	struct Deleter {
 		void operator()(Vram const& vram) const;
 	};
+};
+
+struct ImageWriter {
+	Vram const& vram;
+	vk::CommandBuffer cb;
+
+	std::vector<UniqueBuffer> scratch{};
+
+	bool operator()(VmaImage& out, void const* data, std::size_t size, glm::uvec2 extent = {}, glm::ivec2 offset = {}, TPair<vk::ImageLayout> const* il = {});
 };
 
 struct UniqueVram {
@@ -138,16 +168,4 @@ struct UniqueVram {
 
 	static UniqueVram make(vk::Instance instance, VKDevice device);
 };
-
-template <typename T>
-void VmaResource<T>::Deleter::operator()(VmaResource const& resource) const {
-	if (resource.map) { vmaUnmapMemory(resource.allocator, resource.handle); }
-	if constexpr (std::is_same_v<T, vk::Image>) {
-		vmaDestroyImage(resource.allocator, resource.resource, resource.handle);
-	} else if constexpr (std::is_same_v<T, vk::Buffer>) {
-		vmaDestroyBuffer(resource.allocator, resource.resource, resource.handle);
-	} else {
-		static_assert(false_v<T>, "Invalid type");
-	}
-}
 } // namespace vf

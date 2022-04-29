@@ -3,6 +3,7 @@
 #include <vulkify/core/transform.hpp>
 #include <vulkify/graphics/buffer.hpp>
 #include <vulkify/graphics/draw_model.hpp>
+#include <vulkify/graphics/texture.hpp>
 
 namespace vf {
 class Surface;
@@ -12,33 +13,43 @@ struct DrawInstance {
 	Rgba tint = white_v;
 
 	DrawModel model() const;
+
+	template <std::output_iterator<DrawModel> Out>
+	static void addModels(std::span<DrawInstance const> instances, Out out) {
+		for (auto const& instance : instances) { *out++ = instance.model(); }
+	}
 };
 
 template <typename T>
 concept Drawable = requires(T const& t) {
 	{ t.geometryBuffer() } -> std::convertible_to<GeometryBuffer const&>;
 	{ t.drawInstances() } -> std::convertible_to<std::span<DrawInstance const>>;
+	{ t.mainTexture() } -> std::convertible_to<Texture const*>;
 };
 
 struct DrawPrimitive {
-	DrawInstance instance{};
 	GeometryBuffer buffer{};
+	DrawInstance instance{};
+	Texture texture{};
 
-	static DrawPrimitive make(Vram const& vram, std::string name) { return {{}, {vram, std::move(name)}}; }
+	static DrawPrimitive make(Vram const& vram, std::string name) { return {{vram, std::move(name)}}; }
 
 	GeometryBuffer const& geometryBuffer() const { return buffer; }
 	std::span<DrawInstance const> drawInstances() const { return {&instance, 1}; }
+	Texture const* mainTexture() const { return &texture; }
 };
 
 template <typename Storage = std::vector<DrawInstance>>
 struct InstancedPrimitive {
 	Storage instances{};
 	GeometryBuffer buffer{};
+	Texture texture{};
 
 	static InstancedPrimitive make(Vram const& vram, std::string name) { return {{}, {vram, std::move(name)}}; }
 
 	GeometryBuffer const& geometryBuffer() const { return buffer; }
 	std::span<DrawInstance const> drawInstances() const { return {instances.data(), instances.size()}; }
+	Texture const* mainTexture() const { return &texture; }
 };
 
 class DrawObject {
@@ -58,6 +69,7 @@ class DrawObject {
 		virtual ~Base() = default;
 		virtual GeometryBuffer const& geometry() const = 0;
 		virtual std::span<DrawInstance const> instances() const = 0;
+		virtual Texture const* texture() const = 0;
 	};
 	template <Drawable T>
 	struct Model : Base {
@@ -66,6 +78,7 @@ class DrawObject {
 		Model(Args&&... args) : t(std::forward<Args>(args)...) {}
 		GeometryBuffer const& geometry() const { return t.geometryBuffer(); }
 		std::span<DrawInstance const> instances() const { return t.drawInstances(); }
+		Texture const* texture() const { return t.mainTexture(); }
 	};
 	ktl::kunique_ptr<Base> m_model;
 };

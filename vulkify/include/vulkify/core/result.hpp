@@ -8,6 +8,8 @@ enum class Error {
 	eNoVulkanSupport,
 	eGlfwFailure,
 	eVulkanInitFailure,
+
+	eInactiveInstance,
 };
 
 template <typename T>

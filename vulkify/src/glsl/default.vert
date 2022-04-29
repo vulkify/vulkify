@@ -23,8 +23,8 @@ layout (std430, set = 1, binding = 1) readonly buffer M {
 };
 
 layout (location = 0) out vec4 f_rgba;
-layout (location = 1) out vec2 f_uv;
-layout (location = 2) out vec4 f_tint;
+layout (location = 1) out vec4 f_tint;
+layout (location = 2) out vec2 f_uv;
 
 out gl_PerVertex {
 	vec4 gl_Position;

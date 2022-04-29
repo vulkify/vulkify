@@ -10,6 +10,7 @@ struct RenderPass;
 struct Pipeline;
 struct DrawModel;
 struct DrawInstance2;
+class Texture;
 
 class Surface {
   public:
@@ -23,9 +24,9 @@ class Surface {
 
 	void setClear(Rgba rgba) const;
 	bool bind(Pipeline const& pipeline = {}) const;
-	bool draw(GeometryBuffer const& geometry, char const* name, std::span<DrawModel const> models) const;
+	bool draw(GeometryBuffer const& geometry, char const* name, std::span<DrawModel const> models, Texture const* texture = {}) const;
 
   private:
-	ktl::fixed_pimpl<RenderPass, 128> m_renderPass;
+	ktl::fixed_pimpl<RenderPass, 256> m_renderPass;
 };
 } // namespace vf

@@ -6,9 +6,9 @@
 namespace vf {
 namespace {
 template <typename T>
-void drawModels(Surface const& surface, GeometryBuffer const& geometry, std::span<DrawInstance const> instances, T& out) {
-	for (auto const& instance : instances) { out.push_back(instance.model()); }
-	surface.draw(geometry, geometry.name().c_str(), out);
+void drawModels(Surface const& surface, GeometryBuffer const& geometry, std::span<DrawInstance const> instances, T& out, Texture const* tex) {
+	DrawInstance::addModels(instances, std::back_inserter(out));
+	surface.draw(geometry, geometry.name().c_str(), out, tex);
 }
 } // namespace
 
@@ -18,10 +18,10 @@ void DrawObject::draw(Surface const& surface) const {
 	if (!geometry || instances.empty()) { return; }
 	if (instances.size() <= small_buffer_v) {
 		auto models = ktl::fixed_vector<DrawModel, small_buffer_v>{};
-		drawModels(surface, geometry, instances, models);
+		drawModels(surface, geometry, instances, models, m_model->texture());
 	} else {
 		auto models = std::vector<DrawModel>{};
-		drawModels(surface, geometry, instances, models);
+		drawModels(surface, geometry, instances, models, m_model->texture());
 	}
 }
 } // namespace vf

@@ -19,6 +19,17 @@ struct ImageCache {
 		return info;
 	}
 
+	vk::ImageCreateInfo& setTexture(bool transferSrc) {
+		static constexpr auto flags = vk::ImageUsageFlagBits::eSampled;
+		info = vk::ImageCreateInfo();
+		info.usage = flags;
+		info.format = vram.textureFormat;
+		info.usage |= vk::ImageUsageFlagBits::eTransferDst;
+		if (transferSrc) { info.usage |= vk::ImageUsageFlagBits::eTransferSrc; }
+		aspect |= vk::ImageAspectFlagBits::eColor;
+		return info;
+	}
+
 	bool ready(vk::Extent3D extent, vk::Format format) const noexcept { return image && extent == info.extent && info.format == format; }
 
 	VKImage make(vk::Extent3D extent, vk::Format format) {
@@ -30,7 +41,8 @@ struct ImageCache {
 		return peek();
 	}
 
-	VKImage refresh(vk::Extent3D extent, vk::Format format) {
+	VKImage refresh(vk::Extent3D extent, vk::Format format = {}) {
+		if (format == vk::Format()) { format = info.format; }
 		if (!ready(extent, format)) { make(extent, format); }
 		return peek();
 	}

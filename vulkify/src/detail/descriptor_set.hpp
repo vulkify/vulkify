@@ -50,6 +50,15 @@ struct DescriptorSet {
 		requires(std::is_standard_layout_v<T>)
 	bool write(std::uint32_t binding, T const& t) { return write(binding, &t, sizeof(T)); }
 
+	bool update(std::uint32_t binding, vk::Sampler sampler, vk::ImageView view) {
+		assert(binding < max_bindings_v);
+		if (!static_cast<bool>(*this) || !sampler || !view) { return false; }
+		auto dii = vk::DescriptorImageInfo(sampler, view, vk::ImageLayout::eShaderReadOnlyOptimal);
+		auto wds = vk::WriteDescriptorSet(set, binding, 0, 1, vk::DescriptorType::eCombinedImageSampler, &dii);
+		vram->device.device.updateDescriptorSets(1, &wds, 0, {});
+		return true;
+	}
+
 	void bind(vk::CommandBuffer cmd, vk::PipelineLayout const layout) const {
 		if (!set || !cmd || !layout) { return; }
 		cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, layout, number, set, {});
