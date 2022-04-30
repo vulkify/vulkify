@@ -1,4 +1,4 @@
-#include <vulkify/core/geometry.hpp>
+#include <vulkify/graphics/geometry.hpp>
 
 using v2 = glm::vec2;
 

@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkify/core/geometry.hpp>
+#include <vulkify/graphics/geometry.hpp>
 #include <vulkify/graphics/resource.hpp>
 #include <type_traits>
 

@@ -1,7 +1,7 @@
 target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/core/defines.hpp
   include/vulkify/core/float_eq.hpp
-  include/vulkify/core/geometry.hpp
+  include/vulkify/graphics/geometry.hpp
   include/vulkify/core/nvec.hpp
   include/vulkify/core/per_thread.hpp
   include/vulkify/core/ptr.hpp
@@ -17,8 +17,10 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/bitmap.hpp
   include/vulkify/graphics/buffer.hpp
   include/vulkify/graphics/draw_model.hpp
-  include/vulkify/graphics/draw_object.hpp
+  include/vulkify/graphics/drawable.hpp
+  include/vulkify/graphics/mesh2d.hpp
   include/vulkify/graphics/pipeline.hpp
+  include/vulkify/graphics/primitive.hpp
   include/vulkify/graphics/resource.hpp
   include/vulkify/graphics/spir_v.hpp
   include/vulkify/graphics/surface.hpp

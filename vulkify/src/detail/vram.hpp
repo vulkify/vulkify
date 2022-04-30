@@ -4,9 +4,9 @@
 #include <detail/vk_device.hpp>
 #include <ktl/enum_flags/enum_flags.hpp>
 #include <ktl/fixed_vector.hpp>
-#include <vulkify/core/geometry.hpp>
 #include <vulkify/core/per_thread.hpp>
 #include <vulkify/core/unique.hpp>
+#include <vulkify/graphics/geometry.hpp>
 
 namespace vf {
 class CommandPool;
