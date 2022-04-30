@@ -141,8 +141,8 @@ struct Vram {
 	bool operator==(Vram const& rhs) const { return commandFactory == rhs.commandFactory && allocator == rhs.allocator; }
 	explicit operator bool() const { return commandFactory && allocator; }
 
-	UniqueImage makeImage(vk::ImageCreateInfo info, VmaMemoryUsage usage, char const* name, bool linear = false) const;
-	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage usage, char const* name) const;
+	UniqueImage makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear = false) const;
+	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, bool host, char const* name) const;
 
 	BufferCache makeVIBuffer(Geometry const& geometry, BufferCache::Type type, char const* name) const;
 

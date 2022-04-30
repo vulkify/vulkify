@@ -253,7 +253,7 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 	ret.magenta = {vram, "magenta"};
 	ret.white.setTexture(false);
 	ret.magenta.setTexture(false);
-	ret.white.usage = ret.magenta.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	ret.white.preferHost = false;
 
 	ret.white.refresh(vk::Extent3D(1, 1, 1));
 	ret.magenta.refresh(vk::Extent3D(1, 1, 1));

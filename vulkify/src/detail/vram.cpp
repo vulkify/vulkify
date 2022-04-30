@@ -6,11 +6,6 @@
 
 namespace vf {
 namespace {
-constexpr bool hostVisible(VmaMemoryUsage usage) noexcept {
-	return usage == VMA_MEMORY_USAGE_CPU_TO_GPU || usage == VMA_MEMORY_USAGE_GPU_TO_CPU || usage == VMA_MEMORY_USAGE_CPU_ONLY ||
-		   usage == VMA_MEMORY_USAGE_CPU_COPY;
-}
-
 char const* getName(char const* name, std::string& fallback, std::atomic<int>& count) {
 	if (!name) {
 		fallback = ktl::str_format("unnamed_{}", count++);
@@ -78,28 +73,8 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device) {
 	allocatorInfo.device = static_cast<VkDevice>(device.device);
 	allocatorInfo.physicalDevice = static_cast<VkPhysicalDevice>(device.gpu);
 	VmaVulkanFunctions vkFunc = {};
-	vkFunc.vkGetPhysicalDeviceProperties = dl.vkGetPhysicalDeviceProperties;
-	vkFunc.vkGetPhysicalDeviceMemoryProperties = dl.vkGetPhysicalDeviceMemoryProperties;
-	vkFunc.vkAllocateMemory = dl.vkAllocateMemory;
-	vkFunc.vkFreeMemory = dl.vkFreeMemory;
-	vkFunc.vkMapMemory = dl.vkMapMemory;
-	vkFunc.vkUnmapMemory = dl.vkUnmapMemory;
-	vkFunc.vkFlushMappedMemoryRanges = dl.vkFlushMappedMemoryRanges;
-	vkFunc.vkInvalidateMappedMemoryRanges = dl.vkInvalidateMappedMemoryRanges;
-	vkFunc.vkBindBufferMemory = dl.vkBindBufferMemory;
-	vkFunc.vkBindImageMemory = dl.vkBindImageMemory;
-	vkFunc.vkGetBufferMemoryRequirements = dl.vkGetBufferMemoryRequirements;
-	vkFunc.vkGetImageMemoryRequirements = dl.vkGetImageMemoryRequirements;
-	vkFunc.vkCreateBuffer = dl.vkCreateBuffer;
-	vkFunc.vkDestroyBuffer = dl.vkDestroyBuffer;
-	vkFunc.vkCreateImage = dl.vkCreateImage;
-	vkFunc.vkDestroyImage = dl.vkDestroyImage;
-	vkFunc.vkCmdCopyBuffer = dl.vkCmdCopyBuffer;
-	vkFunc.vkGetBufferMemoryRequirements2KHR = dl.vkGetBufferMemoryRequirements2KHR;
-	vkFunc.vkGetImageMemoryRequirements2KHR = dl.vkGetImageMemoryRequirements2KHR;
-	vkFunc.vkBindBufferMemory2KHR = dl.vkBindBufferMemory2KHR;
-	vkFunc.vkBindImageMemory2KHR = dl.vkBindImageMemory2KHR;
-	vkFunc.vkGetPhysicalDeviceMemoryProperties2KHR = dl.vkGetPhysicalDeviceMemoryProperties2KHR;
+	vkFunc.vkGetInstanceProcAddr = dl.vkGetInstanceProcAddr;
+	vkFunc.vkGetDeviceProcAddr = dl.vkGetDeviceProcAddr;
 	allocatorInfo.pVulkanFunctions = &vkFunc;
 	auto vram = Vram{device};
 	if (vmaCreateAllocator(&allocatorInfo, &vram.allocator) != VK_SUCCESS) {
@@ -120,7 +95,7 @@ void Vram::Deleter::operator()(Vram const& vram) const {
 	vmaDestroyAllocator(vram.allocator);
 }
 
-UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage const usage, char const* name, bool linear) const {
+UniqueImage Vram::makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear) const {
 	if (!allocator || !commandFactory) { return {}; }
 	info.tiling = linear ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal;
 	if (info.imageType == vk::ImageType()) { info.imageType = vk::ImageType::e2D; }
@@ -131,7 +106,8 @@ UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage const usage
 	info.pQueueFamilyIndices = &device.queue.family;
 
 	auto vaci = VmaAllocationCreateInfo{};
-	vaci.usage = usage;
+	vaci.usage = host ? VMA_MEMORY_USAGE_AUTO_PREFER_HOST : VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	if (host) { vaci.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; }
 	auto const& imageInfo = static_cast<VkImageCreateInfo const&>(info);
 	auto ret = VkImage{};
 	auto handle = VmaAllocation{};
@@ -147,20 +123,21 @@ UniqueImage Vram::makeImage(vk::ImageCreateInfo info, VmaMemoryUsage const usage
 	return VmaImage{{vk::Image(ret), allocator, handle}, info.initialLayout, info.extent};
 }
 
-UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, VmaMemoryUsage const usage, char const* name) const {
+UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, bool host, char const* name) const {
 	if (!commandFactory || !allocator) { return {}; }
 	info.sharingMode = vk::SharingMode::eExclusive;
 	info.queueFamilyIndexCount = 1U;
 	info.pQueueFamilyIndices = &device.queue.family;
 
 	auto vaci = VmaAllocationCreateInfo{};
-	vaci.usage = usage;
+	vaci.usage = host ? VMA_MEMORY_USAGE_AUTO_PREFER_HOST : VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+	if (host) { vaci.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; }
 	auto const& vkBufferInfo = static_cast<VkBufferCreateInfo>(info);
 	auto ret = VkBuffer{};
 	auto handle = VmaAllocation{};
 	if (vmaCreateBuffer(allocator, &vkBufferInfo, &vaci, &ret, &handle, nullptr) != VK_SUCCESS) { return {}; }
 	void* map{};
-	if (hostVisible(usage)) { vmaMapMemory(allocator, handle, &map); }
+	if (host) { vmaMapMemory(allocator, handle, &map); }
 
 	if (device.flags.test(VKDevice::Flag::eDebugMsgr)) {
 		static auto id = std::atomic<int>{};
@@ -178,7 +155,7 @@ static void copy(Vram const& vram, VmaBuffer dst, vk::CommandBuffer cmd, Span co
 	if (!dst.resource || size == 0) { return; }
 	auto bci = vk::BufferCreateInfo({}, static_cast<vk::DeviceSize>(size), vk::BufferUsageFlagBits::eTransferSrc);
 	auto str = ktl::str_format("{}_staging", name);
-	auto stage = vram.makeBuffer(bci, VMA_MEMORY_USAGE_CPU_TO_GPU, str.c_str());
+	auto stage = vram.makeBuffer(bci, true, str.c_str());
 	assert(stage);
 	stage->write(data.data(), data.size());
 	cmd.copyBuffer(stage->resource, dst.resource, vk::BufferCopy({}, {}, bci.size));
@@ -193,7 +170,7 @@ BufferCache Vram::makeVIBuffer(Geometry const& geometry, BufferCache::Type type,
 	auto ret = BufferCache{};
 	ret.type = type;
 	bool const gpuOnly = type == BufferCache::Type::eGpuOnly;
-	auto const usage = gpuOnly ? VMA_MEMORY_USAGE_GPU_ONLY : VMA_MEMORY_USAGE_CPU_TO_GPU;
+	bool const host = gpuOnly ? false : true;
 
 	auto bci = vk::BufferCreateInfo{};
 	bci.usage = vk::BufferUsageFlagBits::eVertexBuffer;
@@ -203,12 +180,12 @@ BufferCache Vram::makeVIBuffer(Geometry const& geometry, BufferCache::Type type,
 	name = getName(name, nameFallback, count);
 	bci.size = verts.size_bytes();
 	auto str = ktl::str_format("{}_vbo", name);
-	ret.buffers.push_back(makeBuffer(bci, usage, str.c_str()));
+	ret.buffers.push_back(makeBuffer(bci, host, str.c_str()));
 	if (!geometry.indices.empty()) {
 		bci.usage = vk::BufferUsageFlagBits::eIndexBuffer;
 		bci.size = geometry.indices.size() * sizeof(decltype(geometry.indices[0]));
 		str = ktl::str_format("{}_ibo", name);
-		ret.buffers.push_back(makeBuffer(bci, usage, str.c_str()));
+		ret.buffers.push_back(makeBuffer(bci, host, str.c_str()));
 	}
 
 	auto cmd = InstantCommand(commandFactory->get());
@@ -227,7 +204,7 @@ BufferCache Vram::makeVIBuffer(Geometry const& geometry, BufferCache::Type type,
 
 bool ImageWriter::operator()(VmaImage& out, void const* data, std::size_t size, glm::uvec2 extent, glm::ivec2 offset, TPair<vk::ImageLayout> const* il) {
 	auto bci = vk::BufferCreateInfo({}, size, vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
-	auto buffer = vram.makeBuffer(bci, VMA_MEMORY_USAGE_CPU_TO_GPU, "image_copy_staging");
+	auto buffer = vram.makeBuffer(bci, true, "image_copy_staging");
 	if (!buffer || !buffer->write(data)) { return false; }
 
 	if (extent.x == 0 && extent.y == 0) {

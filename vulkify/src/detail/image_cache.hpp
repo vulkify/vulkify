@@ -36,7 +36,7 @@ struct ImageCache {
 		info.extent = extent;
 		info.format = format;
 		vram.device.defer(std::move(image), std::move(view));
-		image = vram.makeImage(info, usage, name.c_str());
+		image = vram.makeImage(info, preferHost, name.c_str());
 		view = vram.device.makeImageView(image->resource, format, aspect);
 		return peek();
 	}
@@ -55,7 +55,7 @@ struct ImageCache {
 	UniqueImage image{};
 	vk::UniqueImageView view{};
 	vk::ImageAspectFlags aspect{};
-	VmaMemoryUsage usage = VMA_MEMORY_USAGE_GPU_ONLY;
-	vk::ImageViewType viewType = vk::ImageViewType::e2D;
+	bool preferHost{};
+	vk::ImageViewType viewType{vk::ImageViewType::e2D};
 };
 } // namespace vf

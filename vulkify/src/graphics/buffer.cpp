@@ -25,7 +25,7 @@ std::size_t UniformBuffer::size() const { return m_allocation->buffer.buffers.em
 
 bool UniformBuffer::resize(std::size_t const size) {
 	if (!m_allocation->vram) { return false; }
-	auto buffer = m_allocation->vram.makeBuffer({{}, size, vk::BufferUsageFlagBits::eUniformBuffer}, VMA_MEMORY_USAGE_CPU_TO_GPU, m_name.c_str());
+	auto buffer = m_allocation->vram.makeBuffer({{}, size, vk::BufferUsageFlagBits::eUniformBuffer}, true, m_name.c_str());
 	if (!buffer) { return false; }
 	auto& buffers = m_allocation->buffer.buffers;
 	if (buffers.empty()) {
