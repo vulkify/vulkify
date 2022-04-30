@@ -4,36 +4,35 @@
 
 namespace vf {
 namespace {
-constexpr vk::SamplerAddressMode getMode(Texture::Mode const mode) {
+constexpr vk::SamplerAddressMode getMode(AddressMode const mode) {
 	switch (mode) {
-	case Texture::Mode::eRepeat: return vk::SamplerAddressMode::eRepeat;
-	case Texture::Mode::eClampBorder: return vk::SamplerAddressMode::eClampToBorder;
-	case Texture::Mode::eClampEdge: return vk::SamplerAddressMode::eClampToEdge;
+	case AddressMode::eRepeat: return vk::SamplerAddressMode::eRepeat;
+	case AddressMode::eClampBorder: return vk::SamplerAddressMode::eClampToBorder;
+	case AddressMode::eClampEdge: return vk::SamplerAddressMode::eClampToEdge;
 	default: return vk::SamplerAddressMode::eClampToEdge;
 	}
 }
 
-constexpr vk::Filter getFilter(Texture::Filter const filter) { return filter == Texture::Filter::eLinear ? vk::Filter::eLinear : vk::Filter::eNearest; }
+constexpr vk::Filter getFilter(Filtering const filtering) { return filtering == Filtering::eLinear ? vk::Filter::eLinear : vk::Filter::eNearest; }
 } // namespace
 
-Texture::Texture(Vram const& vram, std::string name, Bitmap bitmap, Mode mode, Filter filter)
-	: GfxResource(vram, std::move(name)), m_mode(mode), m_filter(filter) {
+Texture::Texture(Vram const& vram, std::string name, Bitmap bitmap, CreateInfo const& createInfo)
+	: GfxResource(vram, std::move(name)), m_addressMode(createInfo.addressMode), m_filtering(createInfo.filtering) {
+	m_allocation->image.sampler = vram.device.device.createSamplerUnique(samplerInfo(vram, getMode(m_addressMode), getFilter(m_filtering)));
 	m_allocation->image.cache.setTexture(true);
-	auto sci = samplerInfo(vram, getMode(mode), getFilter(filter));
-	m_allocation->image.sampler = vram.device.device.createSamplerUnique(sci);
 	if (!Bitmap::valid(bitmap)) {
-		setError();
+		setInvalid();
 		return;
 	}
 	create(std::move(bitmap));
 }
 
 Result<void> Texture::create(Bitmap bitmap) {
+	if (!m_allocation || !m_allocation->vram) { return Error::eInactiveInstance; }
 	if (!Bitmap::valid(bitmap)) {
-		setError();
+		setInvalid();
 		return Error::eInvalidArgument;
 	}
-	if (!m_allocation->vram) { return Error::eInactiveInstance; }
 	m_bitmap = std::move(bitmap);
 	m_allocation->image.cache.refresh({m_bitmap.extent().x, m_bitmap.extent().y, 1});
 	write(m_bitmap, {});
@@ -41,10 +40,24 @@ Result<void> Texture::create(Bitmap bitmap) {
 }
 
 Result<void> Texture::overwrite(Bitmap::View const bitmap, Extent2D const offset) {
-	if (!m_allocation->vram || !m_allocation->image.cache.image) { return Error::eInactiveInstance; }
+	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return Error::eInactiveInstance; }
 	if (!m_bitmap.overwrite(bitmap, offset)) { return Error::eInvalidArgument; }
 	write(bitmap, offset);
 	return Result<void>::success();
+}
+
+Texture Texture::clone(std::string name) const {
+	if (!m_allocation->vram || !m_allocation->image.cache.image) { return {}; }
+	auto const createInfo = CreateInfo{m_addressMode, m_filtering};
+	auto ret = Texture(m_allocation->vram, std::move(name), m_bitmap, createInfo);
+	if (!m_allocation->image.cache.image) { return ret; }
+	ret.create(m_bitmap);
+	return ret;
+}
+
+Extent2D Texture::extent() const {
+	if (!m_allocation) { return {}; }
+	return {m_allocation->image.cache.info.extent.width, m_allocation->image.cache.info.extent.height};
 }
 
 void Texture::write(Bitmap::View const bitmap, Extent2D const offset) {
@@ -58,18 +71,8 @@ void Texture::write(Bitmap::View const bitmap, Extent2D const offset) {
 	cmd.submit();
 }
 
-Texture Texture::clone(std::string name) const {
-	if (!m_allocation->vram || !m_allocation->image.cache.image) { return {}; }
-	auto ret = Texture(m_allocation->vram, std::move(name), m_bitmap, m_mode, m_filter);
-	if (!m_allocation->image.cache.image) { return ret; }
-	ret.create(m_bitmap);
-	return ret;
-}
-
-Extent2D Texture::extent() const { return {m_allocation->image.cache.info.extent.width, m_allocation->image.cache.info.extent.height}; }
-
-void Texture::setError() {
-	VF_TRACEF("[Texture:{}] Invalid bitmap", m_name);
+void Texture::setInvalid() {
+	VF_TRACEF("[Texture:{}] Invalid bitmap", m_allocation->name);
 	m_bitmap = Bitmap(magenta_v);
 	m_allocation->image.cache.refresh({1, 1, 1});
 	write(m_bitmap, {});

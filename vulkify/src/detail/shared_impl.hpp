@@ -69,13 +69,29 @@ struct RenderPass {
 struct ImageSampler {
 	ImageCache cache{};
 	vk::UniqueSampler sampler{};
+
+	bool operator==(ImageSampler const& rhs) const { return !sampler && !rhs.sampler && !cache.image && !rhs.cache.image; }
 };
 
 struct GfxAllocation {
-	Vram vram{};
-	BufferCache buffer{};
 	ImageSampler image{};
+	BufferCache buffer{};
+	Vram vram{};
+	std::string name{};
+
+	GfxAllocation() = default;
+	GfxAllocation(Vram const& vram, std::string name) : image{{vram, name}}, vram(vram) {}
+
+	bool operator==(GfxAllocation const&) const = default;
 };
+
+struct Inactive {
+	Vram vram{};
+	GfxAllocation alloc{};
+	std::string name{};
+};
+
+Inactive const g_inactive{};
 
 template <std::output_iterator<std::byte> Out>
 void rgbaToByte(Rgba const rgba, Out out) {

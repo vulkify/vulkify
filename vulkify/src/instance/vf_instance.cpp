@@ -434,10 +434,7 @@ bool VulkifyInstance::endPass() {
 	return ret.has_value();
 }
 
-Vram const& HeadlessInstance::vram() const {
-	static const auto ret = Vram{};
-	return ret;
-}
-
 Vram const& VulkifyInstance::vram() const { return m_impl->vram.vram; }
+
+Vram const& HeadlessInstance::vram() const { return g_inactive.vram; }
 } // namespace vf

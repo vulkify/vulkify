@@ -5,13 +5,20 @@
 #include <vulkify/graphics/resource.hpp>
 
 namespace vf {
+enum class AddressMode { eClampEdge, eClampBorder, eRepeat };
+enum class Filtering { eNearest, eLinear };
+
+struct TextureCreateInfo {
+	AddressMode addressMode{AddressMode::eClampEdge};
+	Filtering filtering{Filtering::eNearest};
+};
+
 class Texture : public GfxResource {
   public:
-	enum class Mode { eClampEdge, eClampBorder, eRepeat };
-	enum class Filter { eNearest, eLinear };
+	using CreateInfo = TextureCreateInfo;
 
 	Texture() = default;
-	Texture(Vram const& vram, std::string name, Bitmap bitmap, Mode mode = Mode::eClampEdge, Filter filter = Filter::eNearest);
+	Texture(Vram const& vram, std::string name, Bitmap bitmap, CreateInfo const& createInfo = {});
 
 	Result<void> create(Bitmap bitmap);
 	Result<void> overwrite(Bitmap::View bitmap, Extent2D offset = {});
@@ -20,17 +27,17 @@ class Texture : public GfxResource {
 
 	Extent2D extent() const;
 	Bitmap const& bitmap() const { return m_bitmap; }
-	Mode mode() const { return m_mode; }
-	Filter filter() const { return m_filter; }
+	AddressMode addressMode() const { return m_addressMode; }
+	Filtering filtering() const { return m_filtering; }
 
 	void clearBitmap() { m_bitmap = {}; }
 
   private:
 	void write(Bitmap::View bitmap, Extent2D offset);
-	void setError();
+	void setInvalid();
 
 	Bitmap m_bitmap{};
-	Mode m_mode{};
-	Filter m_filter{};
+	AddressMode m_addressMode{};
+	Filtering m_filtering{};
 };
 } // namespace vf

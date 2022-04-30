@@ -8,7 +8,7 @@ namespace vf {
 struct Vertex {
 	glm::vec2 xy{};
 	glm::vec2 uv{};
-	glm::vec4 rgba{};
+	glm::vec4 rgba{1.0f};
 };
 
 struct Geometry {

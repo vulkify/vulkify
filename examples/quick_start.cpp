@@ -47,6 +47,15 @@ void test(vf::UContext ctx) {
 
 	auto quad = vf::Drawable(std::move(mesh));
 
+	auto tri = vf::Geometry{};
+	tri.vertices.push_back(vf::Vertex{{-100.0f, -100.0f}});
+	tri.vertices.push_back(vf::Vertex{{100.0f, -100.0f}});
+	tri.vertices.push_back(vf::Vertex{{0.0f, 100.0f}});
+	auto mesh1 = vf::Mesh2D::make(ctx->vram(), "mesh1");
+	mesh1.vbo.write(std::move(tri));
+	mesh1.primitive.transform.position = {200.0f, -200.0f};
+	// mesh1.primitive.tint = vf::yellow_v;
+
 	auto elapsed = vf::Time{};
 	while (!ctx->closing()) {
 		auto const frame = ctx->frame();
@@ -77,6 +86,8 @@ void test(vf::UContext ctx) {
 		// spec.flags.set(vf::PipelineState::Flag::eWireframe);
 		// frame.surface.bind(spec);
 		quad.draw(frame.surface);
+		auto drawModel = mesh1.primitive.drawModel();
+		frame.surface.draw(mesh1.vbo, {&drawModel, 1}, mesh1.texture);
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
 		frame.surface.setClear(clear.linear());
 	}

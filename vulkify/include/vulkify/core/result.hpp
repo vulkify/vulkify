@@ -10,6 +10,7 @@ enum class Error {
 	eVulkanInitFailure,
 
 	eInactiveInstance,
+	eMemoryError,
 };
 
 template <typename T>

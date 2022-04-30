@@ -19,15 +19,14 @@ class GfxResource {
 	GfxResource(Vram const& vram, std::string name);
 
 	explicit operator bool() const;
-	GfxAllocation const& resource() const { return *m_allocation; }
-	std::string const& name() const { return m_name; }
+	GfxAllocation const& resource() const;
+	std::string const& name() const;
 
-	void defer() &&;
+	void release() &&;
 
   protected:
 	Vram const& vram() const;
 
-	std::string m_name{};
 	ktl::kunique_ptr<GfxAllocation> m_allocation;
 };
 } // namespace vf

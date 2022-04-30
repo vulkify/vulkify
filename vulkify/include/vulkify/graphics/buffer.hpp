@@ -1,4 +1,5 @@
 #pragma once
+#include <vulkify/core/result.hpp>
 #include <vulkify/graphics/geometry.hpp>
 #include <vulkify/graphics/resource.hpp>
 #include <type_traits>
@@ -13,10 +14,10 @@ class GeometryBuffer : public GfxResource {
   public:
 	using GfxResource::GfxResource;
 
-	bool write(Geometry geometry);
+	Result<void> write(Geometry geometry);
 	Geometry const& geometry() const { return m_geometry; }
 
-  private:
+  protected:
 	Geometry m_geometry{};
 };
 
@@ -25,11 +26,11 @@ class UniformBuffer : public GfxResource {
 	using GfxResource::GfxResource;
 
 	std::size_t size() const;
-	bool resize(std::size_t size);
-	bool write(BufferWrite data);
+	Result<void> resize(std::size_t size);
+	Result<void> write(BufferWrite data);
 
 	template <typename T>
 		requires(std::is_standard_layout_v<T>)
-	bool write(T const& t) { return write(std::span<T const>(&t, sizeof(T))); }
+	Result<void> write(T const& t) { return write(std::span<T const>(&t, sizeof(T))); }
 };
 } // namespace vf
