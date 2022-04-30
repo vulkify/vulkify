@@ -42,16 +42,10 @@ bool Surface::bind(Pipeline const& pipeline) const {
 	return true;
 }
 
-bool Surface::draw(GeometryBuffer const& geometry, std::span<DrawModel const> models, Texture const* texture) const {
+bool Surface::draw(GeometryBuffer const& geometry, std::span<DrawModel const> models, Texture const& texture) const {
 	if (!m_renderPass->descriptorPool || !m_renderPass->bound || !m_renderPass->shaderInput.textures) { return false; }
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
-	if (texture) {
-		if (*texture) {
-			tex = {*texture->resource().image.sampler, *texture->resource().image.cache.view};
-		} else {
-			tex.view = *m_renderPass->shaderInput.textures->magenta.view;
-		}
-	}
+	if (texture) { tex = {*texture.resource().image.sampler, *texture.resource().image.cache.view}; }
 	m_renderPass->writeSetOne(models, tex, geometry.name().c_str());
 	auto const& buffers = geometry.resource().buffer.buffers;
 	if (buffers.empty() || !m_renderPass->commandBuffer) { return false; }

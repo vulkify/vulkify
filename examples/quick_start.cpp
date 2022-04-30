@@ -39,6 +39,7 @@ void test(vf::UContext ctx) {
 	bmp[{1, 0}] = vf::blue_v;
 	auto tex0 = vf::Texture(ctx->vram(), "test_tex", std::move(bmp));
 	mesh.texture = tex0.clone("tex_clone");
+	// mesh.texture = vf::Texture(ctx->vram(), "bad", {});
 	{
 		auto bmp = vf::Bitmap::View{{&vf::magenta_v, 1}};
 		mesh.texture.overwrite(bmp, {1, 1});

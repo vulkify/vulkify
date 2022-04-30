@@ -14,7 +14,7 @@ class Texture : public GfxResource {
 	Texture(Vram const& vram, std::string name, Bitmap bitmap, Mode mode = Mode::eClampEdge, Filter filter = Filter::eNearest);
 
 	Result<void> create(Bitmap bitmap);
-	Result<void> overwrite(Bitmap::View bitmap, glm::ivec2 offset = {});
+	Result<void> overwrite(Bitmap::View bitmap, Extent2D offset = {});
 
 	Texture clone(std::string name) const;
 
@@ -26,7 +26,8 @@ class Texture : public GfxResource {
 	void clearBitmap() { m_bitmap = {}; }
 
   private:
-	void write(Bitmap::View bitmap, glm::ivec2 offset);
+	void write(Bitmap::View bitmap, Extent2D offset);
+	void setError();
 
 	Bitmap m_bitmap{};
 	Mode m_mode{};

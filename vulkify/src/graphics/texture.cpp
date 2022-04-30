@@ -22,15 +22,15 @@ Texture::Texture(Vram const& vram, std::string name, Bitmap bitmap, Mode mode, F
 	auto sci = samplerInfo(vram, getMode(mode), getFilter(filter));
 	m_allocation->image.sampler = vram.device.device.createSamplerUnique(sci);
 	if (!Bitmap::valid(bitmap)) {
-		VF_TRACEF("[Texture:{}] Invalid bitmap", m_name);
-		bitmap = Bitmap(white_v);
+		setError();
+		return;
 	}
 	create(std::move(bitmap));
 }
 
 Result<void> Texture::create(Bitmap bitmap) {
 	if (!Bitmap::valid(bitmap)) {
-		VF_TRACEF("[Texture:{}] Invalid bitmap", m_name);
+		setError();
 		return Error::eInvalidArgument;
 	}
 	if (!m_allocation->vram) { return Error::eInactiveInstance; }
@@ -40,14 +40,14 @@ Result<void> Texture::create(Bitmap bitmap) {
 	return Result<void>::success();
 }
 
-Result<void> Texture::overwrite(Bitmap::View const bitmap, glm::ivec2 const offset) {
+Result<void> Texture::overwrite(Bitmap::View const bitmap, Extent2D const offset) {
 	if (!m_allocation->vram || !m_allocation->image.cache.image) { return Error::eInactiveInstance; }
 	if (!m_bitmap.overwrite(bitmap, offset)) { return Error::eInvalidArgument; }
 	write(bitmap, offset);
 	return Result<void>::success();
 }
 
-void Texture::write(Bitmap::View const bitmap, glm::ivec2 const offset) {
+void Texture::write(Bitmap::View const bitmap, Extent2D const offset) {
 	auto vec = std::vector<std::byte>();
 	vec.reserve(bitmap.extent.x * bitmap.extent.y * 4);
 	for (Rgba const pixel : bitmap.pixels) { rgbaToByte(pixel, std::back_inserter(vec)); }
@@ -67,4 +67,11 @@ Texture Texture::clone(std::string name) const {
 }
 
 Extent2D Texture::extent() const { return {m_allocation->image.cache.info.extent.width, m_allocation->image.cache.info.extent.height}; }
+
+void Texture::setError() {
+	VF_TRACEF("[Texture:{}] Invalid bitmap", m_name);
+	m_bitmap = Bitmap(magenta_v);
+	m_allocation->image.cache.refresh({1, 1, 1});
+	write(m_bitmap, {});
+}
 } // namespace vf

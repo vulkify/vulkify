@@ -10,15 +10,13 @@ concept PrimitiveApi = requires(T const& t) {
 
 class Drawable {
   public:
-	static constexpr std::size_t small_buffer_v = 8;
-
 	template <PrimitiveApi T = Primitive>
 	explicit Drawable(T t = {}) : m_model(ktl::make_unique<Model<T>>(std::move(t))) {}
 
 	template <PrimitiveApi T>
 	T* as() const;
 
-	void draw(Surface const& surface) const;
+	void draw(Surface const& surface) const { m_model->primitive().draw(surface); }
 
   private:
 	struct Base {

@@ -6,7 +6,6 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   graphics/bitmap.cpp
   graphics/buffer.cpp
-  graphics/drawable.cpp
   graphics/primitive.cpp
   graphics/resource.cpp
   graphics/spir_v.cpp

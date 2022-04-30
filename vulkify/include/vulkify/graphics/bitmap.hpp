@@ -41,7 +41,7 @@ class Bitmap {
 	Rgba& operator[](Index2D index) { return m_pixels.at(index(m_extent.y)); }
 	Rgba const& operator[](Index2D index) const { return m_pixels.at(index(m_extent.y)); }
 
-	bool overwrite(View view, glm::ivec2 offset = {});
+	bool overwrite(View view, Extent2D offset = {});
 	std::size_t byteSize() const { return m_extent.x * m_extent.y * 4; }
 
   private:
