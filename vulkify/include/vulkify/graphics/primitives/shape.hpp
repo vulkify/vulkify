@@ -4,6 +4,12 @@
 #include <vulkify/graphics/texture.hpp>
 
 namespace vf {
+///
+/// \brief Base Primitive with protected GeometryBufer, Texture, and DrawInstance
+///
+/// Note: The Texture member is not exposed to the public interface, but is referenecd in the returned Drawable.
+/// Derived types may use it as desired.
+///
 class Shape : public Primitive {
   public:
 	Shape() = default;

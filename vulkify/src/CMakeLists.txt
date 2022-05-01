@@ -11,6 +11,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   graphics/surface.cpp
   graphics/texture.cpp
 
+  graphics/primitives/mesh.cpp
   graphics/primitives/quad_shape.cpp
 
   instance/vf_instance.cpp

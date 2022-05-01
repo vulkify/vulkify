@@ -5,7 +5,8 @@
 
 #include <vulkify/graphics/spir_v.hpp>
 
-#include <vulkify/graphics/primitives/mesh2d.hpp>
+#include <vulkify/graphics/primitives/instanced_mesh.hpp>
+#include <vulkify/graphics/primitives/mesh.hpp>
 #include <vulkify/graphics/primitives/quad_shape.hpp>
 #include <array>
 
@@ -20,8 +21,8 @@ void test(vf::UContext ctx) {
 	auto const clearB = vf::Rgba::make(0x000fffff);
 
 	using InstanceStorage = std::array<vf::DrawInstance, 2>;
-	using Mesh2D = vf::InstancedMesh2D<InstanceStorage>;
-	auto mesh = Mesh2D(ctx->vram(), "instanced_mesh");
+	using Mesh2D = vf::InstancedMesh<InstanceStorage>;
+	auto mesh = Mesh2D(*ctx, "instanced_mesh");
 	auto geo = vf::Geometry::makeQuad(glm::vec2(100.0f));
 	// geo.vertices[0].rgba = vf::red_v.normalize();
 	// geo.vertices[1].rgba = vf::green_v.normalize();
@@ -48,12 +49,12 @@ void test(vf::UContext ctx) {
 	tri.vertices.push_back(vf::Vertex{{-100.0f, -100.0f}});
 	tri.vertices.push_back(vf::Vertex{{100.0f, -100.0f}});
 	tri.vertices.push_back(vf::Vertex{{0.0f, 100.0f}});
-	auto mesh1 = vf::Mesh2D(ctx->vram(), "mesh1");
+	auto mesh1 = vf::Mesh(*ctx, "mesh1");
 	mesh1.gbo.write(std::move(tri));
 	mesh1.instance.transform.position = {200.0f, -200.0f};
 	mesh1.instance.tint = vf::yellow_v;
 
-	auto quad = vf::QuadShape(ctx->vram(), "quad");
+	auto quad = vf::QuadShape(*ctx);
 	quad.transform().position.y = -200.0f;
 	quad.tint() = vf::Rgba::make(0xc382bf).linear();
 
