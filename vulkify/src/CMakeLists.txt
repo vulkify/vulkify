@@ -1,4 +1,5 @@
 target_sources(${PROJECT_NAME} PRIVATE
+  context/builder.cpp
   context/context.cpp
 
   graphics/geometry.cpp

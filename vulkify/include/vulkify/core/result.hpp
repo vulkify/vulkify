@@ -3,6 +3,8 @@
 
 namespace vf {
 enum class Error {
+	eUnknown,
+
 	eInvalidArgument,
 	eDuplicateInstance,
 	eNoVulkanSupport,

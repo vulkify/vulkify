@@ -162,8 +162,8 @@ Result<std::shared_ptr<UniqueGlfw>> getOrMakeGlfw() {
 	return ret;
 }
 
-UniqueWindow makeWindow(VulkifyInstance::Info const& info) {
-	using Flag = VulkifyInstance::Flag;
+UniqueWindow makeWindow(InstanceCreateInfo const& info) {
+	using Flag = InstanceCreateInfo::Flag;
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_DECORATED, info.flags.test(Flag::eBorderless) ? 0 : 1);
 	glfwWindowHint(GLFW_VISIBLE, 0);
@@ -322,10 +322,13 @@ VulkifyInstance::~VulkifyInstance() noexcept {
 	g_glfw = {};
 }
 
-VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
+VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
+	if (createInfo.extent.x == 0 || createInfo.extent.y == 0) { return Error::eInvalidArgument; }
+	if (createInfo.flags.test(InstanceCreateInfo::Flag::eHeadless)) { return Error::eInvalidArgument; }
+
 	auto glfw = getOrMakeGlfw();
 	if (!glfw) { return glfw.error(); }
-	auto window = makeWindow(info);
+	auto window = makeWindow(createInfo);
 	if (!window) { return Error::eGlfwFailure; }
 
 	auto vulkan = VKInstance::make([&window](vk::Instance inst) {
@@ -340,7 +343,7 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 	if (!vram) { return Error::eVulkanInitFailure; }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
-	bool const linear = info.flags.test(Flag::eLinearSwapchain);
+	bool const linear = createInfo.flags.test(InstanceCreateInfo::Flag::eLinearSwapchain);
 	impl->surface = VKSurface::make(device, impl->vulkan.gpu, *impl->vulkan.surface, getFramebufferSize(impl->window->win), linear);
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
 	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);

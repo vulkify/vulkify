@@ -1,19 +1,10 @@
-#include <vulkify/context/context.hpp>
-#include <vulkify/instance/headless_instance.hpp>
-#include <vulkify/instance/vf_instance.hpp>
+#include <vulkify/vulkify.hpp>
 #include <iostream>
 
-#include <vulkify/graphics/spir_v.hpp>
-
-#include <vulkify/graphics/primitives/instanced_mesh.hpp>
-#include <vulkify/graphics/primitives/mesh.hpp>
-#include <vulkify/graphics/primitives/quad_shape.hpp>
 #include <array>
 
 namespace {
 void test(vf::UContext ctx) {
-	bool const glslc = vf::SpirV::glslcAvailable();
-	std::cout << "glslc available: " << std::boolalpha << glslc << '\n';
 	std::cout << "using GPU: " << ctx->instance().gpu().name << '\n';
 
 	ctx->show();
@@ -96,12 +87,9 @@ void test(vf::UContext ctx) {
 } // namespace
 
 int main() {
-	auto info = vf::VulkifyInstance::Info{};
-	// info.flags.set(vf::VulkifyInstance::Flag::eLinearSwapchain);
-	auto instance = vf::VulkifyInstance::make(info);
-	if (!instance) { return EXIT_FAILURE; }
-	auto context = vf::Context::make({}, std::move(instance.value()));
-	// auto context = vf::Context::make({}, *vf::HeadlessInstance::make());
+	// auto context = vf::Builder{}.setFlag(vf::Builder::Flag::eLinearSwapchain).build();
+	auto context = vf::Builder{}.build();
+	// auto context = vf::Builder{}.setFlag(vf::Builder::Flag::eHeadless).build();
 	if (!context) { return EXIT_FAILURE; }
 	test(std::move(context.value()));
 }

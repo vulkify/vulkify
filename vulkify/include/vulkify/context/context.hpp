@@ -9,10 +9,9 @@ using UContext = ktl::kunique_ptr<Context>;
 
 class Context {
   public:
-	struct Info;
 	using Result = vf::Result<UContext>;
 
-	static Result make(Info info, UInstance&& instance);
+	static Result make(UInstance&& instance);
 
 	Context& operator=(Context&&) = delete;
 	~Context() noexcept;
@@ -33,6 +32,4 @@ class Context {
 	ktl::kunique_ptr<Instance> m_instance{};
 	Clock::time_point m_stamp = now();
 };
-
-struct Context::Info {};
 } // namespace vf

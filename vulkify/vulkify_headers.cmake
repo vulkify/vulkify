@@ -1,4 +1,6 @@
 target_sources(${PROJECT_NAME} PRIVATE
+  include/vulkify/vulkify.hpp
+
   include/vulkify/core/defines.hpp
   include/vulkify/core/float_eq.hpp
   include/vulkify/core/nvec.hpp
@@ -11,6 +13,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/core/transform.hpp
   include/vulkify/core/unique.hpp
 
+  include/vulkify/context/builder.hpp
   include/vulkify/context/context.hpp
   include/vulkify/context/frame.hpp
 
@@ -26,6 +29,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/surface.hpp
   include/vulkify/graphics/texture.hpp
 
+  include/vulkify/graphics/primitives/all.hpp
   include/vulkify/graphics/primitives/instanced_mesh.hpp
   include/vulkify/graphics/primitives/mesh_primitive.hpp
   include/vulkify/graphics/primitives/mesh.hpp
@@ -36,7 +40,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/instance/event.hpp
   include/vulkify/instance/gpu.hpp
   include/vulkify/instance/headless_instance.hpp
-  include/vulkify/instance/key_event.hpp
+  include/vulkify/instance/instance_create_info.hpp
   include/vulkify/instance/instance.hpp
+  include/vulkify/instance/key_event.hpp
   include/vulkify/instance/vf_instance.hpp
 )
