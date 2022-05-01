@@ -6,6 +6,7 @@
 #include <vulkify/graphics/spir_v.hpp>
 
 #include <vulkify/graphics/primitives/mesh2d.hpp>
+#include <vulkify/graphics/primitives/quad_shape.hpp>
 #include <array>
 
 namespace {
@@ -20,8 +21,8 @@ void test(vf::UContext ctx) {
 
 	using InstanceStorage = std::array<vf::DrawInstance, 2>;
 	using Mesh2D = vf::InstancedMesh2D<InstanceStorage>;
-	auto mesh = Mesh2D(ctx->vram(), "test_quad");
-	auto geo = vf::makeQuad(glm::vec2(100.0f));
+	auto mesh = Mesh2D(ctx->vram(), "instanced_mesh");
+	auto geo = vf::Geometry::makeQuad(glm::vec2(100.0f));
 	// geo.vertices[0].rgba = vf::red_v.normalize();
 	// geo.vertices[1].rgba = vf::green_v.normalize();
 	// geo.vertices[2].rgba = vf::blue_v.normalize();
@@ -51,6 +52,10 @@ void test(vf::UContext ctx) {
 	mesh1.gbo.write(std::move(tri));
 	mesh1.instance.transform.position = {200.0f, -200.0f};
 	mesh1.instance.tint = vf::yellow_v;
+
+	auto quad = vf::QuadShape(ctx->vram(), "quad");
+	quad.transform().position.y = -200.0f;
+	quad.tint() = vf::Rgba::make(0xc382bf).linear();
 
 	auto elapsed = vf::Time{};
 	while (!ctx->closing()) {
@@ -82,6 +87,7 @@ void test(vf::UContext ctx) {
 		// frame.surface.bind(spec);
 		frame.draw(mesh);
 		frame.draw(mesh1);
+		frame.draw(quad);
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
 		frame.setClear(clear.linear());
 	}

@@ -364,7 +364,7 @@ VulkifyInstance::Result VulkifyInstance::make(Info const& info) {
 
 	// TEST CODE
 	auto f = std::async(std::launch::async, [vram = impl->vram.vram.get()] {
-		auto geo = makeQuad(glm::vec2(1.0f));
+		auto geo = Geometry::makeQuad(glm::vec2(1.0f));
 		geo.vertices[0].rgba = red_v.normalize();
 		geo.vertices[1].rgba = green_v.normalize();
 		geo.vertices[2].rgba = blue_v.normalize();

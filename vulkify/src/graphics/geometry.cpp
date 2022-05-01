@@ -1,8 +1,9 @@
 #include <vulkify/graphics/geometry.hpp>
 
+namespace vf {
 using v2 = glm::vec2;
 
-auto vf::makeQuad(glm::vec2 const size, glm::vec2 const origin, Rgba const rgba, QuadUV const& uv) -> Geometry {
+Geometry Geometry::makeQuad(glm::vec2 const size, glm::vec2 const origin, Rgba const rgba, QuadUV const& uv) {
 	auto ret = Geometry{};
 	auto const colour = rgba.normalize();
 	auto const hs = size * 0.5f;
@@ -15,3 +16,4 @@ auto vf::makeQuad(glm::vec2 const size, glm::vec2 const origin, Rgba const rgba,
 	ret.indices = {0, 1, 2, 2, 3, 0};
 	return ret;
 }
+} // namespace vf

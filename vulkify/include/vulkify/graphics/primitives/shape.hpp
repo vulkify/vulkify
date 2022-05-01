@@ -1,0 +1,24 @@
+#pragma once
+#include <vulkify/graphics/buffer.hpp>
+#include <vulkify/graphics/primitive.hpp>
+#include <vulkify/graphics/texture.hpp>
+
+namespace vf {
+class Shape : public Primitive {
+  public:
+	Shape() = default;
+	Shape(Vram const& vram, std::string name) : m_gbo(vram, std::move(name)) {}
+
+	Transform const& transform() const { return m_instance.transform; }
+	Transform& transform() { return m_instance.transform; }
+	Rgba const& tint() const { return m_instance.tint; }
+	Rgba& tint() { return m_instance.tint; }
+
+	Drawable drawable() const override { return {{&m_instance, 1}, m_gbo, m_texture}; }
+
+  protected:
+	GeometryBuffer m_gbo{};
+	Texture m_texture{};
+	DrawInstance m_instance{};
+};
+} // namespace vf

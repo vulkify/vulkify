@@ -28,6 +28,8 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   include/vulkify/graphics/primitives/mesh_primitive.hpp
   include/vulkify/graphics/primitives/mesh2d.hpp
+  include/vulkify/graphics/primitives/shape.hpp
+  include/vulkify/graphics/primitives/quad_shape.hpp
 
   include/vulkify/instance/event_type.hpp
   include/vulkify/instance/event.hpp

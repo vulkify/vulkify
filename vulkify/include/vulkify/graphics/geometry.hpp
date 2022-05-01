@@ -11,15 +11,15 @@ struct Vertex {
 	glm::vec4 rgba{1.0f};
 };
 
-struct Geometry {
-	std::vector<Vertex> vertices{};
-	std::vector<std::uint32_t> indices{};
-};
-
 struct QuadUV {
 	glm::vec2 topLeft{0.0f, 0.0f};
 	glm::vec2 bottomRight{1.0f, 1.0f};
 };
 
-Geometry makeQuad(glm::vec2 size, glm::vec2 origin = {}, Rgba rgba = white_v, QuadUV const& uv = {});
+struct Geometry {
+	std::vector<Vertex> vertices{};
+	std::vector<std::uint32_t> indices{};
+
+	static Geometry makeQuad(glm::vec2 size, glm::vec2 origin = {}, Rgba rgba = white_v, QuadUV const& uv = {});
+};
 } // namespace vf

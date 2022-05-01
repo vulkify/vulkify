@@ -7,6 +7,7 @@ static std::size_t iboSize(Geometry const& geometry) { return geometry.indices.s
 
 Result<void> GeometryBuffer::write(Geometry geometry) {
 	if (!m_allocation || !m_allocation->vram) { return Error::eInactiveInstance; }
+	if (geometry.vertices.empty()) { return Error::eInvalidArgument; }
 
 	auto& buffers = m_allocation->buffer.buffers;
 	bool const vboSpace = !buffers.empty() && buffers[0]->size >= vboSize(geometry);
@@ -27,6 +28,7 @@ std::size_t UniformBuffer::size() const { return m_allocation->buffer.buffers.em
 
 Result<void> UniformBuffer::resize(std::size_t const size) {
 	if (!m_allocation || !m_allocation->vram) { return Error::eInactiveInstance; }
+	if (size == 0) { return Error::eInvalidArgument; }
 
 	auto buffer = m_allocation->vram.makeBuffer({{}, size, vk::BufferUsageFlagBits::eUniformBuffer}, true, m_allocation->name.c_str());
 	if (!buffer) { return Error::eMemoryError; }
@@ -43,9 +45,9 @@ Result<void> UniformBuffer::resize(std::size_t const size) {
 
 Result<void> UniformBuffer::write(BufferWrite const data) {
 	if (!m_allocation || !m_allocation->vram) { return Error::eInactiveInstance; }
+	if (!data.data || data.size == 0) { return Error::eInvalidArgument; }
 
-	if (data.size == 0) { return Error::eInvalidArgument; }
-	if (this->size() < data.size && !resize(data.size)) { return Error::eInvalidArgument; }
+	if (this->size() < data.size && !resize(data.size)) { return Error::eMemoryError; }
 	if (!m_allocation->buffer.buffers[0]->write(data.data, data.size)) { return Error::eMemoryError; }
 
 	return Result<void>::success();
