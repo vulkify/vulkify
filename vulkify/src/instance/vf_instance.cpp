@@ -264,9 +264,9 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 	Bitmap::rgbaToByte(white_v, imageBytes);
 	auto cmd = InstantCommand(vram.commandFactory->get());
 	auto writer = ImageWriter{vram, cmd.cmd};
-	writer.write(ret.white.image.get(), imageBytes, std::size(imageBytes), {}, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	writer.write(ret.white.image.get(), imageBytes, {}, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 	Bitmap::rgbaToByte(magenta_v, imageBytes);
-	writer.write(ret.magenta.image.get(), imageBytes, std::size(imageBytes), {}, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	writer.write(ret.magenta.image.get(), imageBytes, {}, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 	cmd.submit();
 
 	return ret;

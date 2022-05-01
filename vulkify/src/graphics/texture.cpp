@@ -111,7 +111,7 @@ void Texture::refresh(Extent2D extent) {
 void Texture::write(Image::View const image, Extent2D const offset) {
 	auto cmd = InstantCommand(m_allocation->vram.commandFactory->get());
 	auto writer = ImageWriter{m_allocation->vram, cmd.cmd};
-	writer.write(m_allocation->image.cache.image, image.bytes.data(), image.bytes.size(), image.extent, offset, vk::ImageLayout::eShaderReadOnlyOptimal);
+	writer.write(m_allocation->image.cache.image, image.bytes, image.extent, offset, vk::ImageLayout::eShaderReadOnlyOptimal);
 	cmd.submit();
 }
 

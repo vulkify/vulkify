@@ -204,10 +204,10 @@ BufferCache Vram::makeVIBuffer(Geometry const& geometry, BufferCache::Type type,
 
 bool ImageWriter::canBlit(VmaImage const& src, VmaImage const& dst) { return src.blitFlags().test(BlitFlag::eSrc) && dst.blitFlags().test(BlitFlag::eDst); }
 
-bool ImageWriter::write(VmaImage& out, void const* data, std::size_t size, glm::uvec2 extent, glm::ivec2 offset, vk::ImageLayout il) {
-	auto bci = vk::BufferCreateInfo({}, size, vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
+bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, glm::uvec2 extent, glm::ivec2 offset, vk::ImageLayout il) {
+	auto bci = vk::BufferCreateInfo({}, data.size(), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
 	auto buffer = vram.makeBuffer(bci, true, "image_copy_staging");
-	if (!buffer || !buffer->write(data)) { return false; }
+	if (!buffer || !buffer->write(data.data())) { return false; }
 
 	if (extent.x == 0 && extent.y == 0) {
 		if (offset.x != 0 || offset.y != 0) { return false; }

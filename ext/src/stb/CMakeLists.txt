@@ -3,7 +3,8 @@ project(stb-image)
 unzip_archive(ARCHIVE stb_image.zip SUBDIR "${CMAKE_CURRENT_SOURCE_DIR}")
 
 add_library(${PROJECT_NAME})
-target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC 
+target_compile_definitions(${PROJECT_NAME} PUBLIC STBI_WINDOWS_UTF8)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )

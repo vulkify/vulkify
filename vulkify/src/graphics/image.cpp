@@ -10,8 +10,34 @@ struct StbiDeleter {
 	void operator()(stbi_uc* data) const { stbi_image_free(data); }
 };
 
+static constexpr auto stbi_ok = 1;
+
 using Stbi = std::unique_ptr<stbi_uc, StbiDeleter>;
 using Bytes = std::unique_ptr<std::byte[]>;
+
+constexpr Extent2D makeExtent(int x, int y) { return {static_cast<std::uint32_t>(x), static_cast<std::uint32_t>(y)}; }
+
+Stbi loadImage(Image::Encoded encoded, Extent2D& out_extent) {
+	int x, y, ch;
+	auto const data = reinterpret_cast<stbi_uc const*>(encoded.bytes.data());
+	auto const len = static_cast<int>(encoded.bytes.size());
+	auto ret = Stbi(stbi_load_from_memory(data, len, &x, &y, &ch, static_cast<int>(Image::channels_v)));
+	if (ret && x > 0 && y > 0) {
+		out_extent = makeExtent(x, y);
+		return ret;
+	}
+	return {};
+}
+
+Stbi loadImage(char const* path, Extent2D& out_extent) {
+	int x, y, ch;
+	auto ret = Stbi(stbi_load(path, &x, &y, &ch, static_cast<int>(Image::channels_v)));
+	if (ret && x > 0 && y > 0) {
+		out_extent = makeExtent(x, y);
+		return ret;
+	}
+	return {};
+}
 } // namespace
 
 struct Image::Impl {
@@ -19,7 +45,7 @@ struct Image::Impl {
 	Extent2D extent{};
 };
 
-Image::Image() = default;
+Image::Image() noexcept = default;
 
 Image::Image(Image&& rhs) noexcept : Image() { swap(rhs); }
 
@@ -30,18 +56,45 @@ Image& Image::operator=(Image rhs) noexcept {
 
 Image::~Image() noexcept = default;
 
-Image::Image(std::unique_ptr<std::byte[]> bytes, Extent2D extent) {
-	m_impl->img = std::move(bytes);
-	m_impl->extent = extent;
+Image::Decoded Image::decode(Encoded encoded) {
+	auto ext = Extent2D{};
+	auto stbi = loadImage(encoded, ext);
+	if (!stbi) { return {}; }
+	auto ret = Decoded{};
+	auto const size = sizeBytes(ext);
+	ret.bytes = std::make_unique<std::byte[]>(size);
+	std::memcpy(ret.bytes.get(), stbi.get(), size);
+	return ret;
 }
 
-Result<void> Image::load(char const* file) {
+Extent2D Image::peek(char const* path) const {
 	int x, y, ch;
-	auto res = stbi_load(file, &x, &y, &ch, static_cast<int>(channels_v));
-	if (!res) { return Error::eIOError; }
-	m_impl->img = Stbi(res);
-	m_impl->extent = {static_cast<std::uint32_t>(x), static_cast<std::uint32_t>(y)};
-	return Result<void>::success();
+	auto res = stbi_info(path, &x, &y, &ch);
+	if (res == stbi_ok && x > 0 && y > 0) { return makeExtent(x, y); }
+	return {};
+}
+
+Result<Extent2D> Image::load(char const* path) {
+	auto ext = Extent2D{};
+	if (auto stbi = loadImage(path, ext)) {
+		m_impl->img = std::move(stbi);
+		return m_impl->extent = ext;
+	}
+	return {};
+}
+
+Result<Extent2D> Image::load(Encoded image) {
+	auto ext = Extent2D{};
+	if (auto stbi = loadImage(std::move(image), ext)) {
+		m_impl->img = std::move(stbi);
+		return m_impl->extent = ext;
+	}
+	return {};
+}
+
+void Image::replace(Decoded image) {
+	m_impl->img = std::move(image.bytes);
+	m_impl->extent = image.extent;
 }
 
 std::span<std::byte const> Image::data() const {

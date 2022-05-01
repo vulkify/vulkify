@@ -10,7 +10,9 @@ Image Bitmap::View::image() const {
 	auto bytes = std::make_unique<std::byte[]>(pixels.size_bytes() * Image::channels_v);
 	auto head = bytes.get();
 	for (auto const pixel : pixels) { head = rgbaToByte(pixel, head); }
-	return Image(std::move(bytes), extent);
+	auto ret = Image{};
+	ret.replace({std::move(bytes), extent});
+	return ret;
 }
 
 Bitmap::Bitmap(Rgba rgba, Extent2D const extent) {

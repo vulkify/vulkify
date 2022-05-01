@@ -31,7 +31,7 @@ struct DescriptorSet {
 	explicit operator bool() const { return vram && *vram && buffers && set; }
 
 	void refresh(UniqueBuffer& out, std::size_t const size, vk::BufferUsageFlagBits const usage) const {
-		if (!out->resource || out->size < size) { out = vram->makeBuffer({{}, size, usage}, true, name); }
+		if (!out->resource || out->size != size) { out = vram->makeBuffer({{}, size, usage}, true, name); }
 	}
 
 	bool write(std::uint32_t binding, void const* data, std::size_t size) {

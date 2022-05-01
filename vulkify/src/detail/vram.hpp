@@ -162,7 +162,7 @@ struct ImageWriter {
 
 	static bool canBlit(VmaImage const& src, VmaImage const& dst);
 
-	bool write(VmaImage& out, void const* data, std::size_t size, glm::uvec2 extent = {}, glm::ivec2 offset = {}, vk::ImageLayout il = {});
+	bool write(VmaImage& out, std::span<std::byte const> data, glm::uvec2 extent = {}, glm::ivec2 offset = {}, vk::ImageLayout il = {});
 	bool blit(VmaImage& in, VmaImage& out, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
 	bool copy(VmaImage& in, VmaImage& out, TPair<vk::ImageLayout> il = {}) const;
 };
