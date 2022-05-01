@@ -69,7 +69,11 @@ list(APPEND ext_targets glm)
 
 # vma
 add_subdirectory(src/vma)
-list(APPEND ext_targets vma)
+
+# stb
+add_subdirectory(src/stb)
+
+list(APPEND ext_targets vma stb-image)
 
 if(VULKIFY_INSTALL)
   install(TARGETS ${ext_targets} EXPORT vulkify-ext-targets)

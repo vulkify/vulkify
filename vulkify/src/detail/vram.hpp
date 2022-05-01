@@ -77,9 +77,12 @@ struct VmaBuffer : VmaResource<vk::Buffer> {
 struct VmaImage : VmaResource<vk::Image> {
 	vk::ImageLayout layout{};
 	vk::Extent3D extent{};
+	vk::ImageTiling tiling{};
+	BlitCaps caps{};
 
 	void transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier barrier = {});
 	VKImage image(vk::ImageView view = {}) const { return {resource, view, {extent.width, extent.height}}; }
+	BlitFlags blitFlags() const { return tiling == vk::ImageTiling::eLinear ? caps.linear : caps.optimal; }
 
 	struct Deleter {
 		void operator()(VmaImage const&) const;
@@ -157,7 +160,11 @@ struct ImageWriter {
 
 	std::vector<UniqueBuffer> scratch{};
 
-	bool operator()(VmaImage& out, void const* data, std::size_t size, glm::uvec2 extent = {}, glm::ivec2 offset = {}, TPair<vk::ImageLayout> const* il = {});
+	static bool canBlit(VmaImage const& src, VmaImage const& dst);
+
+	bool write(VmaImage& out, void const* data, std::size_t size, glm::uvec2 extent = {}, glm::ivec2 offset = {}, vk::ImageLayout il = {});
+	bool blit(VmaImage& in, VmaImage& out, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
+	bool copy(VmaImage& in, VmaImage& out, TPair<vk::ImageLayout> il = {}) const;
 };
 
 struct UniqueVram {

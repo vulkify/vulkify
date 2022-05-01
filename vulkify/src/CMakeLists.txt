@@ -2,11 +2,12 @@ target_sources(${PROJECT_NAME} PRIVATE
   context/builder.cpp
   context/context.cpp
 
-  graphics/geometry.cpp
   core/rgba.cpp
 
   graphics/bitmap.cpp
   graphics/buffer.cpp
+  graphics/geometry.cpp
+  graphics/image.cpp
   graphics/resource.cpp
   graphics/spir_v.cpp
   graphics/surface.cpp

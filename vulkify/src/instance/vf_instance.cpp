@@ -22,6 +22,7 @@
 
 #include <glm/mat4x4.hpp>
 #include <vulkify/core/transform.hpp>
+#include <vulkify/graphics/bitmap.hpp>
 #include <iostream>
 
 namespace vf {
@@ -250,23 +251,22 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 	auto ret = ShaderInput::Textures{};
 	auto sci = samplerInfo(vram, vk::SamplerAddressMode::eClampToBorder, vk::Filter::eNearest);
 	ret.sampler = vram.device.device.createSamplerUnique(sci);
-	ret.white = {vram, "white"};
-	ret.magenta = {vram, "magenta"};
+	ret.white = {{vram, "white"}};
+	ret.magenta = {{vram, "magenta"}};
 	ret.white.setTexture(false);
 	ret.magenta.setTexture(false);
-	ret.white.preferHost = false;
+	ret.white.info.preferHost = ret.magenta.info.preferHost = false;
 
 	ret.white.refresh(vk::Extent3D(1, 1, 1));
 	ret.magenta.refresh(vk::Extent3D(1, 1, 1));
 	if (!ret.white.view || !ret.magenta.view) { return {}; }
 	std::byte imageBytes[4]{};
-	rgbaToByte(white_v, imageBytes);
+	Bitmap::rgbaToByte(white_v, imageBytes);
 	auto cmd = InstantCommand(vram.commandFactory->get());
 	auto writer = ImageWriter{vram, cmd.cmd};
-	auto const layouts = std::make_pair(vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
-	writer(ret.white.image.get(), imageBytes, std::size(imageBytes), {}, {}, &layouts);
-	rgbaToByte(magenta_v, imageBytes);
-	writer(ret.magenta.image.get(), imageBytes, std::size(imageBytes), {}, {}, &layouts);
+	writer.write(ret.white.image.get(), imageBytes, std::size(imageBytes), {}, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	Bitmap::rgbaToByte(magenta_v, imageBytes);
+	writer.write(ret.magenta.image.get(), imageBytes, std::size(imageBytes), {}, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 	cmd.submit();
 
 	return ret;

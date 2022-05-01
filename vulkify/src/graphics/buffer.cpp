@@ -2,23 +2,12 @@
 #include <vulkify/graphics/buffer.hpp>
 
 namespace vf {
-static std::size_t vboSize(Geometry const& geometry) { return geometry.vertices.size() * sizeof(decltype(geometry.vertices[0])); }
-static std::size_t iboSize(Geometry const& geometry) { return geometry.indices.size() * sizeof(decltype(geometry.indices[0])); }
-
 Result<void> GeometryBuffer::write(Geometry geometry) {
 	if (!m_allocation || !m_allocation->vram) { return Error::eInactiveInstance; }
 	if (geometry.vertices.empty()) { return Error::eInvalidArgument; }
 
-	auto& buffers = m_allocation->buffer.buffers;
-	bool const vboSpace = !buffers.empty() && buffers[0]->size >= vboSize(geometry);
-	bool const iboSpace = geometry.indices.empty() || (buffers.size() > 1 && buffers[1]->size >= iboSize(geometry));
-	if (!vboSpace || !iboSpace) {
-		m_allocation->vram.device.defer(std::move(m_allocation->buffer));
-		m_allocation->buffer = m_allocation->vram.makeVIBuffer(geometry, BufferCache::Type::eCpuToGpu, m_allocation->name.c_str());
-	} else {
-		buffers[0]->write(geometry.vertices.data(), geometry.vertices.size());
-		if (buffers.size() > 1) { buffers[1]->write(geometry.indices.data(), geometry.indices.size()); }
-	}
+	m_allocation->vram.device.defer(std::move(m_allocation->buffer));
+	m_allocation->buffer = m_allocation->vram.makeVIBuffer(geometry, BufferCache::Type::eCpuToGpu, m_allocation->name.c_str());
 
 	m_geometry = std::move(geometry);
 	return Result<void>::success();

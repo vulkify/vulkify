@@ -80,9 +80,14 @@ struct GfxAllocation {
 	std::string name{};
 
 	GfxAllocation() = default;
-	GfxAllocation(Vram const& vram, std::string name) : image{{vram, name}}, vram(vram) {}
+	GfxAllocation(Vram const& vram, std::string name) : image{{{vram, name}}}, vram(vram), name(std::move(name)) {}
 
-	bool operator==(GfxAllocation const&) const = default;
+	bool operator==(GfxAllocation const& rhs) const { return !image.sampler && !rhs.image.sampler; }
+
+	void replace(ImageCache&& cache) {
+		vram.device.defer(std::move(image.cache));
+		image.cache = std::move(cache);
+	}
 };
 
 struct Inactive {
@@ -92,15 +97,6 @@ struct Inactive {
 };
 
 Inactive const g_inactive{};
-
-template <std::output_iterator<std::byte> Out>
-void rgbaToByte(Rgba const rgba, Out out) {
-	auto add = [&out](Rgba::Channel const channel) { *out++ = static_cast<std::byte>(channel); };
-	add(rgba.channels[0]);
-	add(rgba.channels[1]);
-	add(rgba.channels[2]);
-	add(rgba.channels[3]);
-}
 
 namespace ubo {
 struct View {

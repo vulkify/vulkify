@@ -13,6 +13,7 @@ enum class Error {
 
 	eInactiveInstance,
 	eMemoryError,
+	eIOError,
 };
 
 template <typename T>

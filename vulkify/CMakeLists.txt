@@ -25,6 +25,7 @@ target_link_libraries(${PROJECT_NAME}
   dyvk::dyvk
   vk-bootstrap::vk-bootstrap
   vma
+  stb-image
   ${PROJECT_NAME}::options
 )
 target_compile_definitions(${PROJECT_NAME} PUBLIC

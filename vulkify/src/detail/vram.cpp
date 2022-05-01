@@ -58,7 +58,7 @@ void VmaBuffer::Deleter::operator()(VmaBuffer const& buffer) const {
 }
 
 void VmaImage::transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier barrier) {
-	if (layout == to) { return; }
+	if (layout == to || to == vk::ImageLayout::eUndefined) { return; }
 	barrier.layouts = {layout, to};
 	barrier(cb, resource);
 	layout = to;
@@ -120,7 +120,7 @@ UniqueImage Vram::makeImage(vk::ImageCreateInfo info, bool host, char const* nam
 		device.setDebugName(vk::ObjectType::eImage, ret, name);
 	}
 
-	return VmaImage{{vk::Image(ret), allocator, handle}, info.initialLayout, info.extent};
+	return VmaImage{{vk::Image(ret), allocator, handle}, info.initialLayout, info.extent, info.tiling, BlitCaps::make(device.gpu, info.format)};
 }
 
 UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, bool host, char const* name) const {
@@ -202,7 +202,9 @@ BufferCache Vram::makeVIBuffer(Geometry const& geometry, BufferCache::Type type,
 	return ret;
 }
 
-bool ImageWriter::operator()(VmaImage& out, void const* data, std::size_t size, glm::uvec2 extent, glm::ivec2 offset, TPair<vk::ImageLayout> const* il) {
+bool ImageWriter::canBlit(VmaImage const& src, VmaImage const& dst) { return src.blitFlags().test(BlitFlag::eSrc) && dst.blitFlags().test(BlitFlag::eDst); }
+
+bool ImageWriter::write(VmaImage& out, void const* data, std::size_t size, glm::uvec2 extent, glm::ivec2 offset, vk::ImageLayout il) {
 	auto bci = vk::BufferCreateInfo({}, size, vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
 	auto buffer = vram.makeBuffer(bci, true, "image_copy_staging");
 	if (!buffer || !buffer->write(data)) { return false; }
@@ -216,10 +218,44 @@ bool ImageWriter::operator()(VmaImage& out, void const* data, std::size_t size, 
 	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
 	auto icr = vk::ImageCopy(isrl, {}, isrl, {}, vk::Extent3D(extent.x, extent.y, 1));
 	auto bic = vk::BufferImageCopy({}, {}, {}, isrl, {offset.x, offset.y, 0}, icr.extent);
-	if (il) { out.transition(cb, il->first); }
-	cb.copyBufferToImage(buffer->resource, out.resource, vk::ImageLayout::eTransferDstOptimal, bic);
-	if (il) { out.transition(cb, il->second); }
+	out.transition(cb, vk::ImageLayout::eTransferDstOptimal);
+	cb.copyBufferToImage(buffer->resource, out.resource, out.layout, bic);
+	out.transition(cb, il);
 	scratch.push_back(std::move(buffer));
+
+	return true;
+}
+
+bool ImageWriter::blit(VmaImage& in, VmaImage& out, vk::Filter filter, TPair<vk::ImageLayout> il) const {
+	if (!canBlit(in, out) || in.extent == out.extent) { return copy(in, out, il); }
+	if (in.extent.width == 0 || in.extent.height == 0) { return false; }
+	if (out.extent.width == 0 || out.extent.height == 0) { return false; }
+
+	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
+	in.transition(cb, vk::ImageLayout::eTransferSrcOptimal);
+	out.transition(cb, vk::ImageLayout::eTransferDstOptimal);
+	auto srcOffset = vk::Offset3D(static_cast<int>(in.extent.width), static_cast<int>(in.extent.height), 1);
+	auto dstOffset = vk::Offset3D(static_cast<int>(out.extent.width), static_cast<int>(out.extent.height), 1);
+	auto ib = vk::ImageBlit(isrl, {vk::Offset3D(), srcOffset}, isrl, {vk::Offset3D(), dstOffset});
+	cb.blitImage(in.resource, in.layout, out.resource, out.layout, ib, filter);
+	in.transition(cb, il.first);
+	out.transition(cb, il.second);
+
+	return true;
+}
+
+bool ImageWriter::copy(VmaImage& in, VmaImage& out, TPair<vk::ImageLayout> il) const {
+	if (in.extent.width == 0 || in.extent.height == 0) { return false; }
+	if (out.extent.width == 0 || out.extent.height == 0) { return false; }
+
+	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
+	in.transition(cb, vk::ImageLayout::eTransferSrcOptimal);
+	out.transition(cb, vk::ImageLayout::eTransferDstOptimal);
+	auto ib = vk::ImageCopy(isrl, {}, isrl, {}, in.extent);
+	cb.copyImage(in.resource, in.layout, out.resource, out.layout, ib);
+	in.transition(cb, il.first);
+	out.transition(cb, il.second);
+
 	return true;
 }
 } // namespace vf
