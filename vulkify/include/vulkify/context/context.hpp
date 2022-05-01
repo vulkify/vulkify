@@ -1,18 +1,11 @@
 #pragma once
+#include <vulkify/context/frame.hpp>
 #include <vulkify/core/result.hpp>
-#include <vulkify/core/time.hpp>
-#include <vulkify/instance/instance.hpp>
 #include <optional>
 
 namespace vf {
 class Context;
 using UContext = ktl::kunique_ptr<Context>;
-
-struct Frame {
-	Instance::Poll poll{};
-	Surface surface{};
-	Time dt{};
-};
 
 class Context {
   public:
@@ -29,7 +22,6 @@ class Context {
 	bool closing() const { return m_instance->closing(); }
 	void show() { m_instance->show(); }
 	void close() { m_instance->close(); }
-	Instance::Poll poll() { return m_instance->poll(); }
 
 	Frame frame();
 

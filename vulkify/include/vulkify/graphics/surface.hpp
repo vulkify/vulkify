@@ -1,7 +1,7 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
-#include <vulkify/graphics/drawable.hpp>
 #include <vulkify/graphics/pipeline.hpp>
+#include <vulkify/graphics/primitive.hpp>
 #include <concepts>
 #include <iterator>
 #include <span>
@@ -21,7 +21,7 @@ class Surface {
 	Surface() noexcept;
 	Surface(RenderPass renderPass);
 	Surface(Surface&&) noexcept;
-	Surface& operator=(Surface) noexcept;
+	Surface& operator=(Surface&&) noexcept;
 	~Surface();
 
 	explicit operator bool() const;
@@ -29,6 +29,7 @@ class Surface {
 	void setClear(Rgba rgba) const;
 	bool bind(Pipeline const& pipeline = {}) const;
 	bool draw(Drawable const& drawable) const;
+	bool draw(Primitive const& primitive) const { return draw(primitive.drawable()); }
 
   private:
 	bool draw(std::span<DrawModel const> models, Drawable const& drawable) const;

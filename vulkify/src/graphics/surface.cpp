@@ -22,7 +22,7 @@ bool RenderPass::writeSetOne(std::span<DrawModel const> instances, Tex tex, char
 Surface::Surface() noexcept = default;
 Surface::Surface(RenderPass renderPass) : m_renderPass(std::move(renderPass)) { bind({}); }
 Surface::Surface(Surface&& rhs) noexcept : Surface() { std::swap(m_renderPass, rhs.m_renderPass); }
-Surface& Surface::operator=(Surface rhs) noexcept { return (std::swap(m_renderPass, rhs.m_renderPass), *this); }
+Surface& Surface::operator=(Surface&& rhs) noexcept = default;
 
 Surface::~Surface() {
 	if (m_renderPass->instance) { m_renderPass->instance.value->endPass(); }

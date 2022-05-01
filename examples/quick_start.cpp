@@ -5,9 +5,7 @@
 
 #include <vulkify/graphics/spir_v.hpp>
 
-#include <vulkify/graphics/drawable.hpp>
-#include <vulkify/graphics/mesh2d.hpp>
-#include <vulkify/graphics/texture.hpp>
+#include <vulkify/graphics/primitives/mesh2d.hpp>
 #include <array>
 
 namespace {
@@ -57,7 +55,7 @@ void test(vf::UContext ctx) {
 	auto elapsed = vf::Time{};
 	while (!ctx->closing()) {
 		auto const frame = ctx->frame();
-		for (auto const& event : frame.poll.events) {
+		for (auto const& event : frame.poll().events) {
 			switch (event.type) {
 			case vf::EventType::eClose: return;
 			case vf::EventType::eMove: {
@@ -73,19 +71,19 @@ void test(vf::UContext ctx) {
 			default: break;
 			}
 		}
-		for (auto const code : frame.poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
+		for (auto const code : frame.poll().scancodes) { std::cout << static_cast<char>(code) << '\n'; }
 
-		elapsed += frame.dt;
-		mesh.instances[0].transform.orientation.rotate(vf::Degree{frame.dt.count() * 180.0f});
+		elapsed += frame.dt();
+		mesh.instances[0].transform.orientation.rotate(vf::Degree{frame.dt().count() * 180.0f});
 		mesh.instances[1].transform.orientation = mesh.instances[0].transform.orientation;
 
 		// auto spec = vf::PipelineState{};
 		// spec.flags.set(vf::PipelineState::Flag::eWireframe);
 		// frame.surface.bind(spec);
-		mesh.draw(frame.surface);
-		frame.surface.draw(vf::Drawable{{&mesh1.instance, 1}, mesh1.gbo, mesh1.texture});
+		frame.draw(mesh);
+		frame.draw(mesh1);
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
-		frame.surface.setClear(clear.linear());
+		frame.setClear(clear.linear());
 	}
 }
 } // namespace
@@ -96,6 +94,7 @@ int main() {
 	auto instance = vf::VulkifyInstance::make(info);
 	if (!instance) { return EXIT_FAILURE; }
 	auto context = vf::Context::make({}, std::move(instance.value()));
+	// auto context = vf::Context::make({}, *vf::HeadlessInstance::make());
 	if (!context) { return EXIT_FAILURE; }
 	test(std::move(context.value()));
 }

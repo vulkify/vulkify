@@ -18,6 +18,7 @@ constexpr vk::Filter getFilter(Filtering const filtering) { return filtering == 
 
 Texture::Texture(Vram const& vram, std::string name, Bitmap bitmap, CreateInfo const& createInfo)
 	: GfxResource(vram, std::move(name)), m_addressMode(createInfo.addressMode), m_filtering(createInfo.filtering) {
+	if (!m_allocation || !m_allocation->vram) { return; }
 	m_allocation->image.sampler = vram.device.device.createSamplerUnique(samplerInfo(vram, getMode(m_addressMode), getFilter(m_filtering)));
 	m_allocation->image.cache.setTexture(true);
 	if (!Bitmap::valid(bitmap)) {
