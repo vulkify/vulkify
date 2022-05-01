@@ -63,7 +63,7 @@ struct RenderPass {
 
 	mutable vk::PipelineLayout bound{};
 
-	void writeSetOne(std::span<DrawModel const> instances, Tex tex, char const* name) const;
+	bool writeSetOne(std::span<DrawModel const> instances, Tex tex, char const* name) const;
 };
 
 struct ImageSampler {

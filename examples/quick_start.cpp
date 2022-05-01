@@ -20,14 +20,14 @@ void test(vf::UContext ctx) {
 	auto const clearA = vf::Rgba::make(0xfff000ff);
 	auto const clearB = vf::Rgba::make(0x000fffff);
 
-	using InstanceStorage = std::array<vf::Primitive::Instance, 2>;
+	using InstanceStorage = std::array<vf::DrawInstance, 2>;
 	using Mesh2D = vf::InstancedMesh2D<InstanceStorage>;
-	auto mesh = Mesh2D::make(ctx->vram(), "test_quad");
+	auto mesh = Mesh2D(ctx->vram(), "test_quad");
 	auto geo = vf::makeQuad(glm::vec2(100.0f));
 	// geo.vertices[0].rgba = vf::red_v.normalize();
 	// geo.vertices[1].rgba = vf::green_v.normalize();
 	// geo.vertices[2].rgba = vf::blue_v.normalize();
-	mesh.vbo.write(std::move(geo));
+	mesh.gbo.write(std::move(geo));
 
 	mesh.instances[0].transform.position = {-100.0f, 100.0f};
 	mesh.instances[0].tint = vf::Rgba::make(0xc73a58ff).linear();
@@ -45,16 +45,14 @@ void test(vf::UContext ctx) {
 		mesh.texture.overwrite(bmp, {1, 1});
 	}
 
-	auto quad = vf::Drawable(std::move(mesh));
-
 	auto tri = vf::Geometry{};
 	tri.vertices.push_back(vf::Vertex{{-100.0f, -100.0f}});
 	tri.vertices.push_back(vf::Vertex{{100.0f, -100.0f}});
 	tri.vertices.push_back(vf::Vertex{{0.0f, 100.0f}});
-	auto mesh1 = vf::Mesh2D::make(ctx->vram(), "mesh1");
-	mesh1.vbo.write(std::move(tri));
-	mesh1.primitive.transform.position = {200.0f, -200.0f};
-	// mesh1.primitive.tint = vf::yellow_v;
+	auto mesh1 = vf::Mesh2D(ctx->vram(), "mesh1");
+	mesh1.gbo.write(std::move(tri));
+	mesh1.instance.transform.position = {200.0f, -200.0f};
+	mesh1.instance.tint = vf::yellow_v;
 
 	auto elapsed = vf::Time{};
 	while (!ctx->closing()) {
@@ -78,16 +76,14 @@ void test(vf::UContext ctx) {
 		for (auto const code : frame.poll.scancodes) { std::cout << static_cast<char>(code) << '\n'; }
 
 		elapsed += frame.dt;
-		auto& mesh = *quad.as<Mesh2D>();
 		mesh.instances[0].transform.orientation.rotate(vf::Degree{frame.dt.count() * 180.0f});
 		mesh.instances[1].transform.orientation = mesh.instances[0].transform.orientation;
 
 		// auto spec = vf::PipelineState{};
 		// spec.flags.set(vf::PipelineState::Flag::eWireframe);
 		// frame.surface.bind(spec);
-		quad.draw(frame.surface);
-		auto drawModel = mesh1.primitive.drawModel();
-		frame.surface.draw(mesh1.vbo, {&drawModel, 1}, mesh1.texture);
+		mesh.draw(frame.surface);
+		frame.surface.draw(vf::Drawable{{&mesh1.instance, 1}, mesh1.gbo, mesh1.texture});
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
 		frame.surface.setClear(clear.linear());
 	}

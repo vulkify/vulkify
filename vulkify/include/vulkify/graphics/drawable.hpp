@@ -1,43 +1,32 @@
 #pragma once
-#include <ktl/kunique_ptr.hpp>
-#include <vulkify/graphics/primitive.hpp>
+#include <vulkify/core/rgba.hpp>
+#include <vulkify/core/transform.hpp>
+#include <vulkify/graphics/draw_model.hpp>
 
 namespace vf {
-template <typename T>
-concept PrimitiveApi = requires(T const& t) {
-	{ t.getPrimitive() } -> std::convertible_to<Primitive>;
+class GeometryBuffer;
+class Texture;
+
+struct DrawInstance {
+	Transform transform{};
+	Rgba tint = white_v;
+
+	DrawModel drawModel() const;
 };
 
-class Drawable {
-  public:
-	template <PrimitiveApi T = Primitive>
-	explicit Drawable(T t = {}) : m_model(ktl::make_unique<Model<T>>(std::move(t))) {}
-
-	template <PrimitiveApi T>
-	T* as() const;
-
-	void draw(Surface const& surface) const { m_model->primitive().draw(surface); }
-
-  private:
-	struct Base {
-		virtual ~Base() = default;
-		virtual Primitive primitive() const = 0;
-	};
-	template <PrimitiveApi T>
-	struct Model : Base {
-		T t;
-		template <typename... Args>
-		Model(Args&&... args) : t(std::forward<Args>(args)...) {}
-		Primitive primitive() const override { return t.getPrimitive(); }
-	};
-	ktl::kunique_ptr<Base> m_model;
+struct Drawable {
+	std::span<DrawInstance const> instances{};
+	GeometryBuffer const& gbo;
+	Texture const& texture;
 };
 
 // impl
 
-template <PrimitiveApi T>
-T* Drawable::as() const {
-	auto t = dynamic_cast<Model<T>*>(m_model.get());
-	return t ? &t->t : nullptr;
+inline DrawModel DrawInstance::drawModel() const {
+	auto ret = DrawModel{};
+	ret.pos_orn = {transform.position, static_cast<glm::vec2>(transform.orientation)};
+	auto const utint = tint.toU32();
+	ret.scl_tint = {transform.scale, *reinterpret_cast<float const*>(&utint), 0.0f};
+	return ret;
 }
 } // namespace vf

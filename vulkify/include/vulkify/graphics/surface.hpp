@@ -1,19 +1,23 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
-#include <vulkify/core/rgba.hpp>
+#include <vulkify/graphics/drawable.hpp>
 #include <vulkify/graphics/pipeline.hpp>
+#include <concepts>
+#include <iterator>
 #include <span>
 
 namespace vf {
-class GeometryBuffer;
 struct RenderPass;
 struct Pipeline;
-struct DrawModel;
-struct DrawInstance2;
-class Texture;
+struct Drawable;
 
 class Surface {
   public:
+	static constexpr std::size_t small_buffer_v = 8;
+
+	template <std::output_iterator<DrawModel> Out>
+	static void addDrawModels(std::span<DrawInstance const> instances, Out out);
+
 	Surface() noexcept;
 	Surface(RenderPass renderPass);
 	Surface(Surface&&) noexcept;
@@ -24,9 +28,18 @@ class Surface {
 
 	void setClear(Rgba rgba) const;
 	bool bind(Pipeline const& pipeline = {}) const;
-	bool draw(GeometryBuffer const& geometry, std::span<DrawModel const> models, Texture const& texture) const;
+	bool draw(Drawable const& drawable) const;
 
   private:
+	bool draw(std::span<DrawModel const> models, Drawable const& drawable) const;
+
 	ktl::fixed_pimpl<RenderPass, 256> m_renderPass;
 };
+
+// impl
+
+template <std::output_iterator<DrawModel> Out>
+void Surface::addDrawModels(std::span<DrawInstance const> instances, Out out) {
+	for (auto const& instance : instances) { *out++ = instance.drawModel(); }
+}
 } // namespace vf
