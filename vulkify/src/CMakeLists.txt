@@ -9,7 +9,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   graphics/geometry.cpp
   graphics/image.cpp
   graphics/resource.cpp
-  graphics/spir_v.cpp
+  graphics/shader.cpp
   graphics/surface.cpp
   graphics/texture.cpp
 
@@ -27,6 +27,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/renderer.hpp
   detail/rotator.hpp
   detail/shared_impl.hpp
+  detail/spir_v.cpp
   detail/trace.cpp
   detail/trace.hpp
   detail/vk_device.hpp

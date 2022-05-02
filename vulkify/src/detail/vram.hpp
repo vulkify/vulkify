@@ -10,6 +10,7 @@
 
 namespace vf {
 class CommandPool;
+struct ShaderCache;
 
 enum class BlitFlag { eSrc, eDst, eLinearFilter };
 using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
@@ -138,6 +139,8 @@ struct Vram {
 	VKDevice device{};
 	VmaAllocator allocator{};
 	CommandFactory* commandFactory{};
+	ShaderCache* shaderCache{};
+
 	float maxAnisotropy{};
 	vk::Format textureFormat = vk::Format::eR8G8B8A8Srgb;
 

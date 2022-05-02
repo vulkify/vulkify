@@ -90,6 +90,11 @@ struct GfxAllocation {
 	}
 };
 
+struct GfxShaderModule {
+	vk::UniqueShaderModule module{};
+	vk::Device device{};
+};
+
 struct Inactive {
 	Vram vram{};
 	GfxAllocation alloc{};

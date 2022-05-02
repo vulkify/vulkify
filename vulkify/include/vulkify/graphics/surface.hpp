@@ -9,6 +9,7 @@ namespace vf {
 struct RenderPass;
 struct Pipeline;
 struct Drawable;
+class Shader;
 
 class Surface {
   public:
@@ -26,7 +27,7 @@ class Surface {
 	explicit operator bool() const;
 
 	void setClear(Rgba rgba) const;
-	bool bind(std::string shaderPath) const;
+	bool bind(Shader const& shader) const;
 	bool draw(Drawable const& drawable) const;
 	bool draw(Primitive const& primitive) const { return draw(primitive.drawable()); }
 

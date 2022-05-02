@@ -25,7 +25,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/image.hpp
   include/vulkify/graphics/primitive.hpp
   include/vulkify/graphics/resource.hpp
-  include/vulkify/graphics/spir_v.hpp
+  include/vulkify/graphics/shader.hpp
   include/vulkify/graphics/surface.hpp
   include/vulkify/graphics/texture.hpp
 

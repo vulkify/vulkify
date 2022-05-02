@@ -4,29 +4,6 @@
 #include <span>
 
 namespace vf {
-struct VKDevice;
-
-struct ShaderCache {
-	ktl::hash_table<std::string, vk::UniqueShaderModule> map{};
-	vk::Device device{};
-
-	static bool isGlsl(std::string_view path);
-
-	bool load(std::string path, bool force = false);
-
-	vk::ShaderModule find(std::string const& path) const {
-		if (auto it = map.find(path); it != map.end()) { return *it->second; }
-		return {};
-	}
-
-	vk::ShaderModule getOrLoad(std::string const& path) {
-		if (path.empty()) { return {}; }
-		if (auto ret = find(path)) { return ret; }
-		load(path);
-		return find(path);
-	}
-};
-
 struct VertexInput {
 	std::span<vk::VertexInputBindingDescription const> bindings{};
 	std::span<vk::VertexInputAttributeDescription const> attributes{};
@@ -38,40 +15,38 @@ struct VKPipeline {
 };
 
 struct PipelineFactory {
-	struct Shaders {
-		std::string vert{};
-		std::string frag{};
+	struct ShaderProgram {
+		vk::ShaderModule vert{};
+		vk::ShaderModule frag{};
 
-		bool operator==(Shaders const&) const = default;
+		bool operator==(ShaderProgram const&) const = default;
 	};
 
 	struct Entry {
-		Shaders shaders{};
+		ShaderProgram shader{};
 		vk::UniquePipelineLayout layout{};
 		ktl::hash_table<vk::RenderPass, vk::UniquePipeline> pipelines{};
 	};
-	using ShaderProgram = std::pair<vk::ShaderModule, vk::ShaderModule>;
 	using SetLayouts = std::vector<vk::DescriptorSetLayout>;
 
-	ShaderCache cache{};
+	vk::Device device{};
 	VertexInput vertexInput{};
 	SetLayouts setLayouts{};
 	std::vector<Entry> entries{};
-	std::pair<float, float> lineWidthLimit{};
 	struct {
 		vk::UniqueShaderModule vert{};
 		vk::UniqueShaderModule frag{};
 	} defaultShaders{};
 
-	static PipelineFactory make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts);
+	static PipelineFactory make(vk::Device const& device, VertexInput vertexInput, SetLayouts setLayouts);
 
-	explicit operator bool() const { return cache.device; }
+	explicit operator bool() const { return device; }
 
-	Entry* find(Shaders const& shaders);
-	Entry* getOrLoad(Shaders const& shaders);
+	Entry* find(ShaderProgram const& shaders);
+	Entry* getOrLoad(ShaderProgram const& shaders);
 
-	std::pair<vk::Pipeline, vk::PipelineLayout> pipeline(Shaders const& shaders, vk::RenderPass renderPass);
-	vk::PipelineLayout layout(Shaders const& shaders);
+	std::pair<vk::Pipeline, vk::PipelineLayout> pipeline(ShaderProgram shaders, vk::RenderPass renderPass);
+	vk::PipelineLayout layout(ShaderProgram const& shaders);
 
 	vk::UniquePipelineLayout makeLayout() const;
 	vk::UniquePipeline makePipeline(vk::PipelineLayout layout, ShaderProgram shader, vk::RenderPass renderPass) const;

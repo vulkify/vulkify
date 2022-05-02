@@ -10,18 +10,15 @@
 #include <memory>
 #include <vector>
 
+#include <detail/descriptor_set.hpp>
+#include <detail/pipeline_factory.hpp>
 #include <detail/renderer.hpp>
 #include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
 
-#include <detail/descriptor_set.hpp>
-#include <detail/pipeline_factory.hpp>
-#include <future>
-
 #include <glm/mat4x4.hpp>
-#include <vulkify/core/transform.hpp>
 #include <vulkify/graphics/bitmap.hpp>
 #include <iostream>
 
@@ -354,7 +351,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 
 	impl->setLayouts = makeSetLayouts(impl->surface.device.device);
 	impl->vertexInput = VIStorage::make();
-	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, impl->vertexInput(), makeSetLayouts(impl->setLayouts));
+	impl->pipelineFactory = PipelineFactory::make(impl->surface.device.device, impl->vertexInput(), makeSetLayouts(impl->setLayouts));
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
 	auto const buffering = impl->renderer.frameSync.storage.size();
@@ -363,16 +360,6 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 
 	impl->shaderTextures = makeShaderTextures(impl->vram.vram);
 	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
-
-	// TEST CODE
-	auto f = std::async(std::launch::async, [vram = impl->vram.vram.get()] {
-		auto geo = Geometry::makeQuad(glm::vec2(1.0f));
-		geo.vertices[0].rgba = red_v.normalize();
-		geo.vertices[1].rgba = green_v.normalize();
-		geo.vertices[2].rgba = blue_v.normalize();
-		[[maybe_unused]] auto vbo = vram.makeVIBuffer(geo, BufferCache::Type::eCpuToGpu, "test");
-	});
-	// TEST CODE
 
 	impl->gpu = makeGPU(*vulkan);
 
@@ -415,10 +402,6 @@ Surface VulkifyInstance::beginPass() {
 
 	auto view = m_impl->descriptorPool.get(0, 0, "uniform:View");
 	view.write(0, ubo::view(m_impl->acquired->image.extent));
-
-	// TEST
-
-	// TEST
 
 	auto const input = ShaderInput{view, &m_impl->shaderTextures};
 	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderPass, std::move(cmd), input, &r.clear};
