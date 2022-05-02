@@ -9,6 +9,8 @@ namespace vf {
 struct RenderPass;
 struct Pipeline;
 struct Drawable;
+struct Geometry;
+struct PipelineState;
 class Shader;
 
 class Surface {
@@ -27,11 +29,12 @@ class Surface {
 	explicit operator bool() const;
 
 	void setClear(Rgba rgba) const;
-	bool bind(Shader const& shader) const;
+	bool setShader(Shader const& shader) const;
 	bool draw(Drawable const& drawable) const;
 	bool draw(Primitive const& primitive) const { return draw(primitive.drawable()); }
 
   private:
+	bool bind(PipelineState const& state) const;
 	bool draw(std::span<DrawModel const> models, Drawable const& drawable) const;
 
 	ktl::fixed_pimpl<RenderPass, 256> m_renderPass;

@@ -10,12 +10,24 @@ struct BufferWrite {
 	std::size_t size{};
 };
 
+enum class PolygonMode { eFill, eLine, ePoint };
+enum class Topology { eTriangleList, eTriangleStrip, eLineList, eLineStrip, ePointList };
+
+struct PipelineState {
+	PolygonMode polygonMode{PolygonMode::eFill};
+	Topology topology{Topology::eTriangleList};
+	float lineWidth{1.0f};
+};
+
 class GeometryBuffer : public GfxResource {
   public:
+	using State = PipelineState;
 	using GfxResource::GfxResource;
 
 	Result<void> write(Geometry geometry);
+
 	Geometry const& geometry() const { return m_geometry; }
+	State state{};
 
   protected:
 	Geometry m_geometry{};

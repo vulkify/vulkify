@@ -61,9 +61,11 @@ struct RenderPass {
 	ShaderInput shaderInput{};
 	Rgba* clear{};
 
+	mutable vk::ShaderModule fragShader{};
 	mutable vk::PipelineLayout bound{};
 
 	bool writeSetOne(std::span<DrawModel const> instances, Tex tex, char const* name) const;
+	void bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const;
 };
 
 struct ImageSampler {

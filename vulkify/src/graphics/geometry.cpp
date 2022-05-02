@@ -1,6 +1,7 @@
 #include <vulkify/core/radian.hpp>
 #include <vulkify/graphics/geometry.hpp>
 #include <cmath>
+#include <iterator>
 
 namespace vf {
 using v2 = glm::vec2;
@@ -23,11 +24,12 @@ Geometry Geometry::makeRegularPolygon(float diameter, std::size_t sides, glm::ve
 	if (sides < 3) { return {}; }
 	auto ret = Geometry{};
 	auto const colour = rgba.normalize();
+	static constexpr auto uvx = glm::vec2(0.5f, -0.5f);
 	auto const centre = Vertex{origin, {0.5f, 0.5f}, colour};
 	auto const radius = diameter * 0.5f;
 	auto makeVertex = [&](Radian rad) {
 		auto const c = glm::vec2(std::cos(rad), std::sin(rad));
-		return Vertex{centre.xy + c * radius, c * 0.5f + centre.uv, colour};
+		return Vertex{centre.xy + c * radius, c * uvx + centre.uv, colour};
 	};
 	ret.vertices.reserve(sides + 1);
 	ret.indices.reserve((sides + 1) * 3);

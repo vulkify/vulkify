@@ -25,6 +25,7 @@ Result<VKInstance> VKInstance::make(MakeSurface const makeSurface, bool const va
 	auto features = vk::PhysicalDeviceFeatures{};
 	features.fillModeNonSolid = true;
 	features.samplerAnisotropy = true;
+	features.wideLines = true;
 	vpds.set_required_features(static_cast<VkPhysicalDeviceFeatures>(features));
 	auto vpd = vpds.require_present().prefer_gpu_device_type(vkb::PreferredDeviceType::discrete).set_surface(surface).select();
 	if (!vpd) { return Error::eVulkanInitFailure; }

@@ -351,7 +351,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 
 	impl->setLayouts = makeSetLayouts(impl->surface.device.device);
 	impl->vertexInput = VIStorage::make();
-	impl->pipelineFactory = PipelineFactory::make(impl->surface.device.device, impl->vertexInput(), makeSetLayouts(impl->setLayouts));
+	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, impl->vertexInput(), makeSetLayouts(impl->setLayouts));
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
 	auto const buffering = impl->renderer.frameSync.storage.size();

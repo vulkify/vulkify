@@ -9,6 +9,28 @@
 #include <vulkify/instance/instance.hpp>
 
 namespace vf {
+namespace {
+constexpr vk::PolygonMode polygonMode(PolygonMode mode) {
+	switch (mode) {
+	case PolygonMode::ePoint: return vk::PolygonMode::ePoint;
+	case PolygonMode::eLine: return vk::PolygonMode::eLine;
+	case PolygonMode::eFill:
+	default: return vk::PolygonMode::eFill;
+	}
+}
+
+constexpr vk::PrimitiveTopology topology(Topology topo) {
+	switch (topo) {
+	case Topology::eLineStrip: return vk::PrimitiveTopology::eLineStrip;
+	case Topology::eLineList: return vk::PrimitiveTopology::eLineList;
+	case Topology::ePointList: return vk::PrimitiveTopology::ePointList;
+	case Topology::eTriangleList: return vk::PrimitiveTopology::eTriangleList;
+	case Topology::eTriangleStrip:
+	default: return vk::PrimitiveTopology::eTriangleStrip;
+	}
+}
+} // namespace
+
 bool RenderPass::writeSetOne(std::span<DrawModel const> instances, Tex tex, char const* name) const {
 	if (instances.empty() || !tex.sampler || !tex.view) { return false; }
 	auto const& sb = shaderInput.one;
@@ -17,6 +39,13 @@ bool RenderPass::writeSetOne(std::span<DrawModel const> instances, Tex tex, char
 	set.update(sb.bindings.sampler, tex.sampler, tex.view);
 	set.bind(commandBuffer, bound);
 	return true;
+}
+
+void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
+	if (!layout || layout == bound) { return; }
+	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
+	shaderInput.setZero.bind(commandBuffer, layout);
+	bound = layout;
 }
 
 Surface::Surface() noexcept = default;
@@ -34,15 +63,19 @@ void Surface::setClear(Rgba rgba) const {
 	if (m_renderPass->clear) { *m_renderPass->clear = rgba; }
 }
 
-bool Surface::bind(Shader const& shader) const {
+bool Surface::setShader(Shader const& shader) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
-	auto shaders = PipelineFactory::ShaderProgram{{}, *shader.module().module};
-	auto const [pipe, layout] = m_renderPass->pipelineFactory->pipeline(shaders, m_renderPass->renderPass);
+	if (!shader.module().module) { return false; }
+	m_renderPass->fragShader = *shader.module().module;
+	return true;
+}
+
+bool Surface::bind(GeometryBuffer::State const& state) const {
+	auto program = PipelineFactory::Spec::ShaderProgram{{}, m_renderPass->fragShader};
+	auto const spec = PipelineFactory::Spec{program, polygonMode(state.polygonMode), topology(state.topology)};
+	auto const [pipe, layout] = m_renderPass->pipelineFactory->pipeline(spec, m_renderPass->renderPass);
 	if (!pipe || !layout) { return false; }
-	if (layout == m_renderPass->bound) { return true; }
-	m_renderPass->commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe);
-	m_renderPass->shaderInput.setZero.bind(m_renderPass->commandBuffer, layout);
-	m_renderPass->bound = layout;
+	m_renderPass->bind(layout, pipe);
 	return true;
 }
 
@@ -62,10 +95,12 @@ bool Surface::draw(Drawable const& drawable) const {
 }
 
 bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) const {
+	bind(drawable.gbo.state);
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
 	if (drawable.texture) { tex = {*drawable.texture.resource().image.sampler, *drawable.texture.resource().image.cache.view}; }
 	auto const& buffers = drawable.gbo.resource().buffer.buffers;
 	if (!m_renderPass->writeSetOne(models, tex, drawable.gbo.name().c_str())) { return false; }
+	m_renderPass->commandBuffer.setLineWidth(drawable.gbo.state.lineWidth);
 	m_renderPass->commandBuffer.bindVertexBuffers(0, buffers[0]->resource, vk::DeviceSize{});
 	auto const& geo = drawable.gbo.geometry();
 	auto const instanceCount = static_cast<std::uint32_t>(models.size());

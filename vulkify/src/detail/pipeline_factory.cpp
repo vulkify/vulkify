@@ -14,52 +14,54 @@ bool makeDefaultShaders(vk::Device device, vk::UniqueShaderModule& vert, vk::Uni
 }
 } // namespace
 
-PipelineFactory PipelineFactory::make(vk::Device const& device, VertexInput vertexInput, SetLayouts setLayouts) {
+PipelineFactory PipelineFactory::make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts) {
 	if (!device) { return {}; }
 	auto ret = PipelineFactory{};
-	if (!makeDefaultShaders(device, ret.defaultShaders.vert, ret.defaultShaders.frag)) {
+	if (!makeDefaultShaders(device.device, ret.defaultShaders.vert, ret.defaultShaders.frag)) {
 		VF_TRACE("Failed to create default shader modules");
 		return {};
 	}
-	ret.device = device;
+	ret.device = device.device;
 	ret.vertexInput = std::move(vertexInput);
 	ret.setLayouts = std::move(setLayouts);
+	auto const limits = device.gpu.getProperties().limits;
+	ret.lineWidthLimit = {limits.lineWidthRange[0], limits.lineWidthRange[1]};
 	return ret;
 }
 
-PipelineFactory::Entry* PipelineFactory::find(ShaderProgram const& shaders) {
-	auto const it = std::find_if(entries.begin(), entries.end(), [&shaders](Entry const& e) { return e.shader == shaders; });
+PipelineFactory::Entry* PipelineFactory::find(Spec const& spec) {
+	auto const it = std::find_if(entries.begin(), entries.end(), [&spec](Entry const& e) { return e.spec == spec; });
 	return it == entries.end() ? nullptr : &*it;
 }
 
-PipelineFactory::Entry* PipelineFactory::getOrLoad(ShaderProgram const& shaders) {
-	if (auto ret = find(shaders)) { return ret; }
+PipelineFactory::Entry* PipelineFactory::getOrLoad(Spec const& spec) {
+	if (auto ret = find(spec)) { return ret; }
 	if (!device) { return {}; }
-	Entry entry{shaders};
+	Entry entry{spec};
 	entry.layout = device.createPipelineLayoutUnique({{}, static_cast<std::uint32_t>(setLayouts.size()), setLayouts.data()});
 	entries.push_back(std::move(entry));
 	return &entries.back();
 }
 
-vk::PipelineLayout PipelineFactory::layout(ShaderProgram const& shaders) {
-	if (auto entry = getOrLoad(shaders)) { return *entry->layout; }
+vk::PipelineLayout PipelineFactory::layout(Spec const& spec) {
+	if (auto entry = getOrLoad(spec)) { return *entry->layout; }
 	return {};
 }
 
-std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::pipeline(ShaderProgram shaders, vk::RenderPass renderPass) {
-	if (!shaders.vert) { shaders.vert = *defaultShaders.vert; }
-	if (!shaders.frag) { shaders.frag = *defaultShaders.frag; }
-	auto entry = getOrLoad(shaders);
+std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::pipeline(Spec spec, vk::RenderPass renderPass) {
+	if (!spec.shader.vert) { spec.shader.vert = *defaultShaders.vert; }
+	if (!spec.shader.frag) { spec.shader.frag = *defaultShaders.frag; }
+	auto entry = getOrLoad(spec);
 	if (!entry) { return {}; }
 	auto it = entry->pipelines.find(renderPass);
 	if (it != entry->pipelines.end()) { return {*it->second, *entry->layout}; }
-	auto pipeline = makePipeline(*entry->layout, shaders, renderPass);
+	auto pipeline = makePipeline(*entry->layout, std::move(spec), renderPass);
 	if (!pipeline) { return {}; }
 	auto [i, _] = entry->pipelines.insert_or_assign(renderPass, std::move(pipeline));
 	return {*i->second, *entry->layout};
 }
 
-vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, ShaderProgram shader, vk::RenderPass renderPass) const {
+vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Spec spec, vk::RenderPass renderPass) const {
 	auto gpci = vk::GraphicsPipelineCreateInfo{};
 	gpci.renderPass = renderPass;
 	gpci.layout = layout;
@@ -71,18 +73,18 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Shad
 	pvisci.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vertexInput.attributes.size());
 	gpci.pVertexInputState = &pvisci;
 
-	auto pssciVert = vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eVertex, shader.vert, "main");
-	auto pssciFrag = vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eFragment, shader.frag, "main");
+	auto pssciVert = vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eVertex, spec.shader.vert, "main");
+	auto pssciFrag = vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eFragment, spec.shader.frag, "main");
 	auto psscis = std::array<vk::PipelineShaderStageCreateInfo, 2>{{pssciVert, pssciFrag}};
 	gpci.stageCount = static_cast<std::uint32_t>(psscis.size());
 	gpci.pStages = psscis.data();
 
-	auto piasci = vk::PipelineInputAssemblyStateCreateInfo({}, vk::PrimitiveTopology::eTriangleList);
+	auto piasci = vk::PipelineInputAssemblyStateCreateInfo({}, spec.topology);
 	gpci.pInputAssemblyState = &piasci;
 
 	auto prsci = vk::PipelineRasterizationStateCreateInfo();
-	prsci.lineWidth = 1.0f;
-	// prsci.polygonMode = vk::PolygonMode::eLine;
+	// prsci.lineWidth = std::clamp(spec.lineWidth, lineWidthLimit.first, lineWidthLimit.second);
+	prsci.polygonMode = spec.mode;
 	gpci.pRasterizationState = &prsci;
 
 	auto pcbas = vk::PipelineColorBlendAttachmentState{};
@@ -108,7 +110,7 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Shad
 
 	auto pdscis = ktl::fixed_vector<vk::DynamicState, 4>{};
 	auto pdsci = vk::PipelineDynamicStateCreateInfo();
-	pdscis = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+	pdscis = {vk::DynamicState::eViewport, vk::DynamicState::eScissor, vk::DynamicState::eLineWidth};
 	pdsci = vk::PipelineDynamicStateCreateInfo({}, static_cast<std::uint32_t>(pdscis.size()), pdscis.data());
 	gpci.pDynamicState = &pdsci;
 
