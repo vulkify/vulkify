@@ -30,11 +30,15 @@ struct RenderTarget {
 
 struct Renderer {
 	Vram vram{};
+
+	enum Image { eColour, eDepth, eResolve };
+
 	vk::UniqueRenderPass renderPass{};
 	vk::UniqueCommandPool commandPool{};
 	Rotator<FrameSync> frameSync{};
-	ImageCache depthImage{};
+	ImageCache images[3]{};
 	RenderTarget attachments{};
+	VKImage acquired{};
 	Rgba clear{};
 	vk::Format colour{};
 

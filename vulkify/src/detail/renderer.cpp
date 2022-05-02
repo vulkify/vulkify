@@ -47,9 +47,9 @@ vk::UniqueRenderPass makeRenderPass(vk::Device device, vk::Format colour, vk::Fo
 	dependency.dstAccessMask = vk::AccessFlagBits::eDepthStencilAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentRead;
 	dependency.srcStageMask = vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests;
 	// if (offscreen) {
-	// 	ret.srcAccessMask |= vk::AccessFlagBits::eColorAttachmentWrite;
-	// 	ret.dstAccessMask |= vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead;
-	// 	ret.srcStageMask |= vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	dependency.srcAccessMask |= vk::AccessFlagBits::eColorAttachmentWrite;
+	dependency.dstAccessMask |= vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead;
+	dependency.srcStageMask |= vk::PipelineStageFlagBits::eColorAttachmentOutput;
 	// }
 	dependency.dstStageMask = dependency.srcStageMask;
 	createInfo.dependencyCount = 1U;
@@ -82,7 +82,8 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 	buffering = std::clamp(buffering, std::size_t(2), surface.swapchain.images.size());
 	auto ret = Renderer{vram};
 	// TODO: off-screen
-	auto const colour = surface.info.imageFormat;
+	// auto const colour = surface.info.imageFormat;
+	auto const colour = vk::Format::eR8G8B8A8Srgb;
 	auto const depth = bestDepth(surface.device.gpu);
 	ret.renderPass = makeRenderPass(device.device, colour, depth);
 
@@ -98,9 +99,14 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 		sync.cmd.secondary = std::move(secondaries[i]);
 		ret.frameSync.push(std::move(sync));
 	}
-	ret.depthImage = {{vram, "render_pass_depth_image"}};
-	ret.depthImage.setDepth();
-	ret.depthImage.info.info.format = depth;
+
+	ret.images[eColour] = {{vram, "render_pass_colour_image"}};
+	ret.images[eColour].setColour();
+	ret.images[eColour].info.info.format = colour;
+
+	ret.images[eDepth] = {{vram, "render_pass_depth_image"}};
+	ret.images[eDepth].setDepth();
+	ret.images[eDepth].info.info.format = depth;
 	ret.colour = colour;
 	return ret;
 }
@@ -108,16 +114,19 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 vk::CommandBuffer Renderer::beginPass(VKImage const& target) {
 	if (!vram) { return {}; }
 	clear = {};
-	attachments.colour = target;
+	// attachments.colour = target;
+	auto const extent = vk::Extent3D(target.extent, 1);
 	auto& s = frameSync.get();
 	vram.device.reset(*s.drawn);
-	attachments.depth = depthImage.refresh({target.extent.width, target.extent.height, 1});
+	attachments.colour = images[eColour].refresh(extent);
+	attachments.depth = images[eDepth].refresh(extent);
 	s.framebuffer = makeFramebuffer(attachments);
 	auto const cbii = vk::CommandBufferInheritanceInfo(*renderPass, 0U, *s.framebuffer);
 	s.cmd.secondary->begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue, &cbii});
 	auto const height = static_cast<float>(target.extent.height);
 	s.cmd.secondary->setViewport(0, vk::Viewport({}, height, static_cast<float>(target.extent.width), -height));
 	s.cmd.secondary->setScissor(0, vk::Rect2D({}, target.extent));
+	acquired = target;
 	return *s.cmd.secondary;
 }
 
@@ -134,19 +143,32 @@ vk::CommandBuffer Renderer::endPass() {
 	barrier.stages.first = barrier.stages.second = vk::PipelineStageFlagBits::eEarlyFragmentTests | vk::PipelineStageFlagBits::eLateFragmentTests;
 	barrier.layouts.second = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 	barrier.aspects = vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
-	if (auto image = depthImage.peek().image) { barrier(*s.cmd.primary, image); }
-	auto const renderArea = vk::Rect2D({}, attachments.colour.extent);
+	if (auto image = images[eDepth].peek().image) { barrier(*s.cmd.primary, image); }
+	auto const extent = attachments.colour.extent;
+	auto const renderArea = vk::Rect2D({}, extent);
 	auto const c = clear.normalize();
 	vk::ClearValue const cvs[] = {vk::ClearColorValue(std::array{c.x, c.y, c.z, c.w}), vk::ClearDepthStencilValue(1.0f)};
 	auto const cvsize = static_cast<std::uint32_t>(std::size(cvs));
 	s.cmd.primary->beginRenderPass({*renderPass, *s.framebuffer, renderArea, cvsize, cvs}, vk::SubpassContents::eSecondaryCommandBuffers);
 	s.cmd.primary->executeCommands(*s.cmd.secondary);
 	s.cmd.primary->endRenderPass();
-	barrier.access = {vk::AccessFlagBits::eColorAttachmentWrite, {}};
-	barrier.stages = {vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eBottomOfPipe};
-	barrier.layouts = {vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR};
+	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
+	auto const offsets = std::array{vk::Offset3D(), vk::Offset3D(static_cast<int>(extent.width), static_cast<int>(extent.height), 1)};
+	auto blit = vk::ImageBlit(isrl, offsets, isrl, offsets);
+	barrier.access = {vk::AccessFlagBits::eColorAttachmentWrite, vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eTransferWrite};
+	barrier.stages = {vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eTransfer};
+	barrier.layouts = {vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal};
 	barrier.aspects = vk::ImageAspectFlagBits::eColor;
+	barrier(*s.cmd.primary, acquired.image);
+	barrier.layouts = {vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::eTransferSrcOptimal};
 	barrier(*s.cmd.primary, attachments.colour.image);
+	barrier.layouts.first = vk::ImageLayout::eTransferDstOptimal;
+	s.cmd.primary->blitImage(attachments.colour.image, barrier.layouts.second, acquired.image, barrier.layouts.first, blit, vk::Filter::eLinear);
+
+	barrier.access = {vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eTransferWrite, {}};
+	barrier.stages = {vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe};
+	barrier.layouts = {vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR};
+	barrier(*s.cmd.primary, acquired.image);
 	s.cmd.primary->end();
 	return *s.cmd.primary;
 }
