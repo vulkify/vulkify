@@ -1,7 +1,6 @@
 #pragma once
 #include <ktl/hash_table.hpp>
 #include <vulkan/vulkan.hpp>
-#include <vulkify/graphics/pipeline.hpp>
 #include <span>
 
 namespace vf {
@@ -38,25 +37,20 @@ struct VKPipeline {
 	vk::PipelineLayout layout{};
 };
 
-struct PipelineSpec {
-	Pipeline pipeline{};
+struct PipelineFactory {
 	struct Shaders {
 		std::string vert{};
 		std::string frag{};
 
 		bool operator==(Shaders const&) const = default;
-	} shaders{};
+	};
 
-	bool operator==(PipelineSpec const&) const = default;
-};
-
-struct PipelineFactory {
 	struct Entry {
-		PipelineSpec spec{};
+		Shaders shaders{};
 		vk::UniquePipelineLayout layout{};
 		ktl::hash_table<vk::RenderPass, vk::UniquePipeline> pipelines{};
 	};
-	using Shaders = std::pair<vk::ShaderModule, vk::ShaderModule>;
+	using ShaderProgram = std::pair<vk::ShaderModule, vk::ShaderModule>;
 	using SetLayouts = std::vector<vk::DescriptorSetLayout>;
 
 	ShaderCache cache{};
@@ -73,13 +67,13 @@ struct PipelineFactory {
 
 	explicit operator bool() const { return cache.device; }
 
-	Entry* find(PipelineSpec const& spec);
-	Entry* getOrLoad(PipelineSpec const& spec);
+	Entry* find(Shaders const& shaders);
+	Entry* getOrLoad(Shaders const& shaders);
 
-	std::pair<vk::Pipeline, vk::PipelineLayout> pipeline(PipelineSpec const& spec, vk::RenderPass renderPass);
-	vk::PipelineLayout layout(PipelineSpec const& spec);
+	std::pair<vk::Pipeline, vk::PipelineLayout> pipeline(Shaders const& shaders, vk::RenderPass renderPass);
+	vk::PipelineLayout layout(Shaders const& shaders);
 
 	vk::UniquePipelineLayout makeLayout() const;
-	vk::UniquePipeline makePipeline(PipelineSpec const& spec, vk::PipelineLayout layout, Shaders shaders, vk::RenderPass renderPass) const;
+	vk::UniquePipeline makePipeline(vk::PipelineLayout layout, ShaderProgram shader, vk::RenderPass renderPass) const;
 };
 } // namespace vf

@@ -95,6 +95,16 @@ void Vram::Deleter::operator()(Vram const& vram) const {
 	vmaDestroyAllocator(vram.allocator);
 }
 
+template <vk::ObjectType T, typename U>
+void setDebugName(VKDevice const& device, U handle, char const* name) {
+	if (device.flags.test(VKDevice::Flag::eDebugMsgr)) {
+		static auto count = std::atomic<int>{};
+		auto nameFallback = std::string{};
+		name = getName(name, nameFallback, count);
+		device.setDebugName(T, handle, name);
+	}
+}
+
 UniqueImage Vram::makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear) const {
 	if (!allocator || !commandFactory) { return {}; }
 	info.tiling = linear ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal;
@@ -107,18 +117,12 @@ UniqueImage Vram::makeImage(vk::ImageCreateInfo info, bool host, char const* nam
 
 	auto vaci = VmaAllocationCreateInfo{};
 	vaci.usage = host ? VMA_MEMORY_USAGE_AUTO_PREFER_HOST : VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-	if (host) { vaci.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT; }
 	auto const& imageInfo = static_cast<VkImageCreateInfo const&>(info);
 	auto ret = VkImage{};
 	auto handle = VmaAllocation{};
 	if (auto res = vmaCreateImage(allocator, &imageInfo, &vaci, &ret, &handle, nullptr); res != VK_SUCCESS) { return {}; }
 
-	if (device.flags.test(VKDevice::Flag::eDebugMsgr)) {
-		static auto count = std::atomic<int>{};
-		auto nameFallback = std::string{};
-		name = getName(name, nameFallback, count);
-		device.setDebugName(vk::ObjectType::eImage, ret, name);
-	}
+	setDebugName<vk::ObjectType::eImage>(device, ret, name);
 
 	return VmaImage{{vk::Image(ret), allocator, handle}, info.initialLayout, info.extent, info.tiling, BlitCaps::make(device.gpu, info.format)};
 }
@@ -139,12 +143,7 @@ UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, bool host, char const* 
 	void* map{};
 	if (host) { vmaMapMemory(allocator, handle, &map); }
 
-	if (device.flags.test(VKDevice::Flag::eDebugMsgr)) {
-		static auto id = std::atomic<int>{};
-		auto nameFallback = std::string{};
-		name = getName(name, nameFallback, id);
-		device.setDebugName(vk::ObjectType::eBuffer, ret, name);
-	}
+	setDebugName<vk::ObjectType::eBuffer>(device, ret, name);
 
 	return VmaBuffer{{vk::Buffer(ret), allocator, handle}, info.size, map};
 }

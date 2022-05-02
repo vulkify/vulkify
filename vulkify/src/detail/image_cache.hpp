@@ -8,7 +8,7 @@ struct ImageCache {
 		std::string name{};
 		vk::ImageCreateInfo info{};
 		vk::ImageAspectFlags aspect{};
-		bool preferHost{};
+		bool preferHost{true};
 	};
 
 	Info info{};
@@ -48,13 +48,14 @@ struct ImageCache {
 
 	bool ready(vk::Extent3D extent, vk::Format format) const noexcept { return image && extent == info.info.extent && info.info.format == format; }
 
-	VKImage make(vk::Extent3D extent, vk::Format format) {
+	bool make(vk::Extent3D extent, vk::Format format) {
 		info.info.extent = extent;
 		info.info.format = format;
 		info.vram.device.defer(std::move(image), std::move(view));
 		image = info.vram.makeImage(info.info, info.preferHost, info.name.c_str());
+		if (!image) { return false; }
 		view = info.vram.device.makeImageView(image->resource, format, info.aspect);
-		return peek();
+		return *view;
 	}
 
 	VKImage refresh(vk::Extent3D extent, vk::Format format = {}) {

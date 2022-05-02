@@ -255,7 +255,6 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 	ret.magenta = {{vram, "magenta"}};
 	ret.white.setTexture(false);
 	ret.magenta.setTexture(false);
-	ret.white.info.preferHost = ret.magenta.info.preferHost = false;
 
 	ret.white.refresh(vk::Extent3D(1, 1, 1));
 	ret.magenta.refresh(vk::Extent3D(1, 1, 1));

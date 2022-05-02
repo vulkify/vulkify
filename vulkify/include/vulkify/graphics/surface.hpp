@@ -1,6 +1,5 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
-#include <vulkify/graphics/pipeline.hpp>
 #include <vulkify/graphics/primitive.hpp>
 #include <concepts>
 #include <iterator>
@@ -27,7 +26,7 @@ class Surface {
 	explicit operator bool() const;
 
 	void setClear(Rgba rgba) const;
-	bool bind(Pipeline const& pipeline = {}) const;
+	bool bind(std::string shaderPath) const;
 	bool draw(Drawable const& drawable) const;
 	bool draw(Primitive const& primitive) const { return draw(primitive.drawable()); }
 

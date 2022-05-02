@@ -102,9 +102,9 @@ void Texture::refresh(Extent2D extent) {
 	auto const ext = vk::Extent3D(extent.x, extent.y, 1);
 	auto const format = m_allocation->image.cache.info.info.format;
 	if (!m_allocation->image.cache.ready(ext, format)) {
-		m_allocation->vram.device.defer(std::move(m_allocation->image.cache.image));
-		m_allocation->vram.device.defer(std::move(m_allocation->image.cache.view));
-		m_allocation->image.cache.make({extent.x, extent.y, 1}, format);
+		auto cache = ImageCache{m_allocation->image.cache.info};
+		cache.refresh(ext);
+		m_allocation->replace(std::move(cache));
 	}
 }
 
