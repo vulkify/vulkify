@@ -26,7 +26,9 @@ void blit(ImageCache& in_cache, ImageCache& out_cache, Filtering filtering) {
 	static constexpr auto layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 	auto cmd = InstantCommand(in_cache.info.vram.commandFactory->get());
 	auto writer = ImageWriter{in_cache.info.vram, cmd.cmd};
-	writer.blit(in_cache.image, out_cache.image, getFilter(filtering), {layout, layout});
+	auto inr = vf::Rect<std::uint32_t>({in_cache.image->extent.width, in_cache.image->extent.height});
+	auto outr = vf::Rect<std::uint32_t>({out_cache.image->extent.width, out_cache.image->extent.height});
+	writer.blit(in_cache.image, out_cache.image, inr, outr, getFilter(filtering), {layout, layout});
 	cmd.submit();
 }
 } // namespace
@@ -44,11 +46,11 @@ Result<void> Texture::create(Image::View image) {
 	}
 
 	refresh(image.extent);
-	write(image, {});
+	write(image, TopLeft{});
 	return Result<void>::success();
 }
 
-Result<void> Texture::overwrite(Image::View const image, Extent2D const offset) {
+Result<void> Texture::overwrite(Image::View const image, TopLeft const offset) {
 	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return Error::eInactiveInstance; }
 	if (image.extent.x + offset.x > extent().x || image.extent.y + offset.y > extent().y) { return Error::eInvalidArgument; }
 
@@ -108,10 +110,10 @@ void Texture::refresh(Extent2D extent) {
 	}
 }
 
-void Texture::write(Image::View const image, Extent2D const offset) {
+void Texture::write(Image::View const image, TopLeft const offset) {
 	auto cmd = InstantCommand(m_allocation->vram.commandFactory->get());
 	auto writer = ImageWriter{m_allocation->vram, cmd.cmd};
-	writer.write(m_allocation->image.cache.image, image.bytes, image.extent, offset, vk::ImageLayout::eShaderReadOnlyOptimal);
+	writer.write(m_allocation->image.cache.image, image.bytes, {image.extent, offset}, vk::ImageLayout::eShaderReadOnlyOptimal);
 	cmd.submit();
 }
 
@@ -119,6 +121,6 @@ void Texture::setInvalid() {
 	VF_TRACEF("[Texture:{}] Invalid bitmap", m_allocation->name);
 	static constexpr auto magenta_bytes_v = rgbaBytes(magenta_v);
 	m_allocation->image.cache.refresh({1, 1, 1});
-	write({magenta_bytes_v, {1, 1}}, {});
+	write({magenta_bytes_v, {1, 1}}, TopLeft{});
 }
 } // namespace vf

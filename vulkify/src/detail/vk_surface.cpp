@@ -103,20 +103,20 @@ vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
 	return ret;
 }
 
-std::optional<VKSurface::Acquire> VKSurface::acquire(vk::Semaphore const signal, glm::ivec2 const framebuffer) {
+VKSurface::Acquire VKSurface::acquire(vk::Semaphore const signal, glm::ivec2 const framebuffer) {
 	if (!valid(framebuffer)) { return {}; }
 	if (!device) { return {}; }
 	static constexpr auto max_wait_v = std::numeric_limits<std::uint64_t>::max();
 	std::uint32_t idx{};
 	auto result = presentResult(device.device.acquireNextImageKHR(*swapchain.swapchain, max_wait_v, signal, {}, &idx));
-	if (!result) { return std::nullopt; }
+	if (!result) { return {}; }
 	if (*result == PresentOutcome::eNotReady) {
 		refresh(framebuffer);
-		return std::nullopt;
+		return {};
 	}
 	auto const i = std::size_t(idx);
 	assert(i < swapchain.images.size());
-	return Acquire{swapchain.images[i], idx};
+	return {swapchain.images[i], idx};
 }
 
 vk::Result VKSurface::submit(vk::CommandBuffer const cb, VKSync const& sync) {
@@ -135,13 +135,13 @@ vk::Result VKSurface::submit(vk::CommandBuffer const cb, VKSync const& sync) {
 }
 
 PresentResult VKSurface::present(Acquire const& acquired, vk::Semaphore const wait, glm::ivec2 const framebuffer) {
-	if (!device) { return vk::Result::eErrorDeviceLost; }
+	if (!device || !acquired) { return vk::Result::eErrorDeviceLost; }
 	vk::PresentInfoKHR info;
 	info.waitSemaphoreCount = 1;
 	info.pWaitSemaphores = &wait;
 	info.swapchainCount = 1;
 	info.pSwapchains = &*swapchain.swapchain;
-	info.pImageIndices = &acquired.index;
+	info.pImageIndices = &*acquired.index;
 	auto ret = presentResult(device.queue.queue.presentKHR(&info));
 	if (ret && *ret == PresentOutcome::eNotReady) { refresh(framebuffer); }
 	return ret;

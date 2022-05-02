@@ -7,7 +7,6 @@ namespace {
 void test(vf::UContext ctx) {
 	std::cout << "using GPU: " << ctx->instance().gpu().name << '\n';
 
-	ctx->show();
 	auto const clearA = vf::Rgba::make(0xfff000ff);
 	auto const clearB = vf::Rgba::make(0x000fffff);
 
@@ -36,7 +35,7 @@ void test(vf::UContext ctx) {
 	{
 		auto bmp = vf::Bitmap::View{{&vf::magenta_v, 1}};
 		image = bmp.image();
-		mesh.texture.overwrite(image, {1, 1});
+		mesh.texture.overwrite(image, vf::TopLeft{1, 1});
 	}
 
 	auto tri = vf::Geometry{};
@@ -54,6 +53,7 @@ void test(vf::UContext ctx) {
 	tex0.rescale(10.0f);
 	quad.setTexture(std::move(tex0), true);
 
+	ctx->show();
 	auto elapsed = vf::Time{};
 	while (!ctx->closing()) {
 		auto const frame = ctx->frame();

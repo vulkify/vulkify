@@ -8,6 +8,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/core/ptr.hpp
   include/vulkify/core/radian.hpp
   include/vulkify/core/result.hpp
+  include/vulkify/core/rect.hpp
   include/vulkify/core/rgba.hpp
   include/vulkify/core/time.hpp
   include/vulkify/core/transform.hpp

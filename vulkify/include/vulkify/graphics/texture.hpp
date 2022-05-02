@@ -1,5 +1,6 @@
 #pragma once
 #include <ktl/kunique_ptr.hpp>
+#include <vulkify/core/rect.hpp>
 #include <vulkify/core/result.hpp>
 #include <vulkify/graphics/bitmap.hpp>
 #include <vulkify/graphics/resource.hpp>
@@ -16,12 +17,13 @@ struct TextureCreateInfo {
 class Texture : public GfxResource {
   public:
 	using CreateInfo = TextureCreateInfo;
+	using TopLeft = vf::TopLeft<std::uint32_t>;
 
 	Texture() = default;
 	Texture(Vram const& vram, std::string name, Image::View image, CreateInfo const& createInfo = {});
 
 	Result<void> create(Image::View image);
-	Result<void> overwrite(Image::View image, Extent2D offset = {});
+	Result<void> overwrite(Image::View image, TopLeft offset = TopLeft{});
 	Result<void> rescale(float scale);
 
 	Texture clone(std::string name) const;
@@ -34,7 +36,7 @@ class Texture : public GfxResource {
 	Texture(Vram const& vram, std::string name, CreateInfo const& info);
 
 	void refresh(Extent2D extent);
-	void write(Image::View image, Extent2D offset);
+	void write(Image::View image, TopLeft offset);
 	void setInvalid();
 
 	AddressMode m_addressMode{};

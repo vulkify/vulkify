@@ -18,7 +18,9 @@ using PresentResult = ktl::expected<PresentOutcome, vk::Result>;
 struct VKSurface {
 	struct Acquire {
 		VKImage image{};
-		std::uint32_t index{};
+		std::optional<std::uint32_t> index{};
+
+		explicit operator bool() const { return index.has_value(); }
 	};
 
 	using Device = VKDevice;
@@ -39,7 +41,7 @@ struct VKSurface {
 
 	vk::SwapchainCreateInfoKHR makeInfo(glm::ivec2 framebuffer) const;
 	vk::Result refresh(glm::ivec2 framebuffer);
-	std::optional<Acquire> acquire(vk::Semaphore signal, glm::ivec2 framebuffer);
+	Acquire acquire(vk::Semaphore signal, glm::ivec2 framebuffer);
 	vk::Result submit(vk::CommandBuffer cb, VKSync const& sync);
 	PresentResult present(Acquire const& acquired, vk::Semaphore wait, glm::ivec2 framebuffer);
 };

@@ -291,7 +291,6 @@ struct SwapchainRenderer {
 	ImageCache images[2]{};
 	vk::UniqueCommandPool commandPool{};
 
-	VKImage acquired{};
 	RenderTarget target{};
 	Rgba clear{};
 
@@ -339,7 +338,6 @@ struct SwapchainRenderer {
 		target.depth = images[eDepth].refresh(ext);
 		sync.framebuffer = renderer.makeFramebuffer(target);
 		if (!sync.framebuffer) { return {}; }
-		this->acquired = acquired;
 		target.framebuffer = *sync.framebuffer;
 
 		auto cmd = sync.cmd.secondary;
@@ -352,7 +350,7 @@ struct SwapchainRenderer {
 		return sync.cmd.secondary;
 	}
 
-	vk::CommandBuffer endRender() {
+	vk::CommandBuffer endRender(VKImage acquired) {
 		if (!renderer.renderPass || !target.framebuffer) { return {}; }
 
 		auto& sync = frameSync.get();
@@ -386,9 +384,9 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 	Bitmap::rgbaToByte(white_v, imageBytes);
 	auto cmd = InstantCommand(vram.commandFactory->get());
 	auto writer = ImageWriter{vram, cmd.cmd};
-	writer.write(ret.white.image.get(), imageBytes, {}, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	writer.write(ret.white.image.get(), imageBytes, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 	Bitmap::rgbaToByte(magenta_v, imageBytes);
-	writer.write(ret.magenta.image.get(), imageBytes, {}, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	writer.write(ret.magenta.image.get(), imageBytes, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 	cmd.submit();
 
 	return ret;
@@ -412,7 +410,7 @@ struct VulkifyInstance::Impl {
 	SwapchainRenderer renderer{};
 	Gpu gpu{};
 
-	std::optional<VKSurface::Acquire> acquired{};
+	VKSurface::Acquire acquired{};
 	std::vector<vk::UniqueDescriptorSetLayout> setLayouts{};
 	VIStorage vertexInput{};
 	PipelineFactory pipelineFactory{};
@@ -523,11 +521,11 @@ Surface VulkifyInstance::beginPass() {
 	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
 	if (!m_impl->acquired) { return {}; }
 	auto& r = m_impl->renderer;
-	auto cmd = r.beginRender(m_impl->acquired->image);
+	auto cmd = r.beginRender(m_impl->acquired.image);
 	m_impl->vulkan.util->defer.decrement();
 
 	auto view = m_impl->descriptorPool.get(0, 0, "uniform:View");
-	view.write(0, ubo::view(m_impl->acquired->image.extent));
+	view.write(0, ubo::view(m_impl->acquired.image.extent));
 
 	auto const input = ShaderInput{view, &m_impl->shaderTextures};
 	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderer.renderPass, std::move(cmd), input, &r.clear};
@@ -535,12 +533,12 @@ Surface VulkifyInstance::beginPass() {
 
 bool VulkifyInstance::endPass() {
 	if (!m_impl->acquired) { return false; }
-	auto const cb = m_impl->renderer.endRender();
+	auto const cb = m_impl->renderer.endRender(m_impl->acquired.image);
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();
 	m_impl->surface.submit(cb, sync);
-	auto const ret = m_impl->surface.present(*m_impl->acquired, sync.present, framebufferSize());
-	m_impl->acquired.reset();
+	auto const ret = m_impl->surface.present(m_impl->acquired, sync.present, framebufferSize());
+	m_impl->acquired = {};
 	m_impl->renderer.next();
 	m_impl->descriptorPool.next();
 	return ret.has_value();

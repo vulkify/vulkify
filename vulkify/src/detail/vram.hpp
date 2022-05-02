@@ -5,6 +5,7 @@
 #include <ktl/enum_flags/enum_flags.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/core/per_thread.hpp>
+#include <vulkify/core/rect.hpp>
 #include <vulkify/core/unique.hpp>
 #include <vulkify/graphics/geometry.hpp>
 
@@ -158,6 +159,9 @@ struct Vram {
 };
 
 struct ImageWriter {
+	using Rect = vf::Rect<std::uint32_t, std::int32_t>;
+	using Offset = vf::Rect<std::int32_t, std::int32_t>;
+
 	Vram const& vram;
 	vk::CommandBuffer cb;
 
@@ -165,9 +169,9 @@ struct ImageWriter {
 
 	static bool canBlit(VmaImage const& src, VmaImage const& dst);
 
-	bool write(VmaImage& out, std::span<std::byte const> data, glm::uvec2 extent = {}, glm::ivec2 offset = {}, vk::ImageLayout il = {});
-	bool blit(VmaImage& in, VmaImage& out, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
-	bool copy(VmaImage& in, VmaImage& out, TPair<vk::ImageLayout> il = {}) const;
+	bool write(VmaImage& out, std::span<std::byte const> data, Rect rect = {}, vk::ImageLayout il = {});
+	bool blit(VmaImage& in, VmaImage& out, Offset inr, Offset outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
+	bool copy(VmaImage& in, VmaImage& out, Rect inr, Rect outr, TPair<vk::ImageLayout> il = {}) const;
 };
 
 struct UniqueVram {
