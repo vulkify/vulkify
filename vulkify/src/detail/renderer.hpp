@@ -1,63 +1,32 @@
 #pragma once
-#include <detail/image_cache.hpp>
-#include <detail/rotator.hpp>
 #include <detail/vk_device.hpp>
-#include <detail/vk_surface.hpp>
-#include <detail/vram.hpp>
-#include <glm/vec2.hpp>
 #include <vulkify/core/rgba.hpp>
 
 namespace vf {
-struct FrameSync {
-	vk::UniqueSemaphore draw{};
-	vk::UniqueSemaphore present{};
-	vk::UniqueFence drawn{};
-	vk::UniqueFramebuffer framebuffer{};
-	struct {
-		vk::UniqueCommandBuffer primary{};
-		vk::UniqueCommandBuffer secondary{};
-	} cmd{};
-
-	static FrameSync make(vk::Device device);
-
-	VKSync sync() const { return {*draw, *present, *drawn}; }
-};
-
-struct RenderTarget {
+struct RenderImage {
 	VKImage colour{};
 	VKImage depth{};
 };
 
+struct RenderTarget : RenderImage {
+	vk::Framebuffer framebuffer{};
+};
+
 struct Renderer {
-	Vram vram{};
+	enum Image { eColour, eDepth };
 
-	enum Image { eColour, eDepth, eResolve };
-
+	vk::Device device{};
 	vk::UniqueRenderPass renderPass{};
-	vk::UniqueCommandPool commandPool{};
-	Rotator<FrameSync> frameSync{};
-	ImageCache images[3]{};
-	RenderTarget attachments{};
-	VKImage acquired{};
-	Rgba clear{};
-	vk::Format colour{};
 
 	static constexpr bool isSrgb(vk::Format const f) {
 		using F = vk::Format;
 		return f == F::eR8G8Srgb || f == F::eB8G8R8Srgb || f == F::eR8G8B8Srgb || f == F::eB8G8R8A8Srgb || f == F::eR8G8B8A8Srgb;
 	}
 
-	static Renderer make(Vram vram, VKSurface const& surface, std::size_t buffering = 2);
+	static Renderer make(vk::Device device, vk::Format colour, vk::Format depth);
 
-	bool isSrgb() const { return isSrgb(colour); }
-	vk::Format textureFormat() const { return isSrgb() ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm; }
-
-	VKSync sync() const { return frameSync.get().sync(); }
-	vk::CommandBuffer beginPass(VKImage const& target);
-	vk::CommandBuffer endPass();
-	void next() { frameSync.next(); }
-
-	vk::UniqueFramebuffer makeFramebuffer(RenderTarget const& target) const;
-	vk::CommandBuffer drawCmd() const { return *frameSync.get().cmd.secondary; }
+	vk::UniqueFramebuffer makeFramebuffer(RenderImage const& image) const;
+	void render(RenderTarget const& target, Rgba clear, vk::CommandBuffer primary, std::span<vk::CommandBuffer const> recorded) const;
+	void blit(vk::CommandBuffer primary, RenderTarget const& target, vk::Image dst, vk::ImageLayout final) const;
 };
 } // namespace vf

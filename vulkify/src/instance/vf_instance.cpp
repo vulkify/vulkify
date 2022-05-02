@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/core/unique.hpp>
+
 #include <vulkify/instance/headless_instance.hpp>
 #include <vulkify/instance/vf_instance.hpp>
 #include <memory>
@@ -13,9 +14,11 @@
 #include <detail/descriptor_set.hpp>
 #include <detail/pipeline_factory.hpp>
 #include <detail/renderer.hpp>
+#include <detail/rotator.hpp>
 #include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
 #include <detail/vk_surface.hpp>
+
 #include <detail/vram.hpp>
 
 #include <glm/mat4x4.hpp>
@@ -185,6 +188,8 @@ glm::ivec2 getWindowSize(GLFWwindow* w) {
 } // namespace
 
 namespace {
+constexpr vk::Format textureFormat(vk::Format surface) { return Renderer::isSrgb(surface) ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm; }
+
 VKDevice makeDevice(VKInstance const& instance) {
 	auto const flags = instance.messenger ? VKDevice::Flag::eDebugMsgr : VKDevice::Flags{};
 	return {instance.queue, instance.gpu.device, *instance.device, {&instance.util->defer}, &instance.util->mutex, flags};
@@ -244,6 +249,127 @@ struct VIStorage {
 	}
 };
 
+vk::Format bestDepth(vk::PhysicalDevice pd) {
+	static constexpr vk::Format formats[] = {vk::Format::eD32SfloatS8Uint, vk::Format::eD32Sfloat, vk::Format::eD24UnormS8Uint};
+	static constexpr auto features = vk::FormatFeatureFlagBits::eDepthStencilAttachment;
+	for (auto const format : formats) {
+		vk::FormatProperties const props = pd.getFormatProperties(format);
+		if ((props.optimalTilingFeatures & features) == features) { return format; }
+	}
+	return vk::Format::eD16Unorm;
+}
+
+struct FrameSync {
+	vk::UniqueSemaphore draw{};
+	vk::UniqueSemaphore present{};
+	vk::UniqueFence drawn{};
+	vk::UniqueFramebuffer framebuffer{};
+	struct {
+		vk::CommandBuffer primary{};
+		vk::CommandBuffer secondary{};
+	} cmd{};
+
+	static FrameSync make(vk::Device device) {
+		return {
+			device.createSemaphoreUnique({}),
+			device.createSemaphoreUnique({}),
+			device.createFenceUnique({vk::FenceCreateFlagBits::eSignaled}),
+		};
+	}
+
+	VKSync sync() const { return {*draw, *present, *drawn}; }
+};
+
+struct SwapchainRenderer {
+	enum Image { eColour, eDepth };
+	static constexpr vk::Format colour_v = vk::Format::eR8G8B8A8Srgb;
+
+	Vram vram{};
+
+	Renderer renderer{};
+	Rotator<FrameSync> frameSync{};
+	ImageCache images[2]{};
+	vk::UniqueCommandPool commandPool{};
+
+	VKImage acquired{};
+	RenderTarget target{};
+	Rgba clear{};
+
+	static SwapchainRenderer make(Vram const& vram, std::size_t buffering = 2) {
+		auto ret = SwapchainRenderer{vram};
+		auto const depth = bestDepth(vram.device.gpu);
+		auto renderer = Renderer::make(vram.device.device, colour_v, depth);
+		if (!renderer.renderPass) { return {}; }
+		ret.renderer = std::move(renderer);
+
+		static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
+		auto cpci = vk::CommandPoolCreateInfo(flags, vram.device.queue.family);
+		ret.commandPool = vram.device.device.createCommandPoolUnique(cpci);
+		auto const count = static_cast<std::uint32_t>(buffering);
+		auto primaries = vram.device.device.allocateCommandBuffers({*ret.commandPool, vk::CommandBufferLevel::ePrimary, count});
+		auto secondaries = vram.device.device.allocateCommandBuffers({*ret.commandPool, vk::CommandBufferLevel::eSecondary, count});
+		for (std::size_t i = 0; i < buffering; ++i) {
+			auto sync = FrameSync::make(vram.device.device);
+			sync.cmd.primary = std::move(primaries[i]);
+			sync.cmd.secondary = std::move(secondaries[i]);
+			ret.frameSync.push(std::move(sync));
+		}
+
+		ret.images[eColour] = {{vram, "render_pass_colour_image"}};
+		ret.images[eColour].setColour();
+		ret.images[eColour].info.info.format = colour_v;
+
+		ret.images[eDepth] = {{vram, "render_pass_depth_image"}};
+		ret.images[eDepth].setDepth();
+		ret.images[eDepth].info.info.format = depth;
+
+		return ret;
+	}
+
+	explicit operator bool() const { return static_cast<bool>(renderer.renderPass); }
+	VKSync sync() const { return frameSync.get().sync(); }
+
+	vk::CommandBuffer beginRender(VKImage acquired) {
+		if (!renderer.renderPass) { return {}; }
+
+		auto const ext = vk::Extent3D(acquired.extent, 1);
+		auto& sync = frameSync.get();
+		vram.device.reset(*sync.drawn);
+		target.colour = images[eColour].refresh(ext);
+		target.depth = images[eDepth].refresh(ext);
+		sync.framebuffer = renderer.makeFramebuffer(target);
+		if (!sync.framebuffer) { return {}; }
+		this->acquired = acquired;
+		target.framebuffer = *sync.framebuffer;
+
+		auto cmd = sync.cmd.secondary;
+		auto const cbii = vk::CommandBufferInheritanceInfo(*renderer.renderPass, 0U, *sync.framebuffer);
+		cmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue, &cbii});
+		auto const height = static_cast<float>(acquired.extent.height);
+		cmd.setViewport(0, vk::Viewport({}, height, static_cast<float>(acquired.extent.width), -height));
+		cmd.setScissor(0, vk::Rect2D({}, acquired.extent));
+
+		return sync.cmd.secondary;
+	}
+
+	vk::CommandBuffer endRender() {
+		if (!renderer.renderPass || !target.framebuffer) { return {}; }
+
+		auto& sync = frameSync.get();
+		sync.cmd.secondary.end();
+		sync.cmd.primary.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+		renderer.render(target, clear, sync.cmd.primary, {&sync.cmd.secondary, 1});
+
+		renderer.blit(sync.cmd.primary, target, acquired.image, vk::ImageLayout::ePresentSrcKHR);
+		sync.cmd.primary.end();
+		target = {};
+
+		return sync.cmd.primary;
+	}
+
+	void next() { frameSync.next(); }
+};
+
 ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 	auto ret = ShaderInput::Textures{};
 	auto sci = samplerInfo(vram, vk::SamplerAddressMode::eClampToBorder, vk::Filter::eNearest);
@@ -283,7 +409,7 @@ struct VulkifyInstance::Impl {
 	VKInstance vulkan{};
 	UniqueVram vram{};
 	VKSurface surface{};
-	Renderer renderer{};
+	SwapchainRenderer renderer{};
 	Gpu gpu{};
 
 	std::optional<VKSurface::Acquire> acquired{};
@@ -344,10 +470,10 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
 	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
 
-	auto renderer = Renderer::make(impl->vram.vram, impl->surface, true);
-	if (!renderer.renderPass) { return Error::eVulkanInitFailure; }
-	impl->renderer = std::move(renderer);
-	impl->vram.vram->textureFormat = impl->renderer.textureFormat();
+	auto presenter = SwapchainRenderer::make(impl->vram.vram);
+	if (!presenter) { return Error::eVulkanInitFailure; }
+	impl->renderer = std::move(presenter);
+	impl->vram.vram->textureFormat = textureFormat(impl->surface.info.imageFormat);
 
 	impl->setLayouts = makeSetLayouts(impl->surface.device.device);
 	impl->vertexInput = VIStorage::make();
@@ -397,19 +523,19 @@ Surface VulkifyInstance::beginPass() {
 	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
 	if (!m_impl->acquired) { return {}; }
 	auto& r = m_impl->renderer;
-	auto cmd = r.beginPass(m_impl->acquired->image);
+	auto cmd = r.beginRender(m_impl->acquired->image);
 	m_impl->vulkan.util->defer.decrement();
 
 	auto view = m_impl->descriptorPool.get(0, 0, "uniform:View");
 	view.write(0, ubo::view(m_impl->acquired->image.extent));
 
 	auto const input = ShaderInput{view, &m_impl->shaderTextures};
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderPass, std::move(cmd), input, &r.clear};
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderer.renderPass, std::move(cmd), input, &r.clear};
 }
 
 bool VulkifyInstance::endPass() {
 	if (!m_impl->acquired) { return false; }
-	auto const cb = m_impl->renderer.endPass();
+	auto const cb = m_impl->renderer.endRender();
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();
 	m_impl->surface.submit(cb, sync);
