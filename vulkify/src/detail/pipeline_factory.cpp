@@ -72,42 +72,41 @@ PipelineFactory PipelineFactory::make(VKDevice const& device, VertexInput vertex
 	return ret;
 }
 
-PipelineFactory::Entry* PipelineFactory::find(PipelineSpec const& spec) {
-	auto const it = std::find_if(entries.begin(), entries.end(), [&spec](Entry const& e) { return e.spec == spec; });
+PipelineFactory::Entry* PipelineFactory::find(Shaders const& shaders) {
+	auto const it = std::find_if(entries.begin(), entries.end(), [&shaders](Entry const& e) { return e.shaders == shaders; });
 	return it == entries.end() ? nullptr : &*it;
 }
 
-PipelineFactory::Entry* PipelineFactory::getOrLoad(PipelineSpec const& spec) {
-	if (auto ret = find(spec)) { return ret; }
+PipelineFactory::Entry* PipelineFactory::getOrLoad(Shaders const& shaders) {
+	if (auto ret = find(shaders)) { return ret; }
 	if (!cache.device) { return {}; }
-	// if (setLayouts.empty()) { return {}; }
-	Entry entry{spec};
+	Entry entry{shaders};
 	entry.layout = cache.device.createPipelineLayoutUnique({{}, static_cast<std::uint32_t>(setLayouts.size()), setLayouts.data()});
 	entries.push_back(std::move(entry));
 	return &entries.back();
 }
 
-vk::PipelineLayout PipelineFactory::layout(PipelineSpec const& spec) {
-	if (auto entry = getOrLoad(spec)) { return *entry->layout; }
+vk::PipelineLayout PipelineFactory::layout(Shaders const& shaders) {
+	if (auto entry = getOrLoad(shaders)) { return *entry->layout; }
 	return {};
 }
 
-std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::pipeline(PipelineSpec const& spec, vk::RenderPass renderPass) {
-	auto entry = getOrLoad(spec);
+std::pair<vk::Pipeline, vk::PipelineLayout> PipelineFactory::pipeline(Shaders const& shaders, vk::RenderPass renderPass) {
+	auto entry = getOrLoad(shaders);
 	if (!entry) { return {}; }
 	auto it = entry->pipelines.find(renderPass);
 	if (it != entry->pipelines.end()) { return {*it->second, *entry->layout}; }
-	auto vert = cache.getOrLoad(spec.shaders.vert);
+	auto vert = cache.getOrLoad(shaders.vert);
 	if (!vert) { vert = *defaultShaders.vert; }
-	auto frag = cache.getOrLoad(spec.shaders.frag);
+	auto frag = cache.getOrLoad(shaders.frag);
 	if (!frag) { frag = *defaultShaders.frag; }
-	auto pipeline = makePipeline(spec, *entry->layout, {vert, frag}, renderPass);
+	auto pipeline = makePipeline(*entry->layout, {vert, frag}, renderPass);
 	if (!pipeline) { return {}; }
 	auto [i, _] = entry->pipelines.insert_or_assign(renderPass, std::move(pipeline));
 	return {*i->second, *entry->layout};
 }
 
-vk::UniquePipeline PipelineFactory::makePipeline(PipelineSpec const& spec, vk::PipelineLayout layout, Shaders shaders, vk::RenderPass renderPass) const {
+vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, ShaderProgram shader, vk::RenderPass renderPass) const {
 	auto gpci = vk::GraphicsPipelineCreateInfo{};
 	gpci.renderPass = renderPass;
 	gpci.layout = layout;
@@ -119,8 +118,8 @@ vk::UniquePipeline PipelineFactory::makePipeline(PipelineSpec const& spec, vk::P
 	pvisci.vertexAttributeDescriptionCount = static_cast<std::uint32_t>(vertexInput.attributes.size());
 	gpci.pVertexInputState = &pvisci;
 
-	auto pssciVert = vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eVertex, shaders.first, "main");
-	auto pssciFrag = vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eFragment, shaders.second, "main");
+	auto pssciVert = vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eVertex, shader.first, "main");
+	auto pssciFrag = vk::PipelineShaderStageCreateInfo({}, vk::ShaderStageFlagBits::eFragment, shader.second, "main");
 	auto psscis = std::array<vk::PipelineShaderStageCreateInfo, 2>{{pssciVert, pssciFrag}};
 	gpci.stageCount = static_cast<std::uint32_t>(psscis.size());
 	gpci.pStages = psscis.data();
@@ -128,36 +127,29 @@ vk::UniquePipeline PipelineFactory::makePipeline(PipelineSpec const& spec, vk::P
 	auto piasci = vk::PipelineInputAssemblyStateCreateInfo({}, vk::PrimitiveTopology::eTriangleList);
 	gpci.pInputAssemblyState = &piasci;
 
-	using Flag = Pipeline::Flag;
 	auto prsci = vk::PipelineRasterizationStateCreateInfo();
-	prsci.lineWidth = std::clamp(spec.pipeline.lineWidth, lineWidthLimit.first, lineWidthLimit.second);
-	prsci.polygonMode = vk::PolygonMode::eFill;
-	if (spec.pipeline.flags.test(Flag::eWireframe)) { prsci.polygonMode = vk::PolygonMode::eLine; }
+	prsci.lineWidth = 1.0f;
 	gpci.pRasterizationState = &prsci;
 
 	auto pcbas = vk::PipelineColorBlendAttachmentState{};
-	if (!spec.pipeline.flags.test(Flag::eNoAlphaBlend)) {
-		using CCF = vk::ColorComponentFlagBits;
-		pcbas.colorWriteMask = CCF::eR | CCF::eG | CCF::eB | CCF::eA;
-		pcbas.blendEnable = true;
-		pcbas.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
-		pcbas.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
-		pcbas.colorBlendOp = vk::BlendOp::eAdd;
-		pcbas.srcAlphaBlendFactor = vk::BlendFactor::eOne;
-		pcbas.dstAlphaBlendFactor = vk::BlendFactor::eZero;
-		pcbas.alphaBlendOp = vk::BlendOp::eAdd;
-	}
+	using CCF = vk::ColorComponentFlagBits;
+	pcbas.colorWriteMask = CCF::eR | CCF::eG | CCF::eB | CCF::eA;
+	pcbas.blendEnable = true;
+	pcbas.srcColorBlendFactor = vk::BlendFactor::eSrcAlpha;
+	pcbas.dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha;
+	pcbas.colorBlendOp = vk::BlendOp::eAdd;
+	pcbas.srcAlphaBlendFactor = vk::BlendFactor::eOne;
+	pcbas.dstAlphaBlendFactor = vk::BlendFactor::eZero;
+	pcbas.alphaBlendOp = vk::BlendOp::eAdd;
 	auto pcbsci = vk::PipelineColorBlendStateCreateInfo();
 	pcbsci.attachmentCount = 1;
 	pcbsci.pAttachments = &pcbas;
 	gpci.pColorBlendState = &pcbsci;
 
 	auto pdssci = vk::PipelineDepthStencilStateCreateInfo{};
-	if (!spec.pipeline.flags.test(Flag::eNoDepthTest)) {
-		pdssci.depthTestEnable = true;
-		pdssci.depthCompareOp = vk::CompareOp::eLess;
-	}
-	if (!spec.pipeline.flags.test(Flag::eNoDepthWrite)) { pdssci.depthWriteEnable = true; }
+	pdssci.depthTestEnable = true;
+	pdssci.depthCompareOp = vk::CompareOp::eLess;
+	pdssci.depthWriteEnable = true;
 	gpci.pDepthStencilState = &pdssci;
 
 	auto pdscis = ktl::fixed_vector<vk::DynamicState, 4>{};

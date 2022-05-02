@@ -4,7 +4,6 @@
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/graphics/buffer.hpp>
 #include <vulkify/graphics/drawable.hpp>
-#include <vulkify/graphics/pipeline.hpp>
 #include <vulkify/graphics/texture.hpp>
 #include <vulkify/instance/instance.hpp>
 
@@ -34,9 +33,10 @@ void Surface::setClear(Rgba rgba) const {
 	if (m_renderPass->clear) { *m_renderPass->clear = rgba; }
 }
 
-bool Surface::bind(Pipeline const& pipeline) const {
+bool Surface::bind(std::string shaderPath) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
-	auto const [pipe, layout] = m_renderPass->pipelineFactory->pipeline({pipeline}, m_renderPass->renderPass);
+	auto shaders = PipelineFactory::Shaders{{}, std::move(shaderPath)};
+	auto const [pipe, layout] = m_renderPass->pipelineFactory->pipeline(shaders, m_renderPass->renderPass);
 	if (!pipe || !layout) { return false; }
 	if (layout == m_renderPass->bound) { return true; }
 	m_renderPass->commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipe);

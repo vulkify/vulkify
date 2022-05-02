@@ -18,25 +18,25 @@ class Texture : public GfxResource {
 	using CreateInfo = TextureCreateInfo;
 
 	Texture() = default;
-	Texture(Vram const& vram, std::string name, Bitmap bitmap, CreateInfo const& createInfo = {});
+	Texture(Vram const& vram, std::string name, Image::View image, CreateInfo const& createInfo = {});
 
-	Result<void> create(Bitmap bitmap);
-	Result<void> overwrite(Bitmap::View bitmap, Extent2D offset = {});
+	Result<void> create(Image::View image);
+	Result<void> overwrite(Image::View image, Extent2D offset = {});
+	Result<void> rescale(float scale);
 
 	Texture clone(std::string name) const;
 
 	Extent2D extent() const;
-	Bitmap const& bitmap() const { return m_bitmap; }
 	AddressMode addressMode() const { return m_addressMode; }
 	Filtering filtering() const { return m_filtering; }
 
-	void clearBitmap() { m_bitmap = {}; }
-
   private:
-	void write(Bitmap::View bitmap, Extent2D offset);
+	Texture(Vram const& vram, std::string name, CreateInfo const& info);
+
+	void refresh(Extent2D extent);
+	void write(Image::View image, Extent2D offset);
 	void setInvalid();
 
-	Bitmap m_bitmap{};
 	AddressMode m_addressMode{};
 	Filtering m_filtering{};
 };

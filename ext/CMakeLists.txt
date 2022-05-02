@@ -57,7 +57,7 @@ set(GLM_INSTALL ${VULKIFY_INSTALL})
 FetchContent_Declare(
   glm
   GIT_REPOSITORY https://github.com/karnkaul/glm
-  GIT_TAG cc98465
+  GIT_TAG 9ee2352f
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/glm"
 )
 FetchContent_MakeAvailable(glm)
@@ -70,6 +70,10 @@ list(APPEND ext_targets glm)
 # vma
 add_subdirectory(src/vma)
 list(APPEND ext_targets vma)
+
+# stb
+add_subdirectory(src/stb)
+list(APPEND ext_targets stb-image)
 
 if(VULKIFY_INSTALL)
   install(TARGETS ${ext_targets} EXPORT vulkify-ext-targets)

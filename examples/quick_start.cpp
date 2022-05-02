@@ -28,12 +28,15 @@ void test(vf::UContext ctx) {
 	bmp[{0, 0}] = vf::red_v;
 	bmp[{0, 1}] = vf::green_v;
 	bmp[{1, 0}] = vf::blue_v;
-	auto tex0 = vf::Texture(ctx->vram(), "test_tex", std::move(bmp));
+	auto image = bmp.image();
+	auto tex0 = vf::Texture(ctx->vram(), "test_tex", image);
 	mesh.texture = tex0.clone("tex_clone");
+	// mesh.texture = std::move(tex0);
 	// mesh.texture = vf::Texture(ctx->vram(), "bad", {});
 	{
 		auto bmp = vf::Bitmap::View{{&vf::magenta_v, 1}};
-		mesh.texture.overwrite(bmp, {1, 1});
+		image = bmp.image();
+		mesh.texture.overwrite(image, {1, 1});
 	}
 
 	auto tri = vf::Geometry{};
@@ -47,7 +50,9 @@ void test(vf::UContext ctx) {
 
 	auto quad = vf::QuadShape(*ctx);
 	quad.transform().position.y = -200.0f;
-	quad.tint() = vf::Rgba::make(0xc382bf).linear();
+	// quad.tint() = vf::Rgba::make(0xc382bf).linear();
+	tex0.rescale(10.0f);
+	quad.setTexture(std::move(tex0), true);
 
 	auto elapsed = vf::Time{};
 	while (!ctx->closing()) {

@@ -6,6 +6,15 @@ namespace {
 constexpr bool validOffset(Extent2D view, Extent2D offset, Extent2D extent) { return view.x + offset.x < extent.x && view.y + offset.y < extent.y; }
 } // namespace
 
+Image Bitmap::View::image() const {
+	auto bytes = std::make_unique<std::byte[]>(pixels.size_bytes() * Image::channels_v);
+	auto head = bytes.get();
+	for (auto const pixel : pixels) { head = rgbaToByte(pixel, head); }
+	auto ret = Image{};
+	ret.replace({std::move(bytes), extent});
+	return ret;
+}
+
 Bitmap::Bitmap(Rgba rgba, Extent2D const extent) {
 	m_pixels.resize(extent.x * extent.y, rgba);
 	m_extent = extent;

@@ -1,6 +1,6 @@
 #pragma once
-#include <glm/vec2.hpp>
 #include <vulkify/core/rgba.hpp>
+#include <vulkify/graphics/image.hpp>
 #include <limits>
 #include <utility>
 #include <vector>
@@ -23,7 +23,11 @@ class Bitmap {
 		Extent2D extent{1, 1};
 
 		constexpr Rgba operator[](Index2D index) const { return pixels[index(extent.y)]; }
+		Image image() const;
 	};
+
+	template <std::output_iterator<std::byte> Out>
+	static constexpr Out rgbaToByte(Rgba const rgba, Out out);
 
 	Bitmap() = default;
 
@@ -42,7 +46,7 @@ class Bitmap {
 	Rgba const& operator[](Index2D index) const { return m_pixels.at(index(m_extent.y)); }
 
 	bool overwrite(View view, Extent2D offset = {});
-	std::size_t byteSize() const { return m_extent.x * m_extent.y * 4; }
+	Image image() const { return static_cast<View>(*this).image(); }
 
   private:
 	std::vector<Rgba> m_pixels{};
@@ -52,6 +56,16 @@ class Bitmap {
 // impl
 
 constexpr bool Bitmap::valid(Bitmap::View const& bitmap) {
-	return bitmap.extent.x > 0 && bitmap.extent.y > 0 && bitmap.pixels.size() == bitmap.extent.x * bitmap.extent.y;
+	return bitmap.extent.x > 0 && bitmap.extent.y > 0 && Image::sizeBytes(bitmap.extent) == bitmap.pixels.size_bytes();
+}
+
+template <std::output_iterator<std::byte> Out>
+constexpr Out Bitmap::rgbaToByte(Rgba const rgba, Out out) {
+	auto add = [&out](Rgba::Channel const channel) { *out++ = static_cast<std::byte>(channel); };
+	add(rgba.channels[0]);
+	add(rgba.channels[1]);
+	add(rgba.channels[2]);
+	add(rgba.channels[3]);
+	return out;
 }
 } // namespace vf

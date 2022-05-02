@@ -98,9 +98,9 @@ Renderer Renderer::make(Vram vram, VKSurface const& surface, std::size_t bufferi
 		sync.cmd.secondary = std::move(secondaries[i]);
 		ret.frameSync.push(std::move(sync));
 	}
-	ret.depthImage = {vram, "render_pass_depth_image"};
+	ret.depthImage = {{vram, "render_pass_depth_image"}};
 	ret.depthImage.setDepth();
-	ret.depthImage.info.format = depth;
+	ret.depthImage.info.info.format = depth;
 	ret.colour = colour;
 	return ret;
 }
