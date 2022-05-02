@@ -82,6 +82,7 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Shad
 
 	auto prsci = vk::PipelineRasterizationStateCreateInfo();
 	prsci.lineWidth = 1.0f;
+	// prsci.polygonMode = vk::PolygonMode::eLine;
 	gpci.pRasterizationState = &prsci;
 
 	auto pcbas = vk::PipelineColorBlendAttachmentState{};

@@ -19,7 +19,7 @@ QuadShape& QuadShape::setTexture(Texture texture, bool resizeToMatch) {
 }
 
 QuadShape& QuadShape::refresh() {
-	if (m_state.size.x > 0.0f && m_state.size.y > 0.0f) { m_gbo.write(Geometry::makeQuad(m_state.size, m_state.origin, white_v, m_state.uv)); }
+	if (m_state.size.x > 0.0f && m_state.size.y > 0.0f) { m_gbo.write(Geometry::makeQuad(m_state.size, m_state.origin, m_state.vertex, m_state.uv)); }
 	return *this;
 }
 } // namespace vf

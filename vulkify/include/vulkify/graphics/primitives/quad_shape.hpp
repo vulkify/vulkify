@@ -11,6 +11,7 @@ struct QuadState {
 	glm::vec2 size{100.0f, 100.0f};
 	glm::vec2 origin{};
 	QuadUV uv{};
+	Rgba vertex = white_v;
 };
 
 ///
