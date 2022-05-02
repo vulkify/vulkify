@@ -58,7 +58,7 @@ vk::SwapchainCreateInfoKHR makeSwci(VKDevice const& device, VKGpu const& gpu, vk
 	vk::SwapchainCreateInfoKHR ret;
 	ret.surface = surface;
 	ret.presentMode = vk::PresentModeKHR::eFifo;
-	ret.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+	ret.imageUsage = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferDst;
 	ret.queueFamilyIndexCount = 1U;
 	ret.pQueueFamilyIndices = &device.queue.family;
 	ret.imageColorSpace = vk::ColorSpaceKHR::eVkColorspaceSrgbNonlinear;
