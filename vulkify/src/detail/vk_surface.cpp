@@ -91,8 +91,7 @@ vk::Result VKSurface::refresh(glm::ivec2 const framebuffer) {
 	auto const ret = device.device.createSwapchainKHR(&info, nullptr, &vks);
 	if (ret != vk::Result::eSuccess) { return ret; }
 	VF_TRACEF("Swapchain resized: {}x{}", info.imageExtent.width, info.imageExtent.height);
-	device.defer(std::move(swapchain.swapchain));
-	for (auto& view : swapchain.views) { device.defer(std::move(view)); }
+	device.defer(std::move(swapchain));
 	swapchain = {};
 	swapchain.swapchain = vk::UniqueSwapchainKHR(vks, device.device);
 	auto const images = device.device.getSwapchainImagesKHR(*swapchain.swapchain);

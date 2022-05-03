@@ -48,6 +48,15 @@ if(VULKIFY_USE_PCH)
   )
 endif()
 
+# version
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/${${project_name}_version_file}.in")
+  configure_src_bin(
+    IN src/${${project_name}_version_file}.in
+    OUT ${project_name}/${${project_name}_version_file}
+    TARGET ${project_name}
+  )
+endif()
+
 if(VULKIFY_INSTALL)
   install(TARGETS ${PROJECT_NAME} interface options EXPORT ${PROJECT_NAME}-targets)
   install(EXPORT ${PROJECT_NAME}-targets

@@ -233,8 +233,8 @@ bool ImageWriter::blit(VmaImage& in, VmaImage& out, Offset inr, Offset outr, vk:
 	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
 	in.transition(cb, vk::ImageLayout::eTransferSrcOptimal);
 	out.transition(cb, vk::ImageLayout::eTransferDstOptimal);
-	auto const srcOffsets = std::array<vk::Offset3D, 2>{{{inr.origin.x, inr.origin.y}, {inr.extent.x, inr.extent.y}}};
-	auto const dstOffsets = std::array<vk::Offset3D, 2>{{{outr.origin.x, outr.origin.y}, {outr.extent.x, outr.extent.y}}};
+	auto const srcOffsets = std::array<vk::Offset3D, 2>{{{inr.origin.x, inr.origin.y}, {inr.extent.x, inr.extent.y, 1}}};
+	auto const dstOffsets = std::array<vk::Offset3D, 2>{{{outr.origin.x, outr.origin.y}, {outr.extent.x, outr.extent.y, 1}}};
 	auto ib = vk::ImageBlit(isrl, srcOffsets, isrl, dstOffsets);
 	cb.blitImage(in.resource, in.layout, out.resource, out.layout, ib, filter);
 	in.transition(cb, il.first);
@@ -251,8 +251,8 @@ bool ImageWriter::copy(VmaImage& in, VmaImage& out, Rect inr, Rect outr, TPair<v
 	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
 	in.transition(cb, vk::ImageLayout::eTransferSrcOptimal);
 	out.transition(cb, vk::ImageLayout::eTransferDstOptimal);
-	auto const ino = vk::Offset3D(inr.origin.x, inr.origin.y, 1);
-	auto const outo = vk::Offset3D(outr.origin.x, outr.origin.y, 1);
+	auto const ino = vk::Offset3D(inr.origin.x, inr.origin.y, 0);
+	auto const outo = vk::Offset3D(outr.origin.x, outr.origin.y, 0);
 	auto ib = vk::ImageCopy(isrl, ino, isrl, outo, vk::Extent3D(inr.extent.x, inr.extent.y, 1));
 	cb.copyImage(in.resource, in.layout, out.resource, out.layout, ib);
 	in.transition(cb, il.first);

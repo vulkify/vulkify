@@ -13,6 +13,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/core/time.hpp
   include/vulkify/core/transform.hpp
   include/vulkify/core/unique.hpp
+  include/vulkify/core/version.hpp
 
   include/vulkify/context/builder.hpp
   include/vulkify/context/context.hpp

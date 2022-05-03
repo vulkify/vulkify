@@ -88,15 +88,6 @@ if(is_root_project AND "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
   message(STATUS "Exporting compile commands")
 endif()
 
-# version
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/${${project_name}_version_file}.in")
-  configure_src_bin(
-    IN src/${${project_name}_version_file}.in
-    OUT ${project_name}/${${project_name}_version_file}
-    TARGET ${project_name}
-  )
-endif()
-
 # library
 add_subdirectory(vulkify)
 

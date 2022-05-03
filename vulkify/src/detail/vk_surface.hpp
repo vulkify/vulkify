@@ -10,6 +10,9 @@ struct VKSwapchain {
 	ktl::fixed_vector<VKImage, 8> images{};
 	ktl::fixed_vector<vk::UniqueImageView, 8> views{};
 	vk::UniqueSwapchainKHR swapchain{};
+
+	explicit operator bool() const { return swapchain.get(); }
+	bool operator==(VKSwapchain const& rhs) const { return !swapchain && !rhs.swapchain; }
 };
 
 enum class PresentOutcome { eSuccess, eNotReady };

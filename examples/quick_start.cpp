@@ -91,7 +91,10 @@ void test(vf::UContext ctx) {
 }
 } // namespace
 
+std::ostream& operator<<(std::ostream& o, vf::Version const& v) { return o << 'v' << v.major << '.' << v.minor << '.' << v.patch; }
+
 int main() {
+	std::cout << "vulkify v" << vf::version_v << '\n';
 	// auto context = vf::Builder{}.setFlag(vf::Builder::Flag::eLinearSwapchain).build();
 	auto context = vf::Builder{}.build();
 	// auto context = vf::Builder{}.setFlag(vf::Builder::Flag::eHeadless).build();
