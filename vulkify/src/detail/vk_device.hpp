@@ -23,7 +23,7 @@ struct DescriptorLayout {
 };
 
 struct VKDevice {
-	static constexpr auto fence_wait_v = 2s;
+	static constexpr auto fence_wait_v = std::numeric_limits<std::uint64_t>::max();
 
 	enum class Flag { eDebugMsgr, eLinearSwp };
 	using Flags = ktl::enum_flags<Flag, std::uint8_t>;
@@ -39,24 +39,19 @@ struct VKDevice {
 
 	bool busy(vk::Fence fence) const { return fence && device.getFenceStatus(fence) == vk::Result::eNotReady; }
 
-	void wait(vk::Fence fence, stdch::nanoseconds wait = fence_wait_v) const {
-		if (fence) { device.waitForFences(fence, true, static_cast<std::uint64_t>(wait.count())); }
+	void wait(vk::Fence fence, std::uint64_t wait = fence_wait_v) const {
+		if (fence) { device.waitForFences(1, &fence, true, static_cast<std::uint64_t>(wait)); }
 	}
 
-	void reset(vk::Fence fence, bool wait = true) const {
-		if (wait && busy(fence)) { this->wait(fence); }
-		device.resetFences(fence);
+	void reset(vk::Fence fence, std::uint64_t wait = fence_wait_v) const {
+		if (wait > 0 && busy(fence)) { this->wait(fence, wait); }
+		device.resetFences(1, &fence);
 	}
 
 	vk::UniqueImageView makeImageView(vk::Image const image, vk::Format const format, vk::ImageAspectFlags aspects) const {
 		vk::ImageViewCreateInfo info;
 		info.viewType = vk::ImageViewType::e2D;
 		info.format = format;
-		// TODO: research
-		// info.components.r = vk::ComponentSwizzle::eR;
-		// info.components.g = vk::ComponentSwizzle::eG;
-		// info.components.b = vk::ComponentSwizzle::eB;
-		// info.components.a = vk::ComponentSwizzle::eA;
 		info.components.r = info.components.g = info.components.b = info.components.a = vk::ComponentSwizzle::eIdentity;
 		info.subresourceRange = {aspects, 0, 1, 0, 1};
 		info.image = image;

@@ -42,16 +42,6 @@ constexpr vk::Extent2D imageExtent(vk::SurfaceCapabilitiesKHR const& caps, glm::
 	return vk::Extent2D{x, y};
 }
 
-constexpr PresentResult presentResult(vk::Result const result) noexcept {
-	switch (result) {
-	case vk::Result::eSuccess: return PresentOutcome::eSuccess;
-	case vk::Result::eSuboptimalKHR:
-	case vk::Result::eErrorOutOfDateKHR: return PresentOutcome::eNotReady;
-	default: break;
-	}
-	return result;
-}
-
 constexpr bool valid(glm::ivec2 extent) { return extent.x > 0 && extent.y > 0; }
 
 vk::SwapchainCreateInfoKHR makeSwci(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, glm::ivec2 framebuffer, bool linear) {
@@ -107,9 +97,8 @@ VKSurface::Acquire VKSurface::acquire(vk::Semaphore const signal, glm::ivec2 con
 	if (!device) { return {}; }
 	static constexpr auto max_wait_v = std::numeric_limits<std::uint64_t>::max();
 	std::uint32_t idx{};
-	auto result = presentResult(device.device.acquireNextImageKHR(*swapchain.swapchain, max_wait_v, signal, {}, &idx));
-	if (!result) { return {}; }
-	if (*result == PresentOutcome::eNotReady) {
+	auto result = device.device.acquireNextImageKHR(*swapchain.swapchain, max_wait_v, signal, {}, &idx);
+	if (result != vk::Result::eSuccess) {
 		refresh(framebuffer);
 		return {};
 	}
@@ -118,9 +107,9 @@ VKSurface::Acquire VKSurface::acquire(vk::Semaphore const signal, glm::ivec2 con
 	return {swapchain.images[i], idx};
 }
 
-vk::Result VKSurface::submit(vk::CommandBuffer const cb, VKSync const& sync) {
-	if (!device) { return vk::Result::eErrorDeviceLost; }
-	static constexpr vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eTopOfPipe;
+void VKSurface::submit(vk::CommandBuffer const cb, VKSync const& sync) {
+	if (!device) { return; }
+	static constexpr vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 	vk::SubmitInfo submitInfo;
 	submitInfo.pWaitDstStageMask = &waitStages;
 	submitInfo.commandBufferCount = 1U;
@@ -130,19 +119,18 @@ vk::Result VKSurface::submit(vk::CommandBuffer const cb, VKSync const& sync) {
 	submitInfo.signalSemaphoreCount = 1U;
 	submitInfo.pSignalSemaphores = &sync.present;
 	auto lock = std::scoped_lock(*device.mutex);
-	return device.queue.queue.submit(1U, &submitInfo, sync.drawn);
+	device.queue.queue.submit(1U, &submitInfo, sync.drawn);
 }
 
-PresentResult VKSurface::present(Acquire const& acquired, vk::Semaphore const wait, glm::ivec2 const framebuffer) {
-	if (!device || !acquired) { return vk::Result::eErrorDeviceLost; }
+void VKSurface::present(Acquire const& acquired, vk::Semaphore const wait, glm::ivec2 const framebuffer) {
+	if (!device || !acquired) { return; }
 	vk::PresentInfoKHR info;
 	info.waitSemaphoreCount = 1;
 	info.pWaitSemaphores = &wait;
 	info.swapchainCount = 1;
 	info.pSwapchains = &*swapchain.swapchain;
 	info.pImageIndices = &*acquired.index;
-	auto ret = presentResult(device.queue.queue.presentKHR(&info));
-	if (ret && *ret == PresentOutcome::eNotReady) { refresh(framebuffer); }
-	return ret;
+	auto res = device.queue.queue.presentKHR(&info);
+	if (res != vk::Result::eSuccess) { refresh(framebuffer); }
 }
 } // namespace vf

@@ -15,9 +15,6 @@ struct VKSwapchain {
 	bool operator==(VKSwapchain const& rhs) const { return !swapchain && !rhs.swapchain; }
 };
 
-enum class PresentOutcome { eSuccess, eNotReady };
-using PresentResult = ktl::expected<PresentOutcome, vk::Result>;
-
 struct VKSurface {
 	struct Acquire {
 		VKImage image{};
@@ -45,7 +42,7 @@ struct VKSurface {
 	vk::SwapchainCreateInfoKHR makeInfo(glm::ivec2 framebuffer) const;
 	vk::Result refresh(glm::ivec2 framebuffer);
 	Acquire acquire(vk::Semaphore signal, glm::ivec2 framebuffer);
-	vk::Result submit(vk::CommandBuffer cb, VKSync const& sync);
-	PresentResult present(Acquire const& acquired, vk::Semaphore wait, glm::ivec2 framebuffer);
+	void submit(vk::CommandBuffer cb, VKSync const& sync);
+	void present(Acquire const& acquired, vk::Semaphore wait, glm::ivec2 framebuffer);
 };
 } // namespace vf

@@ -347,6 +347,9 @@ struct FrameSync {
 		};
 	}
 
+	explicit operator bool() const { return draw.get(); }
+	bool operator==(FrameSync const& rhs) const { return !draw && !rhs.draw; }
+
 	VKSync sync() const { return {*draw, *present, *drawn}; }
 };
 
@@ -374,15 +377,7 @@ struct SwapchainRenderer {
 		static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
 		auto cpci = vk::CommandPoolCreateInfo(flags, vram.device.queue.family);
 		ret.commandPool = vram.device.device.createCommandPoolUnique(cpci);
-		auto const count = static_cast<std::uint32_t>(buffering);
-		auto primaries = vram.device.device.allocateCommandBuffers({*ret.commandPool, vk::CommandBufferLevel::ePrimary, count});
-		auto secondaries = vram.device.device.allocateCommandBuffers({*ret.commandPool, vk::CommandBufferLevel::eSecondary, count});
-		for (std::size_t i = 0; i < buffering; ++i) {
-			auto sync = FrameSync::make(vram.device.device);
-			sync.cmd.primary = std::move(primaries[i]);
-			sync.cmd.secondary = std::move(secondaries[i]);
-			ret.frameSync.push(std::move(sync));
-		}
+		ret.resync(buffering);
 
 		ret.images[eColour] = {{vram, "render_pass_colour_image"}};
 		ret.images[eColour].setColour();
@@ -397,6 +392,20 @@ struct SwapchainRenderer {
 
 	explicit operator bool() const { return static_cast<bool>(renderer.renderPass); }
 	VKSync sync() const { return frameSync.get().sync(); }
+
+	void resync(std::size_t buffering) {
+		for (auto& sync : frameSync.storage) { vram.device.defer(std::move(sync)); }
+		frameSync.storage.clear();
+		auto const count = static_cast<std::uint32_t>(buffering);
+		auto primaries = vram.device.device.allocateCommandBuffers({*commandPool, vk::CommandBufferLevel::ePrimary, count});
+		auto secondaries = vram.device.device.allocateCommandBuffers({*commandPool, vk::CommandBufferLevel::eSecondary, count});
+		for (std::size_t i = 0; i < buffering; ++i) {
+			auto sync = FrameSync::make(vram.device.device);
+			sync.cmd.primary = std::move(primaries[i]);
+			sync.cmd.secondary = std::move(secondaries[i]);
+			frameSync.push(std::move(sync));
+		}
+	}
 
 	vk::CommandBuffer beginRender(VKImage acquired) {
 		if (!renderer.renderPass) { return {}; }
@@ -677,11 +686,11 @@ bool VulkifyInstance::endPass() {
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();
 	m_impl->surface.submit(cb, sync);
-	auto const ret = m_impl->surface.present(m_impl->acquired, sync.present, framebufferSize());
+	m_impl->surface.present(m_impl->acquired, sync.present, framebufferSize());
 	m_impl->acquired = {};
 	m_impl->renderer.next();
 	m_impl->descriptorPool.next();
-	return ret.has_value();
+	return true;
 }
 
 Vram const& VulkifyInstance::vram() const { return m_impl->vram.vram; }

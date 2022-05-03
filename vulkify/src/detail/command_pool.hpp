@@ -23,7 +23,7 @@ class FencePool {
 		if (m_idle.empty()) { m_idle.push_back(makeFence()); }
 		auto ret = std::move(m_idle.back());
 		m_idle.pop_back();
-		m_device.reset(*ret, false);
+		m_device.reset(*ret, {});
 		m_busy.push_back(std::move(ret));
 		return *m_busy.back();
 	}
@@ -86,7 +86,7 @@ class CommandPool {
 				cmd.defer.entries.clear();
 			}
 		} else {
-			m_device.reset(cmd.fence, false);
+			m_device.reset(cmd.fence, {});
 		}
 		m_cbs.push_back(std::move(cmd));
 		return ret;
