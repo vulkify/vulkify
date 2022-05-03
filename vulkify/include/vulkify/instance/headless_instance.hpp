@@ -13,24 +13,34 @@ class HeadlessInstance : public Instance {
 
 	HeadlessInstance();
 
+	Vram const& vram() const override;
 	Gpu const& gpu() const override { return m_gpu; }
-	glm::ivec2 framebufferSize() const override { return m_framebufferSize; }
-	glm::ivec2 windowSize() const override { return m_windowSize; }
-
 	bool closing() const override { return m_closing; }
+	glm::uvec2 framebufferSize() const override { return m_framebufferSize; }
+	glm::uvec2 windowSize() const override { return m_windowSize; }
+	glm::ivec2 position() const override { return {}; }
+	glm::vec2 contentScale() const override { return glm::vec2(1.0f); }
+	glm::vec2 cursorPosition() const override { return {}; }
+	CursorMode cursorMode() const override { return {}; }
+
+	void setPosition(glm::ivec2) const override {}
+	void setSize(glm::uvec2) const override {}
+	void setCursorMode(CursorMode) const override {}
+	Cursor makeCursor(Icon) const override { return {}; }
+	void destroyCursor(Cursor) const override {}
+	bool setCursor(Cursor) const override { return false; }
+	void setIcons(std::span<Icon const>) const override {}
+
 	void show() override {}
 	void hide() override {}
 	void close() override {}
 	Poll poll() override { return std::move(m_poll); }
-
 	Surface beginPass() override { return {}; }
 	bool endPass() override { return true; }
 
-	Vram const& vram() const override;
-
 	Poll m_poll{};
-	glm::ivec2 m_framebufferSize{};
-	glm::ivec2 m_windowSize{};
+	glm::uvec2 m_framebufferSize{};
+	glm::uvec2 m_windowSize{};
 	std::atomic<bool> m_closing{};
 
   private:

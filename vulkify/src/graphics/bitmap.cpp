@@ -3,7 +3,7 @@
 
 namespace vf {
 namespace {
-constexpr bool validOffset(Extent2D view, Extent2D offset, Extent2D extent) { return view.x + offset.x < extent.x && view.y + offset.y < extent.y; }
+constexpr bool validOffset(Extent view, Extent offset, Extent extent) { return view.x + offset.x < extent.x && view.y + offset.y < extent.y; }
 } // namespace
 
 Image Bitmap::View::image() const {
@@ -15,7 +15,7 @@ Image Bitmap::View::image() const {
 	return ret;
 }
 
-Bitmap::Bitmap(Rgba rgba, Extent2D const extent) {
+Bitmap::Bitmap(Rgba rgba, Extent const extent) {
 	m_pixels.resize(extent.x * extent.y, rgba);
 	m_extent = extent;
 }
@@ -26,7 +26,7 @@ Bitmap::Bitmap(View bitmap) {
 	m_extent = bitmap.extent;
 }
 
-bool Bitmap::overwrite(View view, Extent2D const offset) {
+bool Bitmap::overwrite(View view, TopLeft const offset) {
 	if (!valid(view)) { return false; }
 	if (!validOffset(view.extent, offset, m_extent)) { return false; }
 	for (std::uint32_t row = 0; row < view.extent.x; ++row) {

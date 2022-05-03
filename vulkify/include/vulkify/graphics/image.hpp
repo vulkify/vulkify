@@ -6,17 +6,17 @@
 #include <span>
 
 namespace vf {
-using Extent2D = glm::uvec2;
+using Extent = glm::uvec2;
 
 class Image {
   public:
 	static constexpr std::size_t channels_v = 4;
-	static constexpr std::size_t sizeBytes(Extent2D const extent) { return extent.x * extent.y * channels_v; }
+	static constexpr std::size_t sizeBytes(Extent const extent) { return extent.x * extent.y * channels_v; }
 
 	struct View;
 	struct Decoded;
 	struct Encoded;
-	static constexpr bool valid(Extent2D extent) { return extent.x > 0 && extent.y > 0; }
+	static constexpr bool valid(Extent extent) { return extent.x > 0 && extent.y > 0; }
 	static constexpr bool valid(View view);
 
 	static Decoded decode(Encoded encoded);
@@ -27,13 +27,13 @@ class Image {
 	Image& operator=(Image) noexcept;
 	~Image() noexcept;
 
-	Extent2D peek(char const* path) const;
-	Result<Extent2D> load(char const* path);
-	Result<Extent2D> load(Encoded image);
+	Extent peek(char const* path) const;
+	Result<Extent> load(char const* path);
+	Result<Extent> load(Encoded image);
 	void replace(Decoded image);
 
 	std::span<std::byte const> data() const;
-	Extent2D extent() const;
+	Extent extent() const;
 	View view() const;
 
 	operator View() const;
@@ -47,12 +47,12 @@ class Image {
 
 struct Image::View {
 	std::span<std::byte const> bytes{};
-	Extent2D extent{};
+	Extent extent{};
 };
 
 struct Image::Decoded {
 	std::unique_ptr<std::byte[]> bytes{};
-	Extent2D extent{};
+	Extent extent{};
 };
 
 struct Image::Encoded {

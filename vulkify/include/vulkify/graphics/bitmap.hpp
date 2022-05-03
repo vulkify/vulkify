@@ -1,4 +1,5 @@
 #pragma once
+#include <vulkify/core/rect.hpp>
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/graphics/image.hpp>
 #include <limits>
@@ -6,8 +7,6 @@
 #include <vector>
 
 namespace vf {
-using Extent2D = glm::uvec2;
-
 struct Index2D {
 	std::size_t row{};
 	std::size_t col{};
@@ -18,9 +17,11 @@ struct Index2D {
 
 class Bitmap {
   public:
+	using TopLeft = vf::TopLeft<std::uint32_t>;
+
 	struct View {
 		std::span<Rgba const> pixels{};
-		Extent2D extent{1, 1};
+		Extent extent{1, 1};
 
 		constexpr Rgba operator[](Index2D index) const { return pixels[index(extent.y)]; }
 		Image image() const;
@@ -31,7 +32,7 @@ class Bitmap {
 
 	Bitmap() = default;
 
-	explicit Bitmap(Rgba rgba, Extent2D extent = {1, 1});
+	explicit Bitmap(Rgba rgba, Extent extent = {1, 1});
 	explicit Bitmap(View bitmap);
 
 	static constexpr bool valid(Bitmap::View const& bitmap);
@@ -39,18 +40,18 @@ class Bitmap {
 	operator View() const { return {m_pixels, m_extent}; }
 	explicit operator bool() const { return valid(*this); }
 
-	Extent2D extent() const { return m_extent; }
+	Extent extent() const { return m_extent; }
 	std::span<Rgba> pixels() { return m_pixels; }
 	std::span<Rgba const> pixels() const { return m_pixels; }
 	Rgba& operator[](Index2D index) { return m_pixels.at(index(m_extent.y)); }
 	Rgba const& operator[](Index2D index) const { return m_pixels.at(index(m_extent.y)); }
 
-	bool overwrite(View view, Extent2D offset = {});
+	bool overwrite(View view, TopLeft offset = TopLeft{});
 	Image image() const { return static_cast<View>(*this).image(); }
 
   private:
 	std::vector<Rgba> m_pixels{};
-	Extent2D m_extent{};
+	Extent m_extent{};
 };
 
 // impl

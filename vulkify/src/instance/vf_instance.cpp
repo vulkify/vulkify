@@ -31,6 +31,15 @@ using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
 using ScancodeStorage = ktl::fixed_vector<std::uint32_t, Instance::max_scancodes_v>;
 using FileDropStorage = std::vector<std::string>;
 
+struct CursorStorage {
+	struct Hasher {
+		std::size_t operator()(Cursor cursor) const { return std::hash<std::uint64_t>{}(cursor.handle); }
+	};
+
+	std::unordered_map<Cursor, GLFWcursor*, Hasher> cursors{};
+	std::uint64_t next{};
+};
+
 struct {
 	GLFWwindow* window{};
 	EventsStorage* events{};
@@ -125,10 +134,21 @@ void detachCallbacks(GLFWwindow* w) {
 } // namespace
 
 namespace {
-struct GlfwDeleter {
-	void operator()(bool) const { glfwTerminate(); }
+struct Glfw {
+	CursorStorage cursors{};
+	bool active{};
+
+	Glfw(bool active = false) : active(active) {}
+
+	operator bool() const { return active; }
+	bool operator==(Glfw const& rhs) const { return active == rhs.active; }
+
+	struct Deleter {
+		void operator()(Glfw const&) const { glfwTerminate(); }
+	};
 };
-using UniqueGlfw = Unique<bool, GlfwDeleter>;
+
+using UniqueGlfw = Unique<Glfw, Glfw::Deleter>;
 
 struct Window {
 	GLFWwindow* win{};
@@ -174,17 +194,33 @@ UniqueWindow makeWindow(InstanceCreateInfo const& info) {
 	return Window{ret};
 }
 
-glm::ivec2 getFramebufferSize(GLFWwindow* w) {
-	int x, y;
-	glfwGetFramebufferSize(w, &x, &y);
+template <typename T, typename F>
+glm::tvec2<T> getGlfwVec(GLFWwindow* w, F f) {
+	T x, y;
+	f(w, &x, &y);
 	return {x, y};
 }
 
-glm::ivec2 getWindowSize(GLFWwindow* w) {
-	int x, y;
-	glfwGetWindowSize(w, &x, &y);
-	return {x, y};
+constexpr CursorMode castCursorMode(int mode) {
+	switch (mode) {
+	case GLFW_CURSOR_DISABLED: return CursorMode::eDisabled;
+	case GLFW_CURSOR_HIDDEN: return CursorMode::eHidden;
+	case GLFW_CURSOR_NORMAL:
+	default: return CursorMode::eStandard;
+	}
 }
+
+constexpr int cast(CursorMode mode) {
+	switch (mode) {
+	case CursorMode::eDisabled: return GLFW_CURSOR_DISABLED;
+	case CursorMode::eHidden: return GLFW_CURSOR_HIDDEN;
+	case CursorMode::eStandard:
+	default: return GLFW_CURSOR_NORMAL;
+	}
+}
+
+glm::ivec2 getFramebufferSize(GLFWwindow* w) { return getGlfwVec<int>(w, &glfwGetFramebufferSize); }
+glm::ivec2 getWindowSize(GLFWwindow* w) { return getGlfwVec<int>(w, &glfwGetWindowSize); }
 } // namespace
 
 namespace {
@@ -491,8 +527,59 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 }
 
 Gpu const& VulkifyInstance::gpu() const { return m_impl->gpu; }
-glm::ivec2 VulkifyInstance::framebufferSize() const { return getFramebufferSize(m_impl->window->win); }
-glm::ivec2 VulkifyInstance::windowSize() const { return getWindowSize(m_impl->window->win); }
+glm::uvec2 VulkifyInstance::framebufferSize() const { return getFramebufferSize(m_impl->window->win); }
+glm::uvec2 VulkifyInstance::windowSize() const { return getWindowSize(m_impl->window->win); }
+glm::ivec2 VulkifyInstance::position() const { return getGlfwVec<int>(m_impl->window->win, &glfwGetWindowPos); }
+glm::vec2 VulkifyInstance::cursorPosition() const { return getGlfwVec<double>(m_impl->window->win, &glfwGetCursorPos); }
+CursorMode VulkifyInstance::cursorMode() const { return castCursorMode(glfwGetInputMode(m_impl->window->win, GLFW_CURSOR)); }
+glm::vec2 VulkifyInstance::contentScale() const { return getGlfwVec<float>(m_impl->window->win, glfwGetWindowContentScale); }
+
+void VulkifyInstance::setPosition(glm::ivec2 xy) const { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
+void VulkifyInstance::setSize(glm::uvec2 size) const { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }
+void VulkifyInstance::setCursorMode(CursorMode mode) const { glfwSetInputMode(m_impl->window->win, GLFW_CURSOR, cast(mode)); }
+
+void VulkifyInstance::setIcons(std::span<Icon const> icons) const {
+	if (icons.empty()) {
+		glfwSetWindowIcon(m_impl->window->win, 0, {});
+		return;
+	}
+	auto vec = std::vector<GLFWimage>{};
+	vec.reserve(icons.size());
+	for (auto const& icon : icons) {
+		auto const extent = glm::ivec2(icon.bitmap.extent);
+		auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.pixels.data()));
+		vec.push_back({extent.x, extent.y, pixels});
+	}
+	glfwSetWindowIcon(m_impl->window->win, static_cast<int>(vec.size()), vec.data());
+}
+
+Cursor VulkifyInstance::makeCursor(Icon icon) const {
+	auto const extent = glm::ivec2(icon.bitmap.extent);
+	auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.pixels.data()));
+	auto const img = GLFWimage{extent.x, extent.y, pixels};
+	auto const glfwCursor = glfwCreateCursor(&img, icon.hotspot.x, icon.hotspot.y);
+	if (glfwCursor) {
+		auto& cursors = m_impl->glfw->get().cursors;
+		auto const ret = Cursor{++cursors.next};
+		cursors.cursors.insert_or_assign(ret, glfwCursor);
+		return ret;
+	}
+	return {};
+}
+
+void VulkifyInstance::destroyCursor(Cursor cursor) const { m_impl->glfw->get().cursors.cursors.erase(cursor); }
+
+bool VulkifyInstance::setCursor(Cursor cursor) const {
+	if (cursor == Cursor{}) {
+		glfwSetCursor(m_impl->window->win, {});
+		return true;
+	}
+	auto& cursors = m_impl->glfw->get().cursors;
+	auto it = cursors.cursors.find(cursor);
+	if (it == cursors.cursors.end()) { return false; }
+	glfwSetCursor(m_impl->window->win, it->second);
+	return true;
+}
 
 bool VulkifyInstance::closing() const {
 	auto const ret = glfwWindowShouldClose(m_impl->window->win);

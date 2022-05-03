@@ -28,14 +28,14 @@ class Texture : public GfxResource {
 
 	Texture clone(std::string name) const;
 
-	Extent2D extent() const;
+	Extent extent() const;
 	AddressMode addressMode() const { return m_addressMode; }
 	Filtering filtering() const { return m_filtering; }
 
   private:
 	Texture(Vram const& vram, std::string name, CreateInfo const& info);
 
-	void refresh(Extent2D extent);
+	void refresh(Extent extent);
 	void write(Image::View image, TopLeft offset);
 	void setInvalid();
 

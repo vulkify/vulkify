@@ -20,6 +20,7 @@ class Context {
 
 	bool closing() const { return m_instance->closing(); }
 	void show() { m_instance->show(); }
+	void hide() { m_instance->hide(); }
 	void close() { m_instance->close(); }
 
 	Frame frame();

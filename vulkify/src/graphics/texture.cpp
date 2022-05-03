@@ -61,7 +61,7 @@ Result<void> Texture::overwrite(Image::View const image, TopLeft const offset) {
 Result<void> Texture::rescale(float scale) {
 	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return Error::eInactiveInstance; }
 	if (FloatEq{}(scale, 1.0f)) { return Result<void>::success(); }
-	auto const ext = Extent2D(glm::vec2(extent()) * scale);
+	auto const ext = Extent(glm::vec2(extent()) * scale);
 	if (ext.x == 0 || ext.y == 0) { return Error::eInvalidArgument; }
 
 	auto image = ImageCache{m_allocation->image.cache.info};
@@ -88,7 +88,7 @@ Texture Texture::clone(std::string name) const {
 	return ret;
 }
 
-Extent2D Texture::extent() const {
+Extent Texture::extent() const {
 	if (!m_allocation) { return {}; }
 	return {m_allocation->image.cache.info.info.extent.width, m_allocation->image.cache.info.info.extent.height};
 }
@@ -100,7 +100,7 @@ Texture::Texture(Vram const& vram, std::string name, CreateInfo const& createInf
 	m_allocation->image.cache.setTexture(true);
 }
 
-void Texture::refresh(Extent2D extent) {
+void Texture::refresh(Extent extent) {
 	auto const ext = vk::Extent3D(extent.x, extent.y, 1);
 	auto const format = m_allocation->image.cache.info.info.format;
 	if (!m_allocation->image.cache.ready(ext, format)) {
