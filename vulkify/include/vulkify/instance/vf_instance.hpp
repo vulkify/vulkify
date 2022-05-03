@@ -24,6 +24,7 @@ class VulkifyInstance : public Instance {
 	glm::vec2 contentScale() const override;
 	glm::vec2 cursorPosition() const override;
 	CursorMode cursorMode() const override;
+	MonitorList monitors() const override;
 
 	void setPosition(glm::ivec2 xy) const override;
 	void setSize(glm::uvec2 size) const override;
@@ -33,6 +34,7 @@ class VulkifyInstance : public Instance {
 	Cursor makeCursor(Icon icon) const override;
 	void destroyCursor(Cursor cursor) const override;
 	bool setCursor(Cursor cursor) const override;
+	void setDisplay(Display display) const override;
 
 	void show() override;
 	void hide() override;

@@ -2,6 +2,7 @@
 #include <ktl/kunique_ptr.hpp>
 #include <vulkify/graphics/bitmap.hpp>
 #include <vulkify/graphics/surface.hpp>
+#include <vulkify/instance/display.hpp>
 #include <vulkify/instance/event.hpp>
 #include <vulkify/instance/gpu.hpp>
 #include <span>
@@ -44,6 +45,7 @@ class Instance {
 	virtual glm::vec2 contentScale() const = 0;
 	virtual glm::vec2 cursorPosition() const = 0;
 	virtual CursorMode cursorMode() const = 0;
+	virtual MonitorList monitors() const = 0;
 
 	virtual void setPosition(glm::ivec2 xy) const = 0;
 	virtual void setSize(glm::uvec2 size) const = 0;
@@ -52,6 +54,7 @@ class Instance {
 	virtual Cursor makeCursor(Icon icon) const = 0;
 	virtual void destroyCursor(Cursor cursor) const = 0;
 	virtual bool setCursor(Cursor cursor) const = 0;
+	virtual void setDisplay(Display display) const = 0;
 
 	virtual void show() = 0;
 	virtual void hide() = 0;

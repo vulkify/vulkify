@@ -30,6 +30,7 @@ namespace {
 using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
 using ScancodeStorage = ktl::fixed_vector<std::uint32_t, Instance::max_scancodes_v>;
 using FileDropStorage = std::vector<std::string>;
+using GlfwMonitorPtr = GLFWmonitor*;
 
 struct CursorStorage {
 	struct Hasher {
@@ -186,9 +187,9 @@ Result<std::shared_ptr<UniqueGlfw>> getOrMakeGlfw() {
 UniqueWindow makeWindow(InstanceCreateInfo const& info) {
 	using Flag = InstanceCreateInfo::Flag;
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_DECORATED, info.flags.test(Flag::eBorderless) ? 0 : 1);
-	glfwWindowHint(GLFW_VISIBLE, 0);
-	glfwWindowHint(GLFW_MAXIMIZED, info.flags.test(Flag::eMaximized) ? 1 : 0);
+	glfwWindowHint(GLFW_DECORATED, info.flags.test(Flag::eBorderless) ? GLFW_FALSE : GLFW_TRUE);
+	glfwWindowHint(GLFW_VISIBLE, info.flags.test(Flag::eAutoShow) ? GLFW_TRUE : GLFW_FALSE);
+	glfwWindowHint(GLFW_MAXIMIZED, info.flags.test(Flag::eMaximized) ? GLFW_TRUE : GLFW_FALSE);
 	auto ret = glfwCreateWindow(int(info.extent.x), int(info.extent.y), info.title.c_str(), nullptr, nullptr);
 	attachCallbacks(ret);
 	return Window{ret};
@@ -221,10 +222,43 @@ constexpr int cast(CursorMode mode) {
 
 glm::ivec2 getFramebufferSize(GLFWwindow* w) { return getGlfwVec<int>(w, &glfwGetFramebufferSize); }
 glm::ivec2 getWindowSize(GLFWwindow* w) { return getGlfwVec<int>(w, &glfwGetWindowSize); }
+
+VideoMode makeVideoMode(GLFWvidmode const* mode) {
+	auto const bitDepth = glm::ivec3(mode->redBits, mode->greenBits, mode->blueBits);
+	auto const extent = glm::ivec2(mode->width, mode->height);
+	return {extent, bitDepth, static_cast<std::uint32_t>(mode->refreshRate)};
+}
+
+std::vector<VideoMode> makeVideoModes(GLFWvidmode const* modes, int count) {
+	auto ret = std::vector<VideoMode>{};
+	ret.reserve(static_cast<std::size_t>(count));
+	for (int i = 0; i < count; ++i) { ret.push_back(makeVideoMode(&modes[i])); }
+	return ret;
+}
+
+Monitor makeMonitor(GLFWmonitor* monitor) {
+	int count;
+	auto supported = glfwGetVideoModes(monitor, &count);
+	return {makeVideoMode(glfwGetVideoMode(monitor)), makeVideoModes(supported, count), monitor};
+}
 } // namespace
 
 namespace {
 constexpr vk::Format textureFormat(vk::Format surface) { return Renderer::isSrgb(surface) ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm; }
+
+Gpu makeGPU(VKInstance const& vulkan) {
+	auto ret = Gpu{};
+	ret.name = vulkan.gpu.properties.deviceName.data();
+	switch (vulkan.gpu.properties.deviceType) {
+	case vk::PhysicalDeviceType::eCpu: ret.type = Gpu::Type::eCpu; break;
+	case vk::PhysicalDeviceType::eDiscreteGpu: ret.type = Gpu::Type::eDiscrete; break;
+	case vk::PhysicalDeviceType::eIntegratedGpu: ret.type = Gpu::Type::eIntegrated; break;
+	case vk::PhysicalDeviceType::eVirtualGpu: ret.type = Gpu::Type::eVirtual; break;
+	case vk::PhysicalDeviceType::eOther: ret.type = Gpu::Type::eOther; break;
+	default: break;
+	}
+	return ret;
+}
 
 VKDevice makeDevice(VKInstance const& instance) {
 	auto const flags = instance.messenger ? VKDevice::Flag::eDebugMsgr : VKDevice::Flags{};
@@ -454,20 +488,6 @@ struct VulkifyInstance::Impl {
 	ShaderInput::Textures shaderTextures{};
 };
 
-Gpu makeGPU(VKInstance const& vulkan) {
-	auto ret = Gpu{};
-	ret.name = vulkan.gpu.properties.deviceName.data();
-	switch (vulkan.gpu.properties.deviceType) {
-	case vk::PhysicalDeviceType::eCpu: ret.type = Gpu::Type::eCpu; break;
-	case vk::PhysicalDeviceType::eDiscreteGpu: ret.type = Gpu::Type::eDiscrete; break;
-	case vk::PhysicalDeviceType::eIntegratedGpu: ret.type = Gpu::Type::eIntegrated; break;
-	case vk::PhysicalDeviceType::eVirtualGpu: ret.type = Gpu::Type::eVirtual; break;
-	case vk::PhysicalDeviceType::eOther: ret.type = Gpu::Type::eOther; break;
-	default: break;
-	}
-	return ret;
-}
-
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
 	g_glfw = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->fileDrops};
 }
@@ -530,9 +550,19 @@ Gpu const& VulkifyInstance::gpu() const { return m_impl->gpu; }
 glm::uvec2 VulkifyInstance::framebufferSize() const { return getFramebufferSize(m_impl->window->win); }
 glm::uvec2 VulkifyInstance::windowSize() const { return getWindowSize(m_impl->window->win); }
 glm::ivec2 VulkifyInstance::position() const { return getGlfwVec<int>(m_impl->window->win, &glfwGetWindowPos); }
+glm::vec2 VulkifyInstance::contentScale() const { return getGlfwVec<float>(m_impl->window->win, glfwGetWindowContentScale); }
 glm::vec2 VulkifyInstance::cursorPosition() const { return getGlfwVec<double>(m_impl->window->win, &glfwGetCursorPos); }
 CursorMode VulkifyInstance::cursorMode() const { return castCursorMode(glfwGetInputMode(m_impl->window->win, GLFW_CURSOR)); }
-glm::vec2 VulkifyInstance::contentScale() const { return getGlfwVec<float>(m_impl->window->win, glfwGetWindowContentScale); }
+MonitorList VulkifyInstance::monitors() const {
+	auto ret = MonitorList{};
+	int count;
+	auto monitors = glfwGetMonitors(&count);
+	if (count <= 0) { return {}; }
+	ret.primary = makeMonitor(monitors[0]);
+	ret.others.reserve(static_cast<std::size_t>(count - 1));
+	for (int i = 1; i < count; ++i) { ret.others.push_back(makeMonitor(monitors[i])); }
+	return ret;
+}
 
 void VulkifyInstance::setPosition(glm::ivec2 xy) const { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
 void VulkifyInstance::setSize(glm::uvec2 size) const { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }
@@ -551,6 +581,29 @@ void VulkifyInstance::setIcons(std::span<Icon const> icons) const {
 		vec.push_back({extent.x, extent.y, pixels});
 	}
 	glfwSetWindowIcon(m_impl->window->win, static_cast<int>(vec.size()), vec.data());
+}
+
+void VulkifyInstance::setDisplay(Display display) const {
+	auto w = m_impl->window->win;
+	display.mode.visit(ktl::koverloaded{
+		[w](Display::Window const& win) {
+			auto const extent = glm::ivec2(win.extent);
+			glfwSetWindowMonitor(w, nullptr, win.position.x, win.position.y, extent.x, extent.y, 0);
+		},
+		[w](Display::Fullscreen const& fs) {
+			auto monitor = fs.monitor.value_or<GlfwMonitorPtr>({});
+			auto const mode = glfwGetVideoMode(monitor);
+			if (!mode) { return; }
+			auto const resolution = glm::ivec2(fs.resolution);
+			glfwSetWindowMonitor(w, monitor, 0, 0, resolution.x, resolution.y, static_cast<int>(fs.refreshRate));
+		},
+		[w](Display::Borderless const& bl) {
+			auto monitor = bl.monitor.value_or<GlfwMonitorPtr>({});
+			auto const mode = glfwGetVideoMode(monitor);
+			if (!mode) { return; }
+			glfwSetWindowMonitor(w, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+		},
+	});
 }
 
 Cursor VulkifyInstance::makeCursor(Icon icon) const {

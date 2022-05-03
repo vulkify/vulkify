@@ -22,6 +22,7 @@ class HeadlessInstance : public Instance {
 	glm::vec2 contentScale() const override { return glm::vec2(1.0f); }
 	glm::vec2 cursorPosition() const override { return {}; }
 	CursorMode cursorMode() const override { return {}; }
+	MonitorList monitors() const override { return {}; }
 
 	void setPosition(glm::ivec2) const override {}
 	void setSize(glm::uvec2) const override {}
@@ -30,6 +31,7 @@ class HeadlessInstance : public Instance {
 	void destroyCursor(Cursor) const override {}
 	bool setCursor(Cursor) const override { return false; }
 	void setIcons(std::span<Icon const>) const override {}
+	void setDisplay(Display) const override {}
 
 	void show() override {}
 	void hide() override {}

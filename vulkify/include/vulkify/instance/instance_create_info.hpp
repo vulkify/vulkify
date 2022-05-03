@@ -5,7 +5,7 @@
 
 namespace vf {
 struct InstanceCreateInfo {
-	enum class Flag { eBorderless, eNoResize, eHidden, eMaximized, eLinearSwapchain, eHeadless };
+	enum class Flag { eBorderless, eNoResize, eHidden, eMaximized, eAutoShow, eLinearSwapchain, eHeadless };
 	using Flags = ktl::enum_flags<Flag, std::uint8_t>;
 
 	std::string title{"(Untitled)"};
