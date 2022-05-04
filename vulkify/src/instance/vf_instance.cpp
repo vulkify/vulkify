@@ -30,7 +30,6 @@ namespace {
 using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
 using ScancodeStorage = ktl::fixed_vector<std::uint32_t, Instance::max_scancodes_v>;
 using FileDropStorage = std::vector<std::string>;
-using GlfwMonitorPtr = GLFWmonitor*;
 
 struct CursorStorage {
 	struct Hasher {
@@ -185,18 +184,18 @@ Result<std::shared_ptr<UniqueGlfw>> getOrMakeGlfw() {
 }
 
 UniqueWindow makeWindow(InstanceCreateInfo const& info) {
-	using Flag = InstanceCreateInfo::Flag;
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_DECORATED, info.flags.test(Flag::eBorderless) ? GLFW_FALSE : GLFW_TRUE);
-	glfwWindowHint(GLFW_VISIBLE, info.flags.test(Flag::eAutoShow) ? GLFW_TRUE : GLFW_FALSE);
-	glfwWindowHint(GLFW_MAXIMIZED, info.flags.test(Flag::eMaximized) ? GLFW_TRUE : GLFW_FALSE);
-	auto ret = glfwCreateWindow(int(info.extent.x), int(info.extent.y), info.title.c_str(), nullptr, nullptr);
+	glfwWindowHint(GLFW_DECORATED, info.windowFlags.test(WindowFlag::eBorderless) ? GLFW_FALSE : GLFW_TRUE);
+	glfwWindowHint(GLFW_VISIBLE, info.instanceFlags.test(InstanceFlag::eAutoShow) ? GLFW_TRUE : GLFW_FALSE);
+	glfwWindowHint(GLFW_MAXIMIZED, info.windowFlags.test(WindowFlag::eMaximized) ? GLFW_TRUE : GLFW_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, info.windowFlags.test(WindowFlag::eResizable) ? GLFW_TRUE : GLFW_FALSE);
+	auto ret = glfwCreateWindow(int(info.extent.x), int(info.extent.y), info.title, nullptr, nullptr);
 	attachCallbacks(ret);
 	return Window{ret};
 }
 
-template <typename T, typename F>
-glm::tvec2<T> getGlfwVec(GLFWwindow* w, F f) {
+template <typename T, typename F, typename U = GLFWwindow*>
+glm::tvec2<T> getGlfwVec(U w, F f) {
 	T x, y;
 	f(w, &x, &y);
 	return {x, y};
@@ -239,7 +238,10 @@ std::vector<VideoMode> makeVideoModes(GLFWvidmode const* modes, int count) {
 Monitor makeMonitor(GLFWmonitor* monitor) {
 	int count;
 	auto supported = glfwGetVideoModes(monitor, &count);
-	return {makeVideoMode(glfwGetVideoMode(monitor)), makeVideoModes(supported, count), monitor};
+	auto position = getGlfwVec<int>(monitor, &glfwGetMonitorPos);
+	auto szName = glfwGetMonitorName(monitor);
+	auto name = szName ? std::string(szName) : std::string();
+	return {std::move(name), makeVideoMode(glfwGetVideoMode(monitor)), makeVideoModes(supported, count), position, monitor};
 }
 } // namespace
 
@@ -500,16 +502,15 @@ struct VulkifyInstance::Impl {
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
 	g_glfw = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->fileDrops};
 }
-VulkifyInstance::VulkifyInstance(VulkifyInstance&&) noexcept = default;
-VulkifyInstance& VulkifyInstance::operator=(VulkifyInstance&&) noexcept = default;
-VulkifyInstance::~VulkifyInstance() noexcept {
+VulkifyInstance::~VulkifyInstance() {
 	m_impl->vulkan.device->waitIdle();
 	g_glfw = {};
 }
 
 VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
+	if (g_glfw.window) { return Error::eDuplicateInstance; }
 	if (createInfo.extent.x == 0 || createInfo.extent.y == 0) { return Error::eInvalidArgument; }
-	if (createInfo.flags.test(InstanceCreateInfo::Flag::eHeadless)) { return Error::eInvalidArgument; }
+	if (createInfo.instanceFlags.test(InstanceFlag::eHeadless)) { return Error::eInvalidArgument; }
 
 	auto glfw = getOrMakeGlfw();
 	if (!glfw) { return glfw.error(); }
@@ -528,7 +529,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!vram) { return Error::eVulkanInitFailure; }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
-	bool const linear = createInfo.flags.test(InstanceCreateInfo::Flag::eLinearSwapchain);
+	bool const linear = createInfo.instanceFlags.test(InstanceFlag::eLinearSwapchain);
 	impl->surface = VKSurface::make(device, impl->vulkan.gpu, *impl->vulkan.surface, getFramebufferSize(impl->window->win), linear);
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
 	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
@@ -573,6 +574,16 @@ MonitorList VulkifyInstance::monitors() const {
 	return ret;
 }
 
+WindowFlags VulkifyInstance::windowFlags() const {
+	auto ret = WindowFlags{};
+	ret.assign(WindowFlag::eBorderless, !glfwGetWindowAttrib(m_impl->window->win, GLFW_DECORATED));
+	ret.assign(WindowFlag::eResizable, glfwGetWindowAttrib(m_impl->window->win, GLFW_RESIZABLE));
+	ret.assign(WindowFlag::eFloating, glfwGetWindowAttrib(m_impl->window->win, GLFW_FLOATING));
+	ret.assign(WindowFlag::eAutoIconify, glfwGetWindowAttrib(m_impl->window->win, GLFW_AUTO_ICONIFY));
+	ret.assign(WindowFlag::eMaximized, glfwGetWindowAttrib(m_impl->window->win, GLFW_MAXIMIZED));
+	return ret;
+}
+
 void VulkifyInstance::setPosition(glm::ivec2 xy) const { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
 void VulkifyInstance::setSize(glm::uvec2 size) const { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }
 void VulkifyInstance::setCursorMode(CursorMode mode) const { glfwSetInputMode(m_impl->window->win, GLFW_CURSOR, cast(mode)); }
@@ -592,27 +603,35 @@ void VulkifyInstance::setIcons(std::span<Icon const> icons) const {
 	glfwSetWindowIcon(m_impl->window->win, static_cast<int>(vec.size()), vec.data());
 }
 
-void VulkifyInstance::setDisplay(Display display) const {
-	auto w = m_impl->window->win;
-	display.mode.visit(ktl::koverloaded{
-		[w](Display::Window const& win) {
-			auto const extent = glm::ivec2(win.extent);
-			glfwSetWindowMonitor(w, nullptr, win.position.x, win.position.y, extent.x, extent.y, 0);
-		},
-		[w](Display::Fullscreen const& fs) {
-			auto monitor = fs.monitor.value_or<GlfwMonitorPtr>({});
-			auto const mode = glfwGetVideoMode(monitor);
-			if (!mode) { return; }
-			auto const resolution = glm::ivec2(fs.resolution);
-			glfwSetWindowMonitor(w, monitor, 0, 0, resolution.x, resolution.y, static_cast<int>(fs.refreshRate));
-		},
-		[w](Display::Borderless const& bl) {
-			auto monitor = bl.monitor.value_or<GlfwMonitorPtr>({});
-			auto const mode = glfwGetVideoMode(monitor);
-			if (!mode) { return; }
-			glfwSetWindowMonitor(w, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
-		},
-	});
+void VulkifyInstance::setWindowed(glm::uvec2 extent) const {
+	auto const ext = glm::ivec2(extent);
+	glfwSetWindowMonitor(m_impl->window->win, nullptr, 0, 0, ext.x, ext.y, 0);
+}
+
+void VulkifyInstance::setFullscreen(Monitor const& monitor, glm::uvec2 resolution) const {
+	auto gmonitor = reinterpret_cast<GLFWmonitor*>(monitor.handle);
+	auto const vmode = glfwGetVideoMode(gmonitor);
+	if (!vmode) { return; }
+	auto res = glm::ivec2(resolution);
+	if (resolution.x == 0 || resolution.y == 0) { resolution = {vmode->width, vmode->height}; }
+	glfwSetWindowMonitor(m_impl->window->win, gmonitor, 0, 0, res.x, res.y, vmode->refreshRate);
+}
+
+void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) const {
+	auto updateAttrib = [&](WindowFlag flag, int attrib, bool ifSet) {
+		if (set.test(flag)) { glfwSetWindowAttrib(m_impl->window->win, attrib, ifSet ? GLFW_TRUE : GLFW_FALSE); }
+		if (unset.test(flag)) { glfwSetWindowAttrib(m_impl->window->win, attrib, ifSet ? GLFW_FALSE : GLFW_TRUE); }
+	};
+	updateAttrib(WindowFlag::eBorderless, GLFW_DECORATED, false);
+	updateAttrib(WindowFlag::eFloating, GLFW_FLOATING, true);
+	updateAttrib(WindowFlag::eResizable, GLFW_RESIZABLE, true);
+	updateAttrib(WindowFlag::eAutoIconify, GLFW_AUTO_ICONIFY, true);
+	auto const maximized = glfwGetWindowAttrib(m_impl->window->win, GLFW_MAXIMIZED);
+	if (maximized) {
+		if (unset.test(WindowFlag::eMaximized)) { glfwRestoreWindow(m_impl->window->win); }
+	} else {
+		if (set.test(WindowFlag::eMaximized)) { glfwMaximizeWindow(m_impl->window->win); }
+	}
 }
 
 Cursor VulkifyInstance::makeCursor(Icon icon) const {
@@ -649,9 +668,9 @@ bool VulkifyInstance::closing() const {
 	return ret;
 }
 
-void VulkifyInstance::show() { glfwShowWindow(m_impl->window->win); }
-void VulkifyInstance::hide() { glfwHideWindow(m_impl->window->win); }
-void VulkifyInstance::close() { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
+void VulkifyInstance::show() const { glfwShowWindow(m_impl->window->win); }
+void VulkifyInstance::hide() const { glfwHideWindow(m_impl->window->win); }
+void VulkifyInstance::close() const { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
 
 Instance::Poll VulkifyInstance::poll() {
 	m_impl->window->events.clear();

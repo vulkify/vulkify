@@ -1,15 +1,15 @@
 #pragma once
 #include <glm/vec2.hpp>
-#include <ktl/enum_flags/enum_flags.hpp>
-#include <string>
+#include <vulkify/instance/window_flags.hpp>
 
 namespace vf {
-struct InstanceCreateInfo {
-	enum class Flag { eBorderless, eNoResize, eHidden, eMaximized, eAutoShow, eLinearSwapchain, eHeadless };
-	using Flags = ktl::enum_flags<Flag, std::uint8_t>;
+enum class InstanceFlag { eAutoShow, eLinearSwapchain, eHeadless };
+using InstanceFlags = ktl::enum_flags<InstanceFlag>;
 
-	std::string title{"(Untitled)"};
+struct InstanceCreateInfo {
+	char const* title{};
 	glm::uvec2 extent{1280, 720};
-	Flags flags{};
+	WindowFlags windowFlags{};
+	InstanceFlags instanceFlags{};
 };
 } // namespace vf

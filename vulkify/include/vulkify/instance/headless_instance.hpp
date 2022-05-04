@@ -23,7 +23,11 @@ class HeadlessInstance : public Instance {
 	glm::vec2 cursorPosition() const override { return {}; }
 	CursorMode cursorMode() const override { return {}; }
 	MonitorList monitors() const override { return {}; }
+	WindowFlags windowFlags() const override { return m_windowFlags; }
 
+	void show() const override {}
+	void hide() const override {}
+	void close() const override {}
 	void setPosition(glm::ivec2) const override {}
 	void setSize(glm::uvec2) const override {}
 	void setCursorMode(CursorMode) const override {}
@@ -31,11 +35,10 @@ class HeadlessInstance : public Instance {
 	void destroyCursor(Cursor) const override {}
 	bool setCursor(Cursor) const override { return false; }
 	void setIcons(std::span<Icon const>) const override {}
-	void setDisplay(Display) const override {}
+	void setWindowed(glm::uvec2) const override {}
+	void setFullscreen(Monitor const&, glm::uvec2) const override {}
+	void updateWindowFlags(WindowFlags, WindowFlags) const override {}
 
-	void show() override {}
-	void hide() override {}
-	void close() override {}
 	Poll poll() override { return std::move(m_poll); }
 	Surface beginPass() override { return {}; }
 	bool endPass() override { return true; }
@@ -43,6 +46,7 @@ class HeadlessInstance : public Instance {
 	Poll m_poll{};
 	glm::uvec2 m_framebufferSize{};
 	glm::uvec2 m_windowSize{};
+	WindowFlags m_windowFlags{};
 	std::atomic<bool> m_closing{};
 
   private:

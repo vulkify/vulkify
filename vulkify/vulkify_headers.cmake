@@ -38,7 +38,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/primitives/shape.hpp
   include/vulkify/graphics/primitives/quad_shape.hpp
 
-  include/vulkify/instance/display.hpp
   include/vulkify/instance/event_type.hpp
   include/vulkify/instance/event.hpp
   include/vulkify/instance/gpu.hpp
@@ -46,5 +45,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/instance/instance_create_info.hpp
   include/vulkify/instance/instance.hpp
   include/vulkify/instance/key_event.hpp
+  include/vulkify/instance/monitor.hpp
   include/vulkify/instance/vf_instance.hpp
+  include/vulkify/instance/video_mode.hpp
+  include/vulkify/instance/window_flags.hpp
 )

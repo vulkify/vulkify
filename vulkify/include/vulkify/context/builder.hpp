@@ -1,31 +1,33 @@
 #include <vulkify/context/context.hpp>
 #include <vulkify/instance/instance_create_info.hpp>
+#include <string>
 
 namespace vf {
 class Builder {
   public:
-	using Flag = InstanceCreateInfo::Flag;
-	using Flags = InstanceCreateInfo::Flags;
-
-	std::string const& title() const { return m_createInfo.title; }
+	std::string const& title() const { return m_title; }
 	glm::uvec2 extent() const { return m_createInfo.extent; }
-	Flags flags() const { return m_createInfo.flags; }
+	WindowFlags windowFlags() const { return m_createInfo.windowFlags; }
+	InstanceFlags instanceFlags() const { return m_createInfo.instanceFlags; }
 
 	Builder& setTitle(std::string set);
 	Builder& setExtent(glm::uvec2 set);
-	Builder& setFlags(Flags set);
-	Builder& setFlag(Flag flag, bool set = true);
+	Builder& updateFlags(WindowFlags set, WindowFlags unset = {});
+	Builder& updateFlags(InstanceFlags set, InstanceFlags unset = {});
+	Builder& setFlag(WindowFlag flag, bool set = true);
+	Builder& setFlag(InstanceFlag flag, bool set = true);
 
 	Result<UContext> build();
 
   private:
 	InstanceCreateInfo m_createInfo{};
+	std::string m_title{"(Untitled)"};
 };
 
 // impl
 
 inline Builder& Builder::setTitle(std::string set) {
-	m_createInfo.title = std::move(set);
+	m_title = std::move(set);
 	return *this;
 }
 
@@ -34,13 +36,23 @@ inline Builder& Builder::setExtent(glm::uvec2 set) {
 	return *this;
 }
 
-inline Builder& Builder::setFlags(Flags set) {
-	m_createInfo.flags = set;
+inline Builder& Builder::updateFlags(WindowFlags set, WindowFlags unset) {
+	m_createInfo.windowFlags.update(set, unset);
 	return *this;
 }
 
-inline Builder& Builder::setFlag(Flag flag, bool set) {
-	m_createInfo.flags.assign(flag, set);
+inline Builder& Builder::updateFlags(InstanceFlags set, InstanceFlags unset) {
+	m_createInfo.instanceFlags.update(set, unset);
+	return *this;
+}
+
+inline Builder& Builder::setFlag(WindowFlag flag, bool set) {
+	m_createInfo.windowFlags.assign(flag, set);
+	return *this;
+}
+
+inline Builder& Builder::setFlag(InstanceFlag flag, bool set) {
+	m_createInfo.instanceFlags.assign(flag, set);
 	return *this;
 }
 } // namespace vf

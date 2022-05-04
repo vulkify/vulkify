@@ -5,7 +5,8 @@
 namespace vf {
 Result<UContext> Builder::build() {
 	auto instance = UInstance{};
-	if (m_createInfo.flags.test(Flag::eHeadless)) {
+	m_createInfo.title = m_title.c_str();
+	if (m_createInfo.instanceFlags.test(InstanceFlag::eHeadless)) {
 		auto inst = HeadlessInstance::make();
 		if (!inst) { return inst.error(); }
 		instance = std::move(inst.value());

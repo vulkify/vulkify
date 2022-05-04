@@ -12,9 +12,7 @@ class VulkifyInstance : public Instance {
 
 	static Result make(CreateInfo const& createInfo);
 
-	VulkifyInstance(VulkifyInstance&&) noexcept;
-	VulkifyInstance& operator=(VulkifyInstance&&) noexcept;
-	~VulkifyInstance() noexcept;
+	~VulkifyInstance();
 
 	Vram const& vram() const override;
 	Gpu const& gpu() const override;
@@ -25,7 +23,11 @@ class VulkifyInstance : public Instance {
 	glm::vec2 cursorPosition() const override;
 	CursorMode cursorMode() const override;
 	MonitorList monitors() const override;
+	WindowFlags windowFlags() const override;
 
+	void show() const override;
+	void hide() const override;
+	void close() const override;
 	void setPosition(glm::ivec2 xy) const override;
 	void setSize(glm::uvec2 size) const override;
 	void setIcons(std::span<Icon const> icons) const override;
@@ -34,11 +36,10 @@ class VulkifyInstance : public Instance {
 	Cursor makeCursor(Icon icon) const override;
 	void destroyCursor(Cursor cursor) const override;
 	bool setCursor(Cursor cursor) const override;
-	void setDisplay(Display display) const override;
+	void setWindowed(glm::uvec2 extent) const override;
+	void setFullscreen(Monitor const& monitor, glm::uvec2 resolution) const override;
+	void updateWindowFlags(WindowFlags set, WindowFlags unset) const override;
 
-	void show() override;
-	void hide() override;
-	void close() override;
 	Poll poll() override;
 	Surface beginPass() override;
 	bool endPass() override;
