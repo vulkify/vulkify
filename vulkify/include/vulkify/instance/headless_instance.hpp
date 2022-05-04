@@ -24,6 +24,7 @@ class HeadlessInstance : public Instance {
 	CursorMode cursorMode() const override { return {}; }
 	MonitorList monitors() const override { return {}; }
 	WindowFlags windowFlags() const override { return m_windowFlags; }
+	View& view() const override { return m_view; }
 
 	void show() const override {}
 	void hide() const override {}
@@ -47,6 +48,7 @@ class HeadlessInstance : public Instance {
 	glm::uvec2 m_framebufferSize{};
 	glm::uvec2 m_windowSize{};
 	WindowFlags m_windowFlags{};
+	mutable View m_view{};
 	std::atomic<bool> m_closing{};
 
   private:

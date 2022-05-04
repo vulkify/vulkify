@@ -26,8 +26,8 @@ void blit(ImageCache& in_cache, ImageCache& out_cache, Filtering filtering) {
 	static constexpr auto layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 	auto cmd = InstantCommand(in_cache.info.vram.commandFactory->get());
 	auto writer = ImageWriter{in_cache.info.vram, cmd.cmd};
-	auto inr = vf::Rect<std::uint32_t>({in_cache.image->extent.width, in_cache.image->extent.height});
-	auto outr = vf::Rect<std::uint32_t>({out_cache.image->extent.width, out_cache.image->extent.height});
+	auto inr = TRect<std::uint32_t>{{in_cache.image->extent.width, in_cache.image->extent.height}};
+	auto outr = TRect<std::uint32_t>{{out_cache.image->extent.width, out_cache.image->extent.height}};
 	writer.blit(in_cache.image, out_cache.image, inr, outr, getFilter(filtering), {layout, layout});
 	cmd.submit();
 }

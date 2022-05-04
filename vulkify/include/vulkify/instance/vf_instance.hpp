@@ -24,6 +24,7 @@ class VulkifyInstance : public Instance {
 	CursorMode cursorMode() const override;
 	MonitorList monitors() const override;
 	WindowFlags windowFlags() const override;
+	View& view() const override;
 
 	void show() const override;
 	void hide() const override;

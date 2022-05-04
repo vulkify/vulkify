@@ -17,7 +17,7 @@ struct Index2D {
 
 class Bitmap {
   public:
-	using TopLeft = vf::TopLeft<std::uint32_t>;
+	using TopLeft = glm::uvec2;
 
 	struct View {
 		std::span<Rgba const> pixels{};

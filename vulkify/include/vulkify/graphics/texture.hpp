@@ -17,7 +17,7 @@ struct TextureCreateInfo {
 class Texture : public GfxResource {
   public:
 	using CreateInfo = TextureCreateInfo;
-	using TopLeft = vf::TopLeft<std::uint32_t>;
+	using TopLeft = Bitmap::TopLeft;
 
 	Texture() = default;
 	Texture(Vram const& vram, std::string name, Image::View image, CreateInfo const& createInfo = {});
@@ -36,7 +36,7 @@ class Texture : public GfxResource {
 	Texture(Vram const& vram, std::string name, CreateInfo const& info);
 
 	void refresh(Extent extent);
-	void write(Image::View image, TopLeft offset);
+	void write(Image::View image, glm::uvec2 offset);
 	void setInvalid();
 
 	AddressMode m_addressMode{};

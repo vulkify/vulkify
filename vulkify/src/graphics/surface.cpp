@@ -31,21 +31,34 @@ constexpr vk::PrimitiveTopology topology(Topology topo) {
 }
 } // namespace
 
-bool RenderPass::writeSetOne(std::span<DrawModel const> instances, Tex tex, char const* name) const {
-	if (instances.empty() || !tex.sampler || !tex.view) { return false; }
+void RenderPass::writeView(DescriptorSet& set) const {
+	if (!set) { return; }
+	auto instance = DrawInstance{view.view->transform};
+	instance.transform.position = -instance.transform.position;
+	set.write(shaderInput.one.bindings.ubo, instance.drawModel());
+}
+
+void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> instances, Tex tex) const {
+	if (!set || instances.empty() || !tex.sampler || !tex.view) { return; }
 	auto const& sb = shaderInput.one;
-	auto set = descriptorPool->postInc(sb.set, name);
 	set.write(sb.bindings.ssbo, instances.data(), instances.size() * sizeof(decltype(instances[0])));
 	set.update(sb.bindings.sampler, tex.sampler, tex.view);
 	set.bind(commandBuffer, bound);
-	return true;
 }
 
 void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
-	if (!layout || layout == bound) { return; }
+	if (!layout || layout == bound || !commandBuffer) { return; }
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
-	shaderInput.setZero.bind(commandBuffer, layout);
+	shaderInput.mat_p.bind(commandBuffer, layout);
 	bound = layout;
+}
+
+void RenderPass::setViewport() const {
+	if (!commandBuffer || !view.view) { return; }
+	auto const ext = glm::vec2(this->view.extent);
+	auto const viewport = view.view->viewport;
+	auto const v = Rect{viewport.extent * ext, viewport.origin * ext};
+	commandBuffer.setViewport(0, vk::Viewport(v.origin.x, v.extent.y + v.origin.y, v.extent.x, -v.extent.y));
 }
 
 Surface::Surface() noexcept = default;
@@ -99,7 +112,12 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) 
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
 	if (drawable.texture) { tex = {*drawable.texture.resource().image.sampler, *drawable.texture.resource().image.cache.view}; }
 	auto const& buffers = drawable.gbo.resource().buffer.buffers;
-	if (!m_renderPass->writeSetOne(models, tex, drawable.gbo.name().c_str())) { return false; }
+
+	auto set = m_renderPass->descriptorPool->postInc(m_renderPass->shaderInput.one.set, "UBO:M,SSBO:V");
+	if (!set) { return false; }
+	m_renderPass->writeView(set);
+	m_renderPass->writeModels(set, models, tex);
+	m_renderPass->setViewport();
 	m_renderPass->commandBuffer.setLineWidth(drawable.gbo.state.lineWidth);
 	m_renderPass->commandBuffer.bindVertexBuffers(0, buffers[0]->resource, vk::DeviceSize{});
 	auto const& geo = drawable.gbo.geometry();

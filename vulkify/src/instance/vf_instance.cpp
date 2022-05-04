@@ -424,8 +424,6 @@ struct SwapchainRenderer {
 		auto cmd = sync.cmd.secondary;
 		auto const cbii = vk::CommandBufferInheritanceInfo(*renderer.renderPass, 0U, *sync.framebuffer);
 		cmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue, &cbii});
-		auto const height = static_cast<float>(acquired.extent.height);
-		cmd.setViewport(0, vk::Viewport({}, height, static_cast<float>(acquired.extent.width), -height));
 		cmd.setScissor(0, vk::Rect2D({}, acquired.extent));
 
 		return sync.cmd.secondary;
@@ -474,13 +472,11 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 }
 } // namespace
 
-namespace ubo {
-constexpr View view(vk::Extent2D const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
-	if (extent.width == 0 || extent.height == 0) { return {}; }
-	auto const half = glm::vec2(static_cast<float>(extent.width), static_cast<float>(extent.height)) * 0.5f;
-	return {glm::mat4(1.0f), glm::ortho(-half.x, half.x, -half.y, half.y, nf.x, nf.y)};
+glm::mat4 projection(glm::uvec2 const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
+	if (extent.x == 0 || extent.y == 0) { return {}; }
+	auto const half = glm::vec2(static_cast<float>(extent.x), static_cast<float>(extent.y)) * 0.5f;
+	return glm::ortho(-half.x, half.x, -half.y, half.y, nf.x, nf.y);
 }
-} // namespace ubo
 
 struct VulkifyInstance::Impl {
 	std::shared_ptr<UniqueGlfw> glfw{};
@@ -497,6 +493,7 @@ struct VulkifyInstance::Impl {
 	PipelineFactory pipelineFactory{};
 	DescriptorPool descriptorPool{};
 	ShaderInput::Textures shaderTextures{};
+	View view{};
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
@@ -583,6 +580,8 @@ WindowFlags VulkifyInstance::windowFlags() const {
 	ret.assign(WindowFlag::eMaximized, glfwGetWindowAttrib(m_impl->window->win, GLFW_MAXIMIZED));
 	return ret;
 }
+
+View& VulkifyInstance::view() const { return m_impl->view; }
 
 void VulkifyInstance::setPosition(glm::ivec2 xy) const { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
 void VulkifyInstance::setSize(glm::uvec2 size) const { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }
@@ -692,11 +691,14 @@ Surface VulkifyInstance::beginPass() {
 	auto cmd = r.beginRender(m_impl->acquired.image);
 	m_impl->vulkan.util->defer.decrement();
 
-	auto view = m_impl->descriptorPool.get(0, 0, "uniform:View");
-	view.write(0, ubo::view(m_impl->acquired.image.extent));
+	auto proj = m_impl->descriptorPool.get(0, 0, "UBO:P");
+	auto const extent = glm::uvec2(m_impl->acquired.image.extent.width, m_impl->acquired.image.extent.height);
+	auto const mat_p = projection(extent);
+	proj.write(0, mat_p);
 
-	auto const input = ShaderInput{view, &m_impl->shaderTextures};
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderer.renderPass, std::move(cmd), input, &r.clear};
+	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
+	auto const view = RenderView{extent, &m_impl->view};
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderer.renderPass, std::move(cmd), input, view, &r.clear};
 }
 
 bool VulkifyInstance::endPass() {

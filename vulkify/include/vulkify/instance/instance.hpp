@@ -1,5 +1,6 @@
 #pragma once
 #include <ktl/kunique_ptr.hpp>
+#include <vulkify/core/view.hpp>
 #include <vulkify/graphics/bitmap.hpp>
 #include <vulkify/graphics/surface.hpp>
 #include <vulkify/instance/event.hpp>
@@ -25,8 +26,10 @@ class Instance {
 	static constexpr std::size_t max_scancodes_v = 16;
 
 	struct Icon {
+		using TopLeft = glm::ivec2;
+
 		Bitmap::View bitmap{};
-		TopLeft<std::int32_t> hotspot{};
+		TopLeft hotspot{};
 	};
 
 	struct Poll {
@@ -48,6 +51,7 @@ class Instance {
 	virtual CursorMode cursorMode() const = 0;
 	virtual MonitorList monitors() const = 0;
 	virtual WindowFlags windowFlags() const = 0;
+	virtual View& view() const = 0;
 
 	virtual void show() const = 0;
 	virtual void hide() const = 0;

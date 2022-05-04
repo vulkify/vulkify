@@ -159,8 +159,8 @@ struct Vram {
 };
 
 struct ImageWriter {
-	using Rect = vf::Rect<std::uint32_t, std::int32_t>;
-	using Offset = vf::Rect<std::int32_t, std::int32_t>;
+	using Rect = vf::TRect<std::uint32_t, std::int32_t>;
+	using Offset = vf::TRect<std::int32_t, std::int32_t>;
 
 	Vram const& vram;
 	vk::CommandBuffer cb;

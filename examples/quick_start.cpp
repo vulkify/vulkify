@@ -35,7 +35,7 @@ void test(vf::UContext ctx) {
 	{
 		auto bmp = vf::Bitmap::View{{&vf::magenta_v, 1}};
 		image = bmp.image();
-		mesh.texture.overwrite(image, vf::TopLeft{1, 1});
+		mesh.texture.overwrite(image, vf::Texture::TopLeft{1, 1});
 	}
 
 	auto tri = vf::Geometry{};

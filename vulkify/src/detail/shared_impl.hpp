@@ -11,6 +11,7 @@ struct PipelineFactory;
 class Instance;
 struct DrawModel;
 class Texture;
+struct View;
 
 inline vk::SamplerCreateInfo samplerInfo(Vram const& vram, vk::SamplerAddressMode mode, vk::Filter filter) {
 	auto ret = vk::SamplerCreateInfo{};
@@ -41,10 +42,15 @@ struct ShaderInput {
 		explicit operator bool() const { return sampler && white.image && magenta.image; }
 	};
 
-	DescriptorSet setZero{};
+	DescriptorSet mat_p{};
 	Textures* textures{};
 	SetBind one{1};
 	SetBind two{2};
+};
+
+struct RenderView {
+	glm::uvec2 extent{};
+	View const* view{};
 };
 
 struct RenderPass {
@@ -59,13 +65,16 @@ struct RenderPass {
 	vk::RenderPass renderPass{};
 	vk::CommandBuffer commandBuffer{};
 	ShaderInput shaderInput{};
+	RenderView view{};
 	Rgba* clear{};
 
 	mutable vk::ShaderModule fragShader{};
 	mutable vk::PipelineLayout bound{};
 
-	bool writeSetOne(std::span<DrawModel const> instances, Tex tex, char const* name) const;
+	void writeView(DescriptorSet& set) const;
+	void writeModels(DescriptorSet& set, std::span<DrawModel const> instances, Tex tex) const;
 	void bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const;
+	void setViewport() const;
 };
 
 struct ImageSampler {
@@ -104,13 +113,4 @@ struct Inactive {
 };
 
 Inactive const g_inactive{};
-
-namespace ubo {
-struct View {
-	glm::mat4 mat_v = glm::mat4(1.0f);
-	glm::mat4 mat_p = glm::mat4(1.0f);
-};
-
-using Model = DrawModel;
-} // namespace ubo
 } // namespace vf
