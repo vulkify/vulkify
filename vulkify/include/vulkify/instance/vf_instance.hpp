@@ -16,6 +16,7 @@ class VulkifyInstance : public Instance {
 
 	Vram const& vram() const override;
 	Gpu const& gpu() const override;
+	bool closing() const override;
 	glm::uvec2 framebufferSize() const override;
 	glm::uvec2 windowSize() const override;
 	glm::ivec2 position() const override;
@@ -26,20 +27,19 @@ class VulkifyInstance : public Instance {
 	WindowFlags windowFlags() const override;
 	View& view() const override;
 
-	void show() const override;
-	void hide() const override;
-	void close() const override;
-	void setPosition(glm::ivec2 xy) const override;
-	void setSize(glm::uvec2 size) const override;
-	void setIcons(std::span<Icon const> icons) const override;
-	bool closing() const override;
-	void setCursorMode(CursorMode mode) const override;
-	Cursor makeCursor(Icon icon) const override;
-	void destroyCursor(Cursor cursor) const override;
-	bool setCursor(Cursor cursor) const override;
-	void setWindowed(glm::uvec2 extent) const override;
-	void setFullscreen(Monitor const& monitor, glm::uvec2 resolution) const override;
-	void updateWindowFlags(WindowFlags set, WindowFlags unset) const override;
+	void show() override;
+	void hide() override;
+	void close() override;
+	void setPosition(glm::ivec2 xy) override;
+	void setSize(glm::uvec2 size) override;
+	void setIcons(std::span<Icon const> icons) override;
+	void setCursorMode(CursorMode mode) override;
+	Cursor makeCursor(Icon icon) override;
+	void destroyCursor(Cursor cursor) override;
+	bool setCursor(Cursor cursor) override;
+	void setWindowed(glm::uvec2 extent) override;
+	void setFullscreen(Monitor const& monitor, glm::uvec2 resolution) override;
+	void updateWindowFlags(WindowFlags set, WindowFlags unset) override;
 
 	Poll poll() override;
 	Surface beginPass() override;

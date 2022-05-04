@@ -20,7 +20,7 @@ Geometry Geometry::makeQuad(glm::vec2 const size, glm::vec2 const origin, Rgba c
 	return ret;
 }
 
-Geometry Geometry::makeRegularPolygon(float diameter, std::size_t sides, glm::vec2 const origin, Rgba const rgba) {
+Geometry Geometry::makeRegularPolygon(float diameter, std::uint32_t sides, glm::vec2 const origin, Rgba const rgba) {
 	if (sides < 3) { return {}; }
 	auto ret = Geometry{};
 	auto const colour = rgba.normalize();
@@ -35,7 +35,7 @@ Geometry Geometry::makeRegularPolygon(float diameter, std::size_t sides, glm::ve
 	ret.indices.reserve((sides + 1) * 3);
 	ret.vertices.push_back(centre);
 	ret.vertices.push_back(makeVertex({0.0f}));
-	for (std::size_t point = 1; point < sides; ++point) {
+	for (std::uint32_t point = 1; point < sides; ++point) {
 		auto const rad = Degree{(static_cast<float>(point) / static_cast<float>(sides)) * 360.0f};
 		auto const next = static_cast<std::uint32_t>(ret.vertices.size());
 		ret.vertices.push_back(makeVertex(rad));

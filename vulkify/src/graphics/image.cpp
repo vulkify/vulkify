@@ -80,7 +80,7 @@ Result<Extent> Image::load(char const* path) {
 		m_impl->img = std::move(stbi);
 		return m_impl->extent = ext;
 	}
-	return {};
+	return Error::eIOError;
 }
 
 Result<Extent> Image::load(Encoded image) {
@@ -89,7 +89,7 @@ Result<Extent> Image::load(Encoded image) {
 		m_impl->img = std::move(stbi);
 		return m_impl->extent = ext;
 	}
-	return {};
+	return Error::eInvalidArgument;
 }
 
 void Image::replace(Decoded image) {

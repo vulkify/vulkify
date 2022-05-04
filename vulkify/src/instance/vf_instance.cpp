@@ -554,6 +554,13 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 }
 
 Gpu const& VulkifyInstance::gpu() const { return m_impl->gpu; }
+
+bool VulkifyInstance::closing() const {
+	auto const ret = glfwWindowShouldClose(m_impl->window->win);
+	if (ret) { m_impl->vulkan.device->waitIdle(); }
+	return ret;
+}
+
 glm::uvec2 VulkifyInstance::framebufferSize() const { return getFramebufferSize(m_impl->window->win); }
 glm::uvec2 VulkifyInstance::windowSize() const { return getWindowSize(m_impl->window->win); }
 glm::ivec2 VulkifyInstance::position() const { return getGlfwVec<int>(m_impl->window->win, &glfwGetWindowPos); }
@@ -583,11 +590,11 @@ WindowFlags VulkifyInstance::windowFlags() const {
 
 View& VulkifyInstance::view() const { return m_impl->view; }
 
-void VulkifyInstance::setPosition(glm::ivec2 xy) const { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
-void VulkifyInstance::setSize(glm::uvec2 size) const { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }
-void VulkifyInstance::setCursorMode(CursorMode mode) const { glfwSetInputMode(m_impl->window->win, GLFW_CURSOR, cast(mode)); }
+void VulkifyInstance::setPosition(glm::ivec2 xy) { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
+void VulkifyInstance::setSize(glm::uvec2 size) { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }
+void VulkifyInstance::setCursorMode(CursorMode mode) { glfwSetInputMode(m_impl->window->win, GLFW_CURSOR, cast(mode)); }
 
-void VulkifyInstance::setIcons(std::span<Icon const> icons) const {
+void VulkifyInstance::setIcons(std::span<Icon const> icons) {
 	if (icons.empty()) {
 		glfwSetWindowIcon(m_impl->window->win, 0, {});
 		return;
@@ -602,12 +609,12 @@ void VulkifyInstance::setIcons(std::span<Icon const> icons) const {
 	glfwSetWindowIcon(m_impl->window->win, static_cast<int>(vec.size()), vec.data());
 }
 
-void VulkifyInstance::setWindowed(glm::uvec2 extent) const {
+void VulkifyInstance::setWindowed(glm::uvec2 extent) {
 	auto const ext = glm::ivec2(extent);
 	glfwSetWindowMonitor(m_impl->window->win, nullptr, 0, 0, ext.x, ext.y, 0);
 }
 
-void VulkifyInstance::setFullscreen(Monitor const& monitor, glm::uvec2 resolution) const {
+void VulkifyInstance::setFullscreen(Monitor const& monitor, glm::uvec2 resolution) {
 	auto gmonitor = reinterpret_cast<GLFWmonitor*>(monitor.handle);
 	auto const vmode = glfwGetVideoMode(gmonitor);
 	if (!vmode) { return; }
@@ -616,7 +623,7 @@ void VulkifyInstance::setFullscreen(Monitor const& monitor, glm::uvec2 resolutio
 	glfwSetWindowMonitor(m_impl->window->win, gmonitor, 0, 0, res.x, res.y, vmode->refreshRate);
 }
 
-void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) const {
+void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
 	auto updateAttrib = [&](WindowFlag flag, int attrib, bool ifSet) {
 		if (set.test(flag)) { glfwSetWindowAttrib(m_impl->window->win, attrib, ifSet ? GLFW_TRUE : GLFW_FALSE); }
 		if (unset.test(flag)) { glfwSetWindowAttrib(m_impl->window->win, attrib, ifSet ? GLFW_FALSE : GLFW_TRUE); }
@@ -633,7 +640,7 @@ void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) cons
 	}
 }
 
-Cursor VulkifyInstance::makeCursor(Icon icon) const {
+Cursor VulkifyInstance::makeCursor(Icon icon) {
 	auto const extent = glm::ivec2(icon.bitmap.extent);
 	auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.pixels.data()));
 	auto const img = GLFWimage{extent.x, extent.y, pixels};
@@ -647,9 +654,9 @@ Cursor VulkifyInstance::makeCursor(Icon icon) const {
 	return {};
 }
 
-void VulkifyInstance::destroyCursor(Cursor cursor) const { m_impl->glfw->get().cursors.cursors.erase(cursor); }
+void VulkifyInstance::destroyCursor(Cursor cursor) { m_impl->glfw->get().cursors.cursors.erase(cursor); }
 
-bool VulkifyInstance::setCursor(Cursor cursor) const {
+bool VulkifyInstance::setCursor(Cursor cursor) {
 	if (cursor == Cursor{}) {
 		glfwSetCursor(m_impl->window->win, {});
 		return true;
@@ -661,15 +668,9 @@ bool VulkifyInstance::setCursor(Cursor cursor) const {
 	return true;
 }
 
-bool VulkifyInstance::closing() const {
-	auto const ret = glfwWindowShouldClose(m_impl->window->win);
-	if (ret) { m_impl->vulkan.device->waitIdle(); }
-	return ret;
-}
-
-void VulkifyInstance::show() const { glfwShowWindow(m_impl->window->win); }
-void VulkifyInstance::hide() const { glfwHideWindow(m_impl->window->win); }
-void VulkifyInstance::close() const { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
+void VulkifyInstance::show() { glfwShowWindow(m_impl->window->win); }
+void VulkifyInstance::hide() { glfwHideWindow(m_impl->window->win); }
+void VulkifyInstance::close() { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
 
 Instance::Poll VulkifyInstance::poll() {
 	m_impl->window->events.clear();

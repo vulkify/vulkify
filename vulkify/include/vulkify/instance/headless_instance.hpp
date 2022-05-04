@@ -26,19 +26,19 @@ class HeadlessInstance : public Instance {
 	WindowFlags windowFlags() const override { return m_windowFlags; }
 	View& view() const override { return m_view; }
 
-	void show() const override {}
-	void hide() const override {}
-	void close() const override {}
-	void setPosition(glm::ivec2) const override {}
-	void setSize(glm::uvec2) const override {}
-	void setCursorMode(CursorMode) const override {}
-	Cursor makeCursor(Icon) const override { return {}; }
-	void destroyCursor(Cursor) const override {}
-	bool setCursor(Cursor) const override { return false; }
-	void setIcons(std::span<Icon const>) const override {}
-	void setWindowed(glm::uvec2) const override {}
-	void setFullscreen(Monitor const&, glm::uvec2) const override {}
-	void updateWindowFlags(WindowFlags, WindowFlags) const override {}
+	void show() override {}
+	void hide() override {}
+	void close() override {}
+	void setPosition(glm::ivec2) override {}
+	void setSize(glm::uvec2) override {}
+	void setCursorMode(CursorMode) override {}
+	Cursor makeCursor(Icon) override { return {}; }
+	void destroyCursor(Cursor) override {}
+	bool setCursor(Cursor) override { return false; }
+	void setIcons(std::span<Icon const>) override {}
+	void setWindowed(glm::uvec2) override {}
+	void setFullscreen(Monitor const&, glm::uvec2) override {}
+	void updateWindowFlags(WindowFlags, WindowFlags) override {}
 
 	Poll poll() override { return std::move(m_poll); }
 	Surface beginPass() override { return {}; }

@@ -4,6 +4,8 @@
 #include <vulkify/graphics/texture.hpp>
 
 namespace vf {
+class Context;
+
 ///
 /// \brief Base Primitive with protected GeometryBufer, Texture, and DrawInstance
 ///
@@ -13,7 +15,7 @@ namespace vf {
 class Shape : public Primitive {
   public:
 	Shape() = default;
-	Shape(Vram const& vram, std::string name) : m_gbo(vram, std::move(name)) {}
+	Shape(Context const& context, std::string name);
 
 	Transform const& transform() const { return m_instance.transform; }
 	Transform& transform() { return m_instance.transform; }

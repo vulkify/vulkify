@@ -6,6 +6,8 @@
 #include <vulkify/graphics/resource.hpp>
 
 namespace vf {
+class Context;
+
 enum class AddressMode { eClampEdge, eClampBorder, eRepeat };
 enum class Filtering { eNearest, eLinear };
 
@@ -20,7 +22,7 @@ class Texture : public GfxResource {
 	using TopLeft = Bitmap::TopLeft;
 
 	Texture() = default;
-	Texture(Vram const& vram, std::string name, Image::View image, CreateInfo const& createInfo = {});
+	Texture(Context const& context, std::string name, Image::View image, CreateInfo const& createInfo = {});
 
 	Result<void> create(Image::View image);
 	Result<void> overwrite(Image::View image, TopLeft offset = TopLeft{});

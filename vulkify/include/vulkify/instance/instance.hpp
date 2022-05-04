@@ -53,19 +53,19 @@ class Instance {
 	virtual WindowFlags windowFlags() const = 0;
 	virtual View& view() const = 0;
 
-	virtual void show() const = 0;
-	virtual void hide() const = 0;
-	virtual void close() const = 0;
-	virtual void setPosition(glm::ivec2 xy) const = 0;
-	virtual void setSize(glm::uvec2 size) const = 0;
-	virtual void setIcons(std::span<Icon const> icons) const = 0;
-	virtual void setCursorMode(CursorMode mode) const = 0;
-	virtual Cursor makeCursor(Icon icon) const = 0;
-	virtual void destroyCursor(Cursor cursor) const = 0;
-	virtual bool setCursor(Cursor cursor) const = 0;
-	virtual void setWindowed(glm::uvec2 extent) const = 0;
-	virtual void setFullscreen(Monitor const& monitor, glm::uvec2 resolution = {}) const = 0;
-	virtual void updateWindowFlags(WindowFlags set, WindowFlags unset = {}) const = 0;
+	virtual void show() = 0;
+	virtual void hide() = 0;
+	virtual void close() = 0;
+	virtual void setPosition(glm::ivec2 xy) = 0;
+	virtual void setSize(glm::uvec2 size) = 0;
+	virtual void setIcons(std::span<Icon const> icons) = 0;
+	virtual void setCursorMode(CursorMode mode) = 0;
+	virtual Cursor makeCursor(Icon icon) = 0;
+	virtual void destroyCursor(Cursor cursor) = 0;
+	virtual bool setCursor(Cursor cursor) = 0;
+	virtual void setWindowed(glm::uvec2 extent) = 0;
+	virtual void setFullscreen(Monitor const& monitor, glm::uvec2 resolution = {}) = 0;
+	virtual void updateWindowFlags(WindowFlags set, WindowFlags unset = {}) = 0;
 
 	virtual Poll poll() = 0;
 	virtual Surface beginPass() = 0;

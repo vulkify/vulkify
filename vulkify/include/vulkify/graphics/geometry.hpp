@@ -43,6 +43,6 @@ struct Geometry {
 	std::vector<std::uint32_t> indices{};
 
 	static Geometry makeQuad(glm::vec2 size, glm::vec2 origin = {}, Rgba rgba = white_v, QuadUV const& uv = {});
-	static Geometry makeRegularPolygon(float diameter, std::size_t sides, glm::vec2 origin = {}, Rgba rgba = white_v);
+	static Geometry makeRegularPolygon(float diameter, std::uint32_t sides, glm::vec2 origin = {}, Rgba rgba = white_v);
 };
 } // namespace vf

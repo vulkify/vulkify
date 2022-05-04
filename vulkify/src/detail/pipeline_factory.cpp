@@ -103,7 +103,7 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Spec
 	gpci.pColorBlendState = &pcbsci;
 
 	auto pdssci = vk::PipelineDepthStencilStateCreateInfo{};
-	pdssci.depthTestEnable = true;
+	pdssci.depthTestEnable = false;
 	pdssci.depthCompareOp = vk::CompareOp::eLess;
 	pdssci.depthWriteEnable = true;
 	gpci.pDepthStencilState = &pdssci;

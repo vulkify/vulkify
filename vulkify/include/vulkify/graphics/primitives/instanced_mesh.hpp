@@ -4,10 +4,13 @@
 #include <vulkify/graphics/texture.hpp>
 
 namespace vf {
+template <typename T>
+concept InstancedMeshStorage = std::convertible_to<T, std::span<DrawInstance const>>;
+
 ///
 /// \brief Primitive with public GeometryBuffer, Texture, and std::vector<DrawInstance> (customizable)
 ///
-template <typename Storage = std::vector<DrawInstance>>
+template <InstancedMeshStorage Storage = std::vector<DrawInstance>>
 class InstancedMesh : public MeshPrimitive {
   public:
 	InstancedMesh() = default;
