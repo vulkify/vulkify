@@ -5,6 +5,8 @@
 #include <type_traits>
 
 namespace vf {
+class Context;
+
 struct BufferWrite {
 	void const* data{};
 	std::size_t size{};
@@ -22,7 +24,9 @@ struct PipelineState {
 class GeometryBuffer : public GfxResource {
   public:
 	using State = PipelineState;
-	using GfxResource::GfxResource;
+
+	GeometryBuffer() = default;
+	GeometryBuffer(Context const& context, std::string name);
 
 	Result<void> write(Geometry geometry);
 
@@ -35,7 +39,8 @@ class GeometryBuffer : public GfxResource {
 
 class UniformBuffer : public GfxResource {
   public:
-	using GfxResource::GfxResource;
+	UniformBuffer() = default;
+	UniformBuffer(Context const& context, std::string name);
 
 	std::size_t size() const;
 	Result<void> resize(std::size_t size);

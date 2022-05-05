@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkify/graphics/buffer.hpp>
+#include <vulkify/graphics/drawable.hpp>
 #include <vulkify/graphics/primitive.hpp>
 #include <vulkify/graphics/texture.hpp>
 
@@ -22,7 +23,9 @@ class Shape : public Primitive {
 	Rgba const& tint() const { return m_instance.tint; }
 	Rgba& tint() { return m_instance.tint; }
 
-	Drawable drawable() const override { return {{&m_instance, 1}, m_gbo, m_texture}; }
+	Drawable drawable() const { return {{&m_instance, 1}, m_gbo, m_texture}; }
+
+	void draw(Surface const& surface) const override;
 
   protected:
 	GeometryBuffer m_gbo{};

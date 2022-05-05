@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkify/core/time.hpp>
+#include <vulkify/graphics/primitive.hpp>
 #include <vulkify/instance/instance.hpp>
 
 namespace vf {
@@ -12,7 +13,7 @@ class Frame {
 	Time dt() const { return m_dt; }
 	Poll const& poll() const { return m_poll; }
 
-	void draw(Primitive const& primitive) const { m_surface.draw(primitive); }
+	void draw(Primitive const& primitive) const { primitive.draw(m_surface); }
 
 	Surface const& surface() const { return m_surface; }
 

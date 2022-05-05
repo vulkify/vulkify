@@ -1,7 +1,10 @@
 #include <detail/shared_impl.hpp>
+#include <vulkify/context/context.hpp>
 #include <vulkify/graphics/buffer.hpp>
 
 namespace vf {
+GeometryBuffer::GeometryBuffer(Context const& context, std::string name) : GfxResource(context.vram(), std::move(name)) {}
+
 Result<void> GeometryBuffer::write(Geometry geometry) {
 	if (!m_allocation || !m_allocation->vram) { return Error::eInactiveInstance; }
 	if (geometry.vertices.empty()) { return Error::eInvalidArgument; }
@@ -12,6 +15,8 @@ Result<void> GeometryBuffer::write(Geometry geometry) {
 	m_geometry = std::move(geometry);
 	return Result<void>::success();
 }
+
+UniformBuffer::UniformBuffer(Context const& context, std::string name) : GfxResource(context.vram(), std::move(name)) {}
 
 std::size_t UniformBuffer::size() const { return m_allocation->buffer.buffers.empty() ? 0 : m_allocation->buffer.buffers[0]->size; }
 

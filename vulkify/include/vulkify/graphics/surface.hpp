@@ -1,6 +1,6 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
-#include <vulkify/graphics/primitive.hpp>
+#include <vulkify/graphics/drawable.hpp>
 #include <concepts>
 #include <iterator>
 #include <span>
@@ -30,7 +30,6 @@ class Surface {
 
 	bool setShader(Shader const& shader) const;
 	bool draw(Drawable const& drawable) const;
-	bool draw(Primitive const& primitive) const { return draw(primitive.drawable()); }
 
   private:
 	bool bind(PipelineState const& state) const;

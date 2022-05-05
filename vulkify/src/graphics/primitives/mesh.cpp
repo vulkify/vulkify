@@ -2,5 +2,7 @@
 #include <vulkify/graphics/primitives/mesh.hpp>
 
 namespace vf {
-Mesh::Mesh(Context const& context, std::string name) : MeshPrimitive(context.vram(), std::move(name)) {}
+Mesh::Mesh(Context const& context, std::string name) : MeshPrimitive(context, std::move(name)) {}
+
+void Mesh::draw(Surface const& surface) const { surface.draw(drawable()); }
 } // namespace vf

@@ -25,6 +25,7 @@ Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
   - [x] Custom descriptor set
   - [ ] Custom uniform buffer
   - [ ] Custom texture
+- [ ] Shape outlines
 - [ ] Cursor unprojection
 - [ ] Fonts (Freetype)
 - [ ] Text

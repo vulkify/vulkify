@@ -87,6 +87,7 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Spec
 	auto prsci = vk::PipelineRasterizationStateCreateInfo();
 	// prsci.lineWidth = std::clamp(spec.lineWidth, lineWidthLimit.first, lineWidthLimit.second);
 	prsci.polygonMode = spec.mode;
+	prsci.cullMode = vk::CullModeFlagBits::eNone;
 	gpci.pRasterizationState = &prsci;
 
 	auto pcbas = vk::PipelineColorBlendAttachmentState{};
@@ -103,12 +104,6 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Spec
 	pcbsci.attachmentCount = 1;
 	pcbsci.pAttachments = &pcbas;
 	gpci.pColorBlendState = &pcbsci;
-
-	auto pdssci = vk::PipelineDepthStencilStateCreateInfo{};
-	pdssci.depthTestEnable = false;
-	pdssci.depthCompareOp = vk::CompareOp::eLess;
-	pdssci.depthWriteEnable = true;
-	gpci.pDepthStencilState = &pdssci;
 
 	auto pdscis = ktl::fixed_vector<vk::DynamicState, 4>{};
 	auto pdsci = vk::PipelineDynamicStateCreateInfo();

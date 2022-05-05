@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkify/context/context.hpp>
+#include <vulkify/graphics/drawable.hpp>
 #include <vulkify/graphics/primitives/mesh_primitive.hpp>
 #include <vulkify/graphics/texture.hpp>
 
@@ -14,9 +15,11 @@ template <InstancedMeshStorage Storage = std::vector<DrawInstance>>
 class InstancedMesh : public MeshPrimitive {
   public:
 	InstancedMesh() = default;
-	InstancedMesh(Context const& context, std::string name) : MeshPrimitive(context.vram(), std::move(name)) {}
+	InstancedMesh(Context const& context, std::string name) : MeshPrimitive(context, std::move(name)) {}
 
-	Drawable drawable() const override { return {instances, gbo, texture}; }
+	Drawable drawable() const { return {instances, gbo, texture}; }
+
+	void draw(Surface const& surface) const override { surface.draw(drawable()); }
 
 	Texture texture{};
 	Storage instances{};
