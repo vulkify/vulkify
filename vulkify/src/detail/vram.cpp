@@ -13,6 +13,14 @@ char const* getName(char const* name, std::string& fallback, std::atomic<int>& c
 	}
 	return name;
 }
+
+vk::SampleCountFlagBits getSamples(vk::SampleCountFlags supported, int desired) {
+	if (desired >= 16 && (supported & vk::SampleCountFlagBits::e16)) { return vk::SampleCountFlagBits::e16; }
+	if (desired >= 8 && (supported & vk::SampleCountFlagBits::e8)) { return vk::SampleCountFlagBits::e8; }
+	if (desired >= 4 && (supported & vk::SampleCountFlagBits::e4)) { return vk::SampleCountFlagBits::e4; }
+	if (desired >= 2 && (supported & vk::SampleCountFlagBits::e2)) { return vk::SampleCountFlagBits::e2; }
+	return vk::SampleCountFlagBits::e1;
+}
 } // namespace
 
 BlitCaps BlitCaps::make(vk::PhysicalDevice device, vk::Format format) {
@@ -66,16 +74,17 @@ void VmaImage::transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier
 
 void VmaImage::Deleter::operator()(const VmaImage& image) const { vmaDestroyImage(image.allocator, image.resource, image.handle); }
 
-UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device) {
-	VmaAllocatorCreateInfo allocatorInfo = {};
+UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples) {
+	auto allocatorInfo = VmaAllocatorCreateInfo{};
 	auto dl = VULKAN_HPP_DEFAULT_DISPATCHER;
 	allocatorInfo.instance = static_cast<VkInstance>(instance);
 	allocatorInfo.device = static_cast<VkDevice>(device.device);
 	allocatorInfo.physicalDevice = static_cast<VkPhysicalDevice>(device.gpu);
-	VmaVulkanFunctions vkFunc = {};
+	auto vkFunc = VmaVulkanFunctions{};
 	vkFunc.vkGetInstanceProcAddr = dl.vkGetInstanceProcAddr;
 	vkFunc.vkGetDeviceProcAddr = dl.vkGetDeviceProcAddr;
 	allocatorInfo.pVulkanFunctions = &vkFunc;
+	auto const framebufferSamples = getSamples(device.gpu.getProperties().limits.framebufferColorSampleCounts, samples);
 	auto vram = Vram{device};
 	if (vmaCreateAllocator(&allocatorInfo, &vram.allocator) != VK_SUCCESS) {
 		VF_TRACE("Failed to create Vram!");
@@ -86,6 +95,7 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device) {
 	factory->commandPools.factory().device = device;
 	vram.commandFactory = factory.get();
 	vram.maxAnisotropy = device.gpu.getProperties().limits.maxSamplerAnisotropy;
+	vram.colourSamples = framebufferSamples;
 	return {std::move(factory), vram};
 }
 

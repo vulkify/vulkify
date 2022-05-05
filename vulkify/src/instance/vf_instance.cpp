@@ -272,6 +272,17 @@ vk::UniqueDescriptorSetLayout makeSetLayout(vk::Device device, std::span<vk::Des
 	return device.createDescriptorSetLayoutUnique(info);
 }
 
+constexpr int getSamples(AntiAliasing aa) {
+	switch (aa) {
+	case AntiAliasing::e16x: return 16;
+	case AntiAliasing::e8x: return 8;
+	case AntiAliasing::e4x: return 4;
+	case AntiAliasing::e2x: return 2;
+	case AntiAliasing::eNone:
+	default: return 1;
+	}
+}
+
 std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
 	using DSet = DescriptorSet;
 	auto ret = std::vector<vk::UniqueDescriptorSetLayout>{};
@@ -321,16 +332,6 @@ struct VIStorage {
 	}
 };
 
-vk::Format bestDepth(vk::PhysicalDevice pd) {
-	static constexpr vk::Format formats[] = {vk::Format::eD32SfloatS8Uint, vk::Format::eD32Sfloat, vk::Format::eD24UnormS8Uint};
-	static constexpr auto features = vk::FormatFeatureFlagBits::eDepthStencilAttachment;
-	for (auto const format : formats) {
-		vk::FormatProperties const props = pd.getFormatProperties(format);
-		if ((props.optimalTilingFeatures & features) == features) { return format; }
-	}
-	return vk::Format::eD16Unorm;
-}
-
 struct FrameSync {
 	vk::UniqueSemaphore draw{};
 	vk::UniqueSemaphore present{};
@@ -357,22 +358,21 @@ struct FrameSync {
 
 struct SwapchainRenderer {
 	enum Image { eColour, eDepth };
-	static constexpr vk::Format colour_v = vk::Format::eR8G8B8A8Srgb;
 
 	Vram vram{};
 
 	Renderer renderer{};
 	Rotator<FrameSync> frameSync{};
-	ImageCache images[2]{};
+	ImageCache image{};
 	vk::UniqueCommandPool commandPool{};
 
 	RenderTarget target{};
 	Rgba clear{};
+	bool offScreen{};
 
-	static SwapchainRenderer make(Vram const& vram, std::size_t buffering = 2) {
+	static SwapchainRenderer make(Vram const& vram, vk::Format surface, std::size_t buffering = 2) {
 		auto ret = SwapchainRenderer{vram};
-		auto const depth = bestDepth(vram.device.gpu);
-		auto renderer = Renderer::make(vram.device.device, colour_v, depth);
+		auto renderer = Renderer::make(vram.device.device, surface, vram.colourSamples);
 		if (!renderer.renderPass) { return {}; }
 		ret.renderer = std::move(renderer);
 
@@ -381,13 +381,13 @@ struct SwapchainRenderer {
 		ret.commandPool = vram.device.device.createCommandPoolUnique(cpci);
 		ret.resync(buffering);
 
-		ret.images[eColour] = {{vram, "render_pass_colour_image"}};
-		ret.images[eColour].setColour();
-		ret.images[eColour].info.info.format = colour_v;
-
-		ret.images[eDepth] = {{vram, "render_pass_depth_image"}};
-		ret.images[eDepth].setDepth();
-		ret.images[eDepth].info.info.format = depth;
+		ret.offScreen = vram.colourSamples > vk::SampleCountFlagBits::e1;
+		if (ret.offScreen) {
+			ret.image = {{vram, "render_pass_colour_image"}};
+			ret.image.setColour();
+			ret.image.info.info.format = surface;
+			ret.image.info.info.samples = vram.colourSamples;
+		}
 
 		return ret;
 	}
@@ -412,11 +412,13 @@ struct SwapchainRenderer {
 	vk::CommandBuffer beginRender(VKImage acquired) {
 		if (!renderer.renderPass) { return {}; }
 
-		auto const ext = vk::Extent3D(acquired.extent, 1);
 		auto& sync = frameSync.get();
 		vram.device.reset(*sync.drawn);
-		target.colour = images[eColour].refresh(ext);
-		target.depth = images[eDepth].refresh(ext);
+		target.colour = acquired;
+		if (offScreen) {
+			target.colour = image.refresh(vk::Extent3D(acquired.extent, 1));
+			target.resolve = acquired;
+		}
 		sync.framebuffer = renderer.makeFramebuffer(target);
 		if (!sync.framebuffer) { return {}; }
 		target.framebuffer = *sync.framebuffer;
@@ -429,15 +431,18 @@ struct SwapchainRenderer {
 		return sync.cmd.secondary;
 	}
 
-	vk::CommandBuffer endRender(VKImage acquired) {
+	vk::CommandBuffer endRender() {
 		if (!renderer.renderPass || !target.framebuffer) { return {}; }
 
 		auto& sync = frameSync.get();
 		sync.cmd.secondary.end();
 		sync.cmd.primary.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-		renderer.render(target, clear, sync.cmd.primary, {&sync.cmd.secondary, 1});
 
-		renderer.blit(sync.cmd.primary, target, acquired.image, vk::ImageLayout::ePresentSrcKHR);
+		auto images = ktl::fixed_vector<vk::Image, 2>{target.colour.image};
+		if (offScreen) { images.push_back(target.resolve.image); }
+		renderer.toColourOptimal(sync.cmd.primary, images);
+		renderer.render(target, clear, sync.cmd.primary, {&sync.cmd.secondary, 1});
+		renderer.toPresentSrc(sync.cmd.primary, images.back());
 		sync.cmd.primary.end();
 		target = {};
 
@@ -522,7 +527,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	});
 	if (!vulkan) { return vulkan.error(); }
 	auto device = makeDevice(*vulkan);
-	auto vram = UniqueVram::make(*vulkan->instance, device);
+	auto vram = UniqueVram::make(*vulkan->instance, device, getSamples(createInfo.desiredAA));
 	if (!vram) { return Error::eVulkanInitFailure; }
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
@@ -531,14 +536,17 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
 	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
 
-	auto presenter = SwapchainRenderer::make(impl->vram.vram);
+	auto presenter = SwapchainRenderer::make(impl->vram.vram, impl->surface.info.imageFormat);
 	if (!presenter) { return Error::eVulkanInitFailure; }
 	impl->renderer = std::move(presenter);
 	impl->vram.vram->textureFormat = textureFormat(impl->surface.info.imageFormat);
 
 	impl->setLayouts = makeSetLayouts(impl->surface.device.device);
 	impl->vertexInput = VIStorage::make();
-	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, impl->vertexInput(), makeSetLayouts(impl->setLayouts));
+	auto const srr = createInfo.instanceFlags.test(InstanceFlag::eSuperSampling);
+	auto sl = makeSetLayouts(impl->setLayouts);
+	auto const csamples = impl->vram.vram->colourSamples;
+	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, impl->vertexInput(), std::move(sl), csamples, srr);
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
 	auto const buffering = impl->renderer.frameSync.storage.size();
@@ -589,6 +597,17 @@ WindowFlags VulkifyInstance::windowFlags() const {
 }
 
 View& VulkifyInstance::view() const { return m_impl->view; }
+
+AntiAliasing VulkifyInstance::antiAliasing() const {
+	switch (m_impl->vram.vram->colourSamples) {
+	case vk::SampleCountFlagBits::e16: return AntiAliasing::e16x;
+	case vk::SampleCountFlagBits::e8: return AntiAliasing::e8x;
+	case vk::SampleCountFlagBits::e4: return AntiAliasing::e4x;
+	case vk::SampleCountFlagBits::e2: return AntiAliasing::e2x;
+	case vk::SampleCountFlagBits::e1:
+	default: return AntiAliasing::eNone;
+	}
+}
 
 void VulkifyInstance::setPosition(glm::ivec2 xy) { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
 void VulkifyInstance::setSize(glm::uvec2 size) { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }
@@ -704,7 +723,7 @@ Surface VulkifyInstance::beginPass() {
 
 bool VulkifyInstance::endPass() {
 	if (!m_impl->acquired) { return false; }
-	auto const cb = m_impl->renderer.endRender(m_impl->acquired.image);
+	auto const cb = m_impl->renderer.endRender();
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();
 	m_impl->surface.submit(cb, sync);
@@ -712,6 +731,7 @@ bool VulkifyInstance::endPass() {
 	m_impl->acquired = {};
 	m_impl->renderer.next();
 	m_impl->descriptorPool.next();
+	m_impl->acquired = {};
 	return true;
 }
 

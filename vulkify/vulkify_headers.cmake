@@ -45,10 +45,10 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/instance/gpu.hpp
   include/vulkify/instance/headless_instance.hpp
   include/vulkify/instance/instance_create_info.hpp
+  include/vulkify/instance/instance_enums.hpp
   include/vulkify/instance/instance.hpp
   include/vulkify/instance/key_event.hpp
   include/vulkify/instance/monitor.hpp
   include/vulkify/instance/vf_instance.hpp
   include/vulkify/instance/video_mode.hpp
-  include/vulkify/instance/window_flags.hpp
 )

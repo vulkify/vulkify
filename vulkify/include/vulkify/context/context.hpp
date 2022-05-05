@@ -36,6 +36,7 @@ class Context {
 	WindowFlags windowFlags() const { return m_instance->windowFlags(); }
 	View& view() const { return m_instance->view(); }
 	Space space() const { return Space{m_instance->framebufferSize()}; }
+	AntiAliasing antiAliasing() const { return m_instance->antiAliasing(); }
 
 	Frame frame();
 

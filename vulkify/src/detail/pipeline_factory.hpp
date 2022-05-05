@@ -40,6 +40,8 @@ struct PipelineFactory {
 	vk::Device device{};
 	VertexInput vertexInput{};
 	SetLayouts setLayouts{};
+	vk::SampleCountFlagBits samples{};
+	bool sampleRateShading{};
 
 	std::vector<Entry> entries{};
 	struct {
@@ -48,7 +50,7 @@ struct PipelineFactory {
 	} defaultShaders{};
 	std::pair<float, float> lineWidthLimit{1.0f, 1.0f};
 
-	static PipelineFactory make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts);
+	static PipelineFactory make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts, vk::SampleCountFlagBits samples, bool srr);
 
 	explicit operator bool() const { return device; }
 

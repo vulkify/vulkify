@@ -279,6 +279,8 @@ int main() {
 	std::cout << "vulkify " << vf::version_v << '\n';
 	// auto context = vf::Builder{}.setFlag(vf::Builder::Flag::eLinearSwapchain).build();
 	auto context = vf::Builder{}.build();
+	// auto context = vf::Builder{}.setFlag(vf::InstanceFlag::eSuperSampling).build();
+
 	// auto context = vf::Builder{}.setFlag(vf::Builder::Flag::eHeadless).build();
 	if (!context) { return EXIT_FAILURE; }
 	test(std::move(context.value()));

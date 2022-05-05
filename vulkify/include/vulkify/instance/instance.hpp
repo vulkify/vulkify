@@ -5,8 +5,8 @@
 #include <vulkify/graphics/surface.hpp>
 #include <vulkify/instance/event.hpp>
 #include <vulkify/instance/gpu.hpp>
+#include <vulkify/instance/instance_enums.hpp>
 #include <vulkify/instance/monitor.hpp>
-#include <vulkify/instance/window_flags.hpp>
 #include <span>
 
 namespace vf {
@@ -52,6 +52,7 @@ class Instance {
 	virtual MonitorList monitors() const = 0;
 	virtual WindowFlags windowFlags() const = 0;
 	virtual View& view() const = 0;
+	virtual AntiAliasing antiAliasing() const = 0;
 
 	virtual void show() = 0;
 	virtual void hide() = 0;

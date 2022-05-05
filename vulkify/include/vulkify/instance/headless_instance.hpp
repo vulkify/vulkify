@@ -25,6 +25,7 @@ class HeadlessInstance : public Instance {
 	MonitorList monitors() const override { return {}; }
 	WindowFlags windowFlags() const override { return m_windowFlags; }
 	View& view() const override { return m_view; }
+	AntiAliasing antiAliasing() const override { return AntiAliasing::eNone; }
 
 	void show() override {}
 	void hide() override {}
