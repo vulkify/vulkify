@@ -15,7 +15,7 @@ struct CircleState {
 ///
 /// \brief Primitive that models a quad / rectangle shape
 ///
-class CircleShape : public Shape {
+class CircleShape : public OutlinedShape {
   public:
 	using CreateInfo = CircleState;
 
@@ -31,6 +31,8 @@ class CircleShape : public Shape {
 
 	CircleShape& setState(CircleState state);
 	CircleShape& setTexture(Texture texture, bool resizeToMatch);
+
+	void setOutline(float lineWidth, Rgba rgba) override;
 
   protected:
 	CircleShape& refresh();

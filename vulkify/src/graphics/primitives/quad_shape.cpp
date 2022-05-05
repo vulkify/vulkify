@@ -2,7 +2,7 @@
 #include <vulkify/graphics/primitives/quad_shape.hpp>
 
 namespace vf {
-QuadShape::QuadShape(Context const& context, std::string name, CreateInfo info) : Shape(context, std::move(name)) { setState(std::move(info)); }
+QuadShape::QuadShape(Context const& context, std::string name, CreateInfo info) : OutlinedShape(context, std::move(name)) { setState(std::move(info)); }
 
 QuadShape& QuadShape::setState(QuadState state) {
 	m_state = std::move(state);
@@ -19,7 +19,10 @@ QuadShape& QuadShape::setTexture(Texture texture, bool resizeToMatch) {
 }
 
 QuadShape& QuadShape::refresh() {
-	if (m_state.size.x > 0.0f && m_state.size.y > 0.0f) { m_gbo.write(Geometry::makeQuad(m_state.size, m_state.origin, m_state.vertex, m_state.uv)); }
+	if (m_state.size.x > 0.0f && m_state.size.y > 0.0f) {
+		auto quad = Geometry::makeQuad(m_state.size, m_state.origin, m_state.vertex, m_state.uv);
+		m_geometry.write(quad);
+	}
 	return *this;
 }
 } // namespace vf

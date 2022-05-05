@@ -23,13 +23,29 @@ class Shape : public Primitive {
 	Rgba const& tint() const { return m_instance.tint; }
 	Rgba& tint() { return m_instance.tint; }
 
-	Drawable drawable() const { return {{&m_instance, 1}, m_gbo, m_texture}; }
+	void draw(Surface const& surface) const override;
+
+  protected:
+	GeometryBuffer m_geometry{};
+	Texture m_texture{};
+	DrawInstance m_instance{};
+};
+
+class OutlinedShape : public Shape {
+  public:
+	OutlinedShape() = default;
+	OutlinedShape(Context const& context, std::string name);
+
+	float outlineWidth() const { return m_outline.state.lineWidth; }
+	Rgba outlineRgba() const { return m_outlineRgba; }
+	virtual void setOutline(float lineWidth, Rgba rgba);
 
 	void draw(Surface const& surface) const override;
 
   protected:
-	GeometryBuffer m_gbo{};
-	Texture m_texture{};
-	DrawInstance m_instance{};
+	void buildOutline(Geometry geometry, Rgba rgba);
+
+	GeometryBuffer m_outline{};
+	Rgba m_outlineRgba{};
 };
 } // namespace vf

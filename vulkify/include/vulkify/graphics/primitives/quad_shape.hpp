@@ -15,7 +15,7 @@ struct QuadState {
 ///
 /// \brief Primitive that models a quad / rectangle shape
 ///
-class QuadShape : public Shape {
+class QuadShape : public OutlinedShape {
   public:
 	using CreateInfo = QuadState;
 
