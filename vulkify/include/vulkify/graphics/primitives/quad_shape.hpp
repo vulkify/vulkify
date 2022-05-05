@@ -2,8 +2,6 @@
 #include <vulkify/graphics/primitives/shape.hpp>
 
 namespace vf {
-class Context;
-
 ///
 /// \brief Data structure specifying a quad shape
 ///
@@ -11,7 +9,7 @@ struct QuadState {
 	glm::vec2 size{100.0f, 100.0f};
 	glm::vec2 origin{};
 	QuadUV uv{};
-	Rgba vertex = white_v;
+	Rgba vertex{white_v};
 };
 
 ///
@@ -24,7 +22,7 @@ class QuadShape : public Shape {
 	static constexpr auto name_v = "quad";
 
 	QuadShape() = default;
-	QuadShape(Context const& context, CreateInfo info = {}, std::string customName = {});
+	QuadShape(Context const& context, std::string name = name_v, CreateInfo info = {});
 
 	QuadState const& state() const { return m_state; }
 	glm::vec2 size() const { return m_state.size; }

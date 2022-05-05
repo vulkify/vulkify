@@ -1,5 +1,6 @@
 #include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
+#include <vulkify/context/context.hpp>
 #include <vulkify/core/float_eq.hpp>
 #include <vulkify/graphics/texture.hpp>
 
@@ -33,7 +34,8 @@ void blit(ImageCache& in_cache, ImageCache& out_cache, Filtering filtering) {
 }
 } // namespace
 
-Texture::Texture(Vram const& vram, std::string name, Image::View image, CreateInfo const& createInfo) : Texture(vram, std::move(name), createInfo) {
+Texture::Texture(Context const& context, std::string name, Image::View image, CreateInfo const& createInfo)
+	: Texture(context.vram(), std::move(name), createInfo) {
 	if (!m_allocation || !m_allocation->vram) { return; }
 	create(image);
 }

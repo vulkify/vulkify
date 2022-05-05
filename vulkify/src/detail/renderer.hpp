@@ -5,7 +5,7 @@
 namespace vf {
 struct RenderImage {
 	VKImage colour{};
-	VKImage depth{};
+	VKImage resolve;
 };
 
 struct RenderTarget : RenderImage {
@@ -13,8 +13,6 @@ struct RenderTarget : RenderImage {
 };
 
 struct Renderer {
-	enum Image { eColour, eDepth };
-
 	vk::Device device{};
 	vk::UniqueRenderPass renderPass{};
 
@@ -23,10 +21,11 @@ struct Renderer {
 		return f == F::eR8G8Srgb || f == F::eB8G8R8Srgb || f == F::eR8G8B8Srgb || f == F::eB8G8R8A8Srgb || f == F::eR8G8B8A8Srgb;
 	}
 
-	static Renderer make(vk::Device device, vk::Format colour, vk::Format depth);
+	static Renderer make(vk::Device device, vk::Format colour, vk::SampleCountFlagBits samples);
 
 	vk::UniqueFramebuffer makeFramebuffer(RenderImage const& image) const;
+	void toColourOptimal(vk::CommandBuffer primary, std::span<vk::Image const> images) const;
 	void render(RenderTarget const& target, Rgba clear, vk::CommandBuffer primary, std::span<vk::CommandBuffer const> recorded) const;
-	void blit(vk::CommandBuffer primary, RenderTarget const& target, vk::Image dst, vk::ImageLayout final) const;
+	void toPresentSrc(vk::CommandBuffer primary, vk::Image present) const;
 };
 } // namespace vf

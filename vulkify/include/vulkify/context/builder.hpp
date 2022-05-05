@@ -9,6 +9,7 @@ class Builder {
 	glm::uvec2 extent() const { return m_createInfo.extent; }
 	WindowFlags windowFlags() const { return m_createInfo.windowFlags; }
 	InstanceFlags instanceFlags() const { return m_createInfo.instanceFlags; }
+	AntiAliasing antiAliasing() const { return m_createInfo.desiredAA; }
 
 	Builder& setTitle(std::string set);
 	Builder& setExtent(glm::uvec2 set);
@@ -16,6 +17,7 @@ class Builder {
 	Builder& updateFlags(InstanceFlags set, InstanceFlags unset = {});
 	Builder& setFlag(WindowFlag flag, bool set = true);
 	Builder& setFlag(InstanceFlag flag, bool set = true);
+	Builder& setAntiAliasing(AntiAliasing aa);
 
 	Result<UContext> build();
 
@@ -53,6 +55,11 @@ inline Builder& Builder::setFlag(WindowFlag flag, bool set) {
 
 inline Builder& Builder::setFlag(InstanceFlag flag, bool set) {
 	m_createInfo.instanceFlags.assign(flag, set);
+	return *this;
+}
+
+inline Builder& Builder::setAntiAliasing(AntiAliasing aa) {
+	m_createInfo.desiredAA = aa;
 	return *this;
 }
 } // namespace vf

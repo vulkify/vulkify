@@ -143,6 +143,7 @@ struct Vram {
 	ShaderCache* shaderCache{};
 
 	float maxAnisotropy{};
+	vk::SampleCountFlagBits colourSamples{};
 	vk::Format textureFormat = vk::Format::eR8G8B8A8Srgb;
 
 	bool operator==(Vram const& rhs) const { return commandFactory == rhs.commandFactory && allocator == rhs.allocator; }
@@ -180,6 +181,6 @@ struct UniqueVram {
 
 	explicit operator bool() const { return vram && commandFactory; }
 
-	static UniqueVram make(vk::Instance instance, VKDevice device);
+	static UniqueVram make(vk::Instance instance, VKDevice device, int samples);
 };
 } // namespace vf

@@ -58,7 +58,7 @@ void RenderPass::setViewport() const {
 	auto const ext = glm::vec2(this->view.extent);
 	auto const viewport = view.view->viewport;
 	auto const v = Rect{viewport.extent * ext, viewport.origin * ext};
-	commandBuffer.setViewport(0, vk::Viewport(v.origin.x, v.extent.y + v.origin.y, v.extent.x, -v.extent.y));
+	commandBuffer.setViewport(0, vk::Viewport(v.origin.x, v.origin.y + v.extent.y, v.extent.x, -v.extent.y));
 }
 
 Surface::Surface() noexcept = default;

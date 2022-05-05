@@ -14,7 +14,7 @@ bool makeDefaultShaders(vk::Device device, vk::UniqueShaderModule& vert, vk::Uni
 }
 } // namespace
 
-PipelineFactory PipelineFactory::make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts) {
+PipelineFactory PipelineFactory::make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts, vk::SampleCountFlagBits samples, bool srr) {
 	if (!device) { return {}; }
 	auto ret = PipelineFactory{};
 	if (!makeDefaultShaders(device.device, ret.defaultShaders.vert, ret.defaultShaders.frag)) {
@@ -26,6 +26,8 @@ PipelineFactory PipelineFactory::make(VKDevice const& device, VertexInput vertex
 	ret.setLayouts = std::move(setLayouts);
 	auto const limits = device.gpu.getProperties().limits;
 	ret.lineWidthLimit = {limits.lineWidthRange[0], limits.lineWidthRange[1]};
+	ret.samples = samples;
+	ret.sampleRateShading = srr;
 	return ret;
 }
 
@@ -103,7 +105,7 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Spec
 	gpci.pColorBlendState = &pcbsci;
 
 	auto pdssci = vk::PipelineDepthStencilStateCreateInfo{};
-	pdssci.depthTestEnable = true;
+	pdssci.depthTestEnable = false;
 	pdssci.depthCompareOp = vk::CompareOp::eLess;
 	pdssci.depthWriteEnable = true;
 	gpci.pDepthStencilState = &pdssci;
@@ -118,6 +120,8 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Spec
 	gpci.pViewportState = &pvsci;
 
 	auto pmssci = vk::PipelineMultisampleStateCreateInfo{};
+	pmssci.rasterizationSamples = samples;
+	pmssci.sampleShadingEnable = sampleRateShading;
 	gpci.pMultisampleState = &pmssci;
 
 	try {

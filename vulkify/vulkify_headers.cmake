@@ -18,6 +18,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/context/builder.hpp
   include/vulkify/context/context.hpp
   include/vulkify/context/frame.hpp
+  include/vulkify/context/space.hpp
 
   include/vulkify/graphics/bitmap.hpp
   include/vulkify/graphics/buffer.hpp
@@ -36,6 +37,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/primitives/mesh_primitive.hpp
   include/vulkify/graphics/primitives/mesh.hpp
   include/vulkify/graphics/primitives/shape.hpp
+  include/vulkify/graphics/primitives/circle_shape.hpp
   include/vulkify/graphics/primitives/quad_shape.hpp
 
   include/vulkify/instance/event_type.hpp
@@ -43,10 +45,10 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/instance/gpu.hpp
   include/vulkify/instance/headless_instance.hpp
   include/vulkify/instance/instance_create_info.hpp
+  include/vulkify/instance/instance_enums.hpp
   include/vulkify/instance/instance.hpp
   include/vulkify/instance/key_event.hpp
   include/vulkify/instance/monitor.hpp
   include/vulkify/instance/vf_instance.hpp
   include/vulkify/instance/video_mode.hpp
-  include/vulkify/instance/window_flags.hpp
 )
