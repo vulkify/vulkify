@@ -2,17 +2,11 @@
 #include <vulkify/context/context.hpp>
 
 namespace vf {
-namespace {
-Context* g_active{};
-}
+Context::Context(UInstance&& instance) noexcept : m_instance(std::move(instance)) {}
 
-Context::Context(UInstance&& instance) noexcept : m_instance(std::move(instance)) { g_active = this; }
-Context::~Context() noexcept { g_active = {}; }
-
-vf::Result<ktl::kunique_ptr<Context>> Context::make(UInstance&& instance) {
-	if (g_active) { return Error::eDuplicateInstance; }
+auto Context::make(UInstance&& instance) -> Result {
 	if (!instance) { return Error::eInvalidArgument; }
-	return ktl::kunique_ptr<Context>(new Context(std::move(instance)));
+	return Context(std::move(instance));
 }
 
 Frame Context::frame(Rgba clear) {

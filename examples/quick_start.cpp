@@ -93,12 +93,10 @@ struct Helper {
 	}
 
 	vf::QuadShape makeTexturedQuad(char const* imagePath) {
-		// image
 		auto image = vf::Image{};
 		auto loadResult = image.load(imagePath);
 		if (loadResult) { std::cout << imagePath << " [" << loadResult->x << 'x' << loadResult->y << "] loaded sucessfully\n"; }
 
-		// textured quad
 		auto const quadCreateInfo = vf::QuadShape::CreateInfo{glm::vec2(200.0f, 200.0f)};
 		auto ret = vf::QuadShape(context, "textured_quad", quadCreateInfo);
 		ret.setTexture(vf::Texture(context, "texture", image), false); // should be magenta if image is bad
@@ -116,10 +114,10 @@ struct Helper {
 	}
 };
 
-void test(vf::UContext ctx) {
-	std::cout << "using GPU: " << ctx->gpu().name << '\n';
+void test(vf::Context context) {
+	std::cout << "using GPU: " << context.gpu().name << '\n';
 
-	auto helper = Helper{*ctx};
+	auto helper = Helper{context};
 
 	auto triangle = helper.makeTriangle();
 	auto rgbTexture = helper.makeRgbTexture();
@@ -127,26 +125,25 @@ void test(vf::UContext ctx) {
 	auto pentagon = helper.makePentagon(std::move(rgbTexture));
 	auto [circle, iris] = helper.makeCircles();
 	auto texturedQuad = helper.makeTexturedQuad("test_image.png");
-
-	// stars
 	auto stars = helper.makeStars();
+
 	struct StarOffset {
 		float dscale{};
 		float drot{};
 	};
+
 	static constexpr StarOffset starOffsets[stars.instances.size()] = {{-1.0f, 1.0f}, {-0.5f, 2.0f}, {0.25f, 5.0f}, {0.75f, 3.0f}};
+	static constexpr auto clearA = vf::Rgba::make(0xfff000ff);
+	static constexpr auto clearB = vf::Rgba::make(0x000fffff);
 
 	vf::Primitive const* primitives[] = {&triangle, &rgbQuad, &pentagon, &circle, &iris, &texturedQuad, &stars};
 
-	auto const clearA = vf::Rgba::make(0xfff000ff);
-	auto const clearB = vf::Rgba::make(0x000fffff);
-
-	ctx->show();
+	context.show();
 	auto elapsed = vf::Time{};
 
-	while (!ctx->closing()) {
+	while (!context.closing()) {
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
-		auto frame = ctx->frame(clear);
+		auto frame = context.frame(clear);
 		elapsed += frame.dt();
 
 		for (auto const& event : frame.poll().events) {
@@ -177,11 +174,7 @@ std::ostream& operator<<(std::ostream& o, vf::Version const& v) { return o << 'v
 
 int main() {
 	std::cout << "vulkify " << vf::version_v << '\n';
-	// auto context = vf::Builder{}.setFlag(vf::InstanceFlag::eLinearSwapchain).build();
 	auto context = vf::Builder{}.setFlag(vf::WindowFlag::eResizable).build();
-	// auto context = vf::Builder{}.setFlag(vf::InstanceFlag::eSuperSampling).build();
-
-	// auto context = vf::Builder{}.setFlag(vf::InstanceFlag::eHeadless).build();
 	if (!context) { return EXIT_FAILURE; }
 	test(std::move(context.value()));
 }

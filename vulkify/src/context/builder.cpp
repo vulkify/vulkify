@@ -3,7 +3,7 @@
 #include <vulkify/instance/vf_instance.hpp>
 
 namespace vf {
-Result<UContext> Builder::build() {
+Context::Result Builder::build() {
 	auto instance = UInstance{};
 	m_createInfo.title = m_title.c_str();
 	if (m_createInfo.instanceFlags.test(InstanceFlag::eHeadless)) {

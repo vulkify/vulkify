@@ -19,7 +19,7 @@ class Builder {
 	Builder& setFlag(InstanceFlag flag, bool set = true);
 	Builder& setAntiAliasing(AntiAliasing aa);
 
-	Result<UContext> build();
+	Context::Result build();
 
   private:
 	InstanceCreateInfo m_createInfo{};

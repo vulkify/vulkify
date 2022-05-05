@@ -1,22 +1,14 @@
 #pragma once
 #include <vulkify/context/frame.hpp>
 #include <vulkify/context/space.hpp>
-#include <vulkify/core/result.hpp>
-#include <optional>
 
 namespace vf {
-class Context;
-using UContext = ktl::kunique_ptr<Context>;
-
 class Context {
   public:
-	using Result = vf::Result<UContext>;
+	using Result = vf::Result<Context>;
 	using Icon = Instance::Icon;
 
 	static Result make(UInstance&& instance);
-
-	Context& operator=(Context&&) = delete;
-	~Context() noexcept;
 
 	Instance const& instance() const { return *m_instance; }
 
@@ -56,7 +48,7 @@ class Context {
   private:
 	Context(UInstance&& instance) noexcept;
 
-	ktl::kunique_ptr<Instance> m_instance{};
+	UInstance m_instance{};
 	Clock::time_point m_stamp = now();
 };
 } // namespace vf
