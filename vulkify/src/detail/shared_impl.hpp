@@ -66,7 +66,6 @@ struct RenderPass {
 	vk::CommandBuffer commandBuffer{};
 	ShaderInput shaderInput{};
 	RenderView view{};
-	Rgba* clear{};
 
 	mutable vk::ShaderModule fragShader{};
 	mutable vk::PipelineLayout bound{};

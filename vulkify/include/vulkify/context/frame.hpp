@@ -12,7 +12,6 @@ class Frame {
 	Time dt() const { return m_dt; }
 	Poll const& poll() const { return m_poll; }
 
-	void setClear(Rgba clear) const { m_surface.setClear(clear); }
 	void draw(Primitive const& primitive) const { m_surface.draw(primitive); }
 
 	Surface const& surface() const { return m_surface; }

@@ -69,7 +69,7 @@ class Instance {
 	virtual void updateWindowFlags(WindowFlags set, WindowFlags unset = {}) = 0;
 
 	virtual Poll poll() = 0;
-	virtual Surface beginPass() = 0;
+	virtual Surface beginPass(Rgba clear) = 0;
 	virtual bool endPass() = 0;
 };
 

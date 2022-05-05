@@ -699,7 +699,7 @@ Instance::Poll VulkifyInstance::poll() {
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->fileDrops};
 }
 
-Surface VulkifyInstance::beginPass() {
+Surface VulkifyInstance::beginPass(Rgba clear) {
 	if (m_impl->acquired) {
 		VF_TRACE("RenderPass already begun");
 		return {};
@@ -707,9 +707,10 @@ Surface VulkifyInstance::beginPass() {
 	auto const sync = m_impl->renderer.sync();
 	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
 	if (!m_impl->acquired) { return {}; }
-	auto& r = m_impl->renderer;
-	auto cmd = r.beginRender(m_impl->acquired.image);
+	auto& sr = m_impl->renderer;
+	auto cmd = sr.beginRender(m_impl->acquired.image);
 	m_impl->vulkan.util->defer.decrement();
+	m_impl->renderer.clear = clear;
 
 	auto proj = m_impl->descriptorPool.get(0, 0, "UBO:P");
 	auto const extent = glm::uvec2(m_impl->acquired.image.extent.width, m_impl->acquired.image.extent.height);
@@ -718,7 +719,7 @@ Surface VulkifyInstance::beginPass() {
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
 	auto const view = RenderView{extent, &m_impl->view};
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *r.renderer.renderPass, std::move(cmd), input, view, &r.clear};
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view};
 }
 
 bool VulkifyInstance::endPass() {

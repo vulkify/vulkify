@@ -42,7 +42,7 @@ class HeadlessInstance : public Instance {
 	void updateWindowFlags(WindowFlags, WindowFlags) override {}
 
 	Poll poll() override { return std::move(m_poll); }
-	Surface beginPass() override { return {}; }
+	Surface beginPass(Rgba) override { return {}; }
 	bool endPass() override { return true; }
 
 	Poll m_poll{};

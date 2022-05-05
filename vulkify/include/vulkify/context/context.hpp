@@ -38,7 +38,7 @@ class Context {
 	Space space() const { return Space{m_instance->framebufferSize()}; }
 	AntiAliasing antiAliasing() const { return m_instance->antiAliasing(); }
 
-	Frame frame();
+	Frame frame(Rgba clear = {});
 
 	void setPosition(glm::ivec2 xy) { m_instance->setPosition(xy); }
 	void setSize(glm::uvec2 size) { m_instance->setSize(size); }

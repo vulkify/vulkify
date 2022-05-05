@@ -15,9 +15,9 @@ vf::Result<ktl::kunique_ptr<Context>> Context::make(UInstance&& instance) {
 	return ktl::kunique_ptr<Context>(new Context(std::move(instance)));
 }
 
-Frame Context::frame() {
+Frame Context::frame(Rgba clear) {
 	auto poll = m_instance->poll();
-	auto surface = m_instance->beginPass();
+	auto surface = m_instance->beginPass(clear);
 	return Frame{std::move(surface), poll, diffExchg(m_stamp)};
 }
 } // namespace vf

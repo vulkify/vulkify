@@ -43,7 +43,7 @@ class VulkifyInstance : public Instance {
 	void updateWindowFlags(WindowFlags set, WindowFlags unset) override;
 
 	Poll poll() override;
-	Surface beginPass() override;
+	Surface beginPass(Rgba clear) override;
 	bool endPass() override;
 
   private:

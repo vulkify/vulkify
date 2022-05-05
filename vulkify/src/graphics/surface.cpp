@@ -72,10 +72,6 @@ Surface::~Surface() {
 
 Surface::operator bool() const { return m_renderPass->commandBuffer; }
 
-void Surface::setClear(Rgba rgba) const {
-	if (m_renderPass->clear) { *m_renderPass->clear = rgba; }
-}
-
 bool Surface::setShader(Shader const& shader) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
 	if (!shader.module().module) { return false; }

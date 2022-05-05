@@ -28,7 +28,6 @@ class Surface {
 
 	explicit operator bool() const;
 
-	void setClear(Rgba rgba) const;
 	bool setShader(Shader const& shader) const;
 	bool draw(Drawable const& drawable) const;
 	bool draw(Primitive const& primitive) const { return draw(primitive.drawable()); }
