@@ -56,6 +56,6 @@ class HeadlessInstance : public Instance {
 	void run(ktl::kthread::stop_t stop);
 
 	ktl::kthread m_thread{};
-	Gpu m_gpu = {"vulkify (headless)", Gpu::Type::eOther};
+	Gpu m_gpu = {"vulkify (headless)", {}, Gpu::Type::eOther};
 };
 } // namespace vf

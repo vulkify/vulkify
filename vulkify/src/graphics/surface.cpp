@@ -114,7 +114,8 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) 
 	m_renderPass->writeView(set);
 	m_renderPass->writeModels(set, models, tex);
 	m_renderPass->setViewport();
-	m_renderPass->commandBuffer.setLineWidth(drawable.gbo.state.lineWidth);
+	auto const lineWidth = std::clamp(drawable.gbo.state.lineWidth, m_renderPass->lineWidthLimit.first, m_renderPass->lineWidthLimit.second);
+	m_renderPass->commandBuffer.setLineWidth(lineWidth);
 	m_renderPass->commandBuffer.bindVertexBuffers(0, buffers[0]->resource, vk::DeviceSize{});
 	auto const& geo = drawable.gbo.geometry();
 	auto const instanceCount = static_cast<std::uint32_t>(models.size());

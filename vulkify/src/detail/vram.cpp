@@ -87,15 +87,17 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples)
 	auto const framebufferSamples = getSamples(device.gpu.getProperties().limits.framebufferColorSampleCounts, samples);
 	auto vram = Vram{device};
 	if (vmaCreateAllocator(&allocatorInfo, &vram.allocator) != VK_SUCCESS) {
-		VF_TRACE("Failed to create Vram!");
+		VF_TRACE("[vf::(Internal)] Failed to create Vram!");
 		return {};
 	}
-	VF_TRACE("Vram constructed");
+	VF_TRACE("[vf::(Internal)] Vram constructed");
 	auto factory = ktl::make_unique<CommandFactory>();
 	factory->commandPools.factory().device = device;
 	vram.commandFactory = factory.get();
 	vram.maxAnisotropy = device.gpu.getProperties().limits.maxSamplerAnisotropy;
 	vram.colourSamples = framebufferSamples;
+	auto const lwl = device.gpu.getProperties().limits.lineWidthRange;
+	vram.lineWidthLimit = {lwl[0], lwl[1]};
 	return {std::move(factory), vram};
 }
 

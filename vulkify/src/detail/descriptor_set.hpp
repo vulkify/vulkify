@@ -128,7 +128,7 @@ struct DescriptorPool {
 	Pool* pool(std::uint32_t set) {
 		auto& pool = pools.get();
 		if (set > pool.size()) {
-			VF_TRACEF("[DescriptorSet] Invalid set [{}]!", set);
+			VF_TRACEF("[vf::(Internal)] Invalid set [{}]!", set);
 			return {};
 		}
 		return &pool[set];

@@ -30,7 +30,7 @@ bool SpirV::isGlsl(char const* path) {
 SpirV SpirV::make(std::span<std::byte const> bytes) {
 	auto ret = SpirV{};
 	if (bytes.size() % 4 != 0) {
-		VF_TRACEF("Invalid SPIR-V codesize: {}", bytes.size());
+		VF_TRACEF("[vf::SpirV] Invalid SPIR-V codesize: {}", bytes.size());
 		return {};
 	}
 	ret.code = std::make_unique<std::uint32_t[]>(bytes.size() / 4);
@@ -41,19 +41,19 @@ SpirV SpirV::make(std::span<std::byte const> bytes) {
 
 SpirV SpirV::load(std::string path) {
 	if (path.empty()) {
-		VF_TRACE("Cannot load empty Spir-V path");
+		VF_TRACE("[vf::SpirV] Cannot load empty Spir-V path");
 		return {};
 	}
 	auto ret = SpirV{std::move(path)};
 	auto file = std::ifstream(ret.path, std::ios::binary | std::ios::ate);
 	if (!file) {
-		VF_TRACEF("Failed to open Spir-V: {}", ret.path);
+		VF_TRACEF("[vf::SpirV] Failed to open Spir-V: {}", ret.path);
 		return {};
 	}
 
 	auto const ssize = file.tellg();
 	if (ssize <= 0 || ssize % 4 != 0) {
-		VF_TRACEF("Invalid Spir-V size: {}", ssize);
+		VF_TRACEF("[vf::SpirV] Invalid Spir-V size: {}", ssize);
 		return {};
 	}
 	file.seekg({});
@@ -61,31 +61,31 @@ SpirV SpirV::load(std::string path) {
 	ret.codesize = static_cast<std::uint32_t>(ssize);
 	ret.code = std::make_unique<std::uint32_t[]>(static_cast<std::size_t>(ssize / 4));
 	file.read(reinterpret_cast<char*>(ret.code.get()), ssize);
-	VF_TRACEF("Spir-V [{}] loaded successfully (codesize: {})", ret.path, ret.codesize);
+	VF_TRACEF("[vf::SpirV] [{}] loaded successfully (codesize: {})", ret.path, ret.codesize);
 
 	return ret;
 }
 
 SpirV SpirV::compile(char const* glsl, std::string path) {
 	if (!glslcAvailable()) {
-		VF_TRACE("glslc not available");
+		VF_TRACE("[vf::SpirV] glslc not available");
 		return {};
 	}
 	if (!glsl || !*glsl || path.empty()) {
-		VF_TRACE("Empty path");
+		VF_TRACE("[vf::SpirV] Empty path");
 		return {};
 	}
 	auto file = std::ofstream(path);
 	if (!file) {
-		VF_TRACEF("Failed to open file for write: [{}]", path);
+		VF_TRACEF("[vf::SpirV] Failed to open file for write: [{}]", path);
 		return {};
 	}
 	auto str = ktl::str_format("glslc {} -o {}", glsl, path);
 	if (std::system(str.data()) != 0) {
-		VF_TRACEF("Failed to compile glsl [{}] to Spir-V", glsl);
+		VF_TRACEF("[vf::SpirV] Failed to compile glsl [{}] to Spir-V", glsl);
 		return {};
 	}
-	VF_TRACEF("Glsl [{}] compiled to Spir-V [{}] successfully", glsl, path);
+	VF_TRACEF("[vf::SpirV] Glsl [{}] compiled to Spir-V [{}] successfully", glsl, path);
 	return load(std::move(path));
 }
 

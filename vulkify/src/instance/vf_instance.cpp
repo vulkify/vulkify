@@ -259,6 +259,7 @@ Gpu makeGPU(VKInstance const& vulkan) {
 	case vk::PhysicalDeviceType::eOther: ret.type = Gpu::Type::eOther; break;
 	default: break;
 	}
+	ret.maxLineWidth = vulkan.gpu.properties.limits.lineWidthRange[1];
 	return ret;
 }
 
@@ -701,7 +702,7 @@ Instance::Poll VulkifyInstance::poll() {
 
 Surface VulkifyInstance::beginPass(Rgba clear) {
 	if (m_impl->acquired) {
-		VF_TRACE("RenderPass already begun");
+		VF_TRACE("[vf::(Internal)] RenderPass already begun");
 		return {};
 	}
 	auto const sync = m_impl->renderer.sync();
@@ -719,7 +720,8 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
 	auto const view = RenderView{extent, &m_impl->view};
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view};
+	auto const lwl = m_impl->vram.vram->lineWidthLimit;
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view, lwl};
 }
 
 bool VulkifyInstance::endPass() {
