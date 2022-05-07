@@ -19,6 +19,7 @@ struct TRect {
 };
 
 using Rect = TRect<>;
+constexpr auto viewport_v = Rect{{1.0f, 1.0f}, {0.0f, 0.0f}};
 
 // impl
 

@@ -25,6 +25,7 @@ class HeadlessInstance : public Instance {
 	MonitorList monitors() const override { return {}; }
 	WindowFlags windowFlags() const override { return m_windowFlags; }
 	View& view() const override { return m_view; }
+	Rect& viewport() const override { return m_viewport; }
 	AntiAliasing antiAliasing() const override { return AntiAliasing::eNone; }
 
 	void show() override {}
@@ -50,6 +51,7 @@ class HeadlessInstance : public Instance {
 	glm::uvec2 m_windowSize{};
 	WindowFlags m_windowFlags{};
 	mutable View m_view{};
+	mutable Rect m_viewport{viewport_v};
 	std::atomic<bool> m_closing{};
 
   private:

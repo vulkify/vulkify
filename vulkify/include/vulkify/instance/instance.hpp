@@ -1,5 +1,6 @@
 #pragma once
 #include <ktl/kunique_ptr.hpp>
+#include <vulkify/core/rect.hpp>
 #include <vulkify/core/view.hpp>
 #include <vulkify/graphics/bitmap.hpp>
 #include <vulkify/graphics/surface.hpp>
@@ -52,6 +53,7 @@ class Instance {
 	virtual MonitorList monitors() const = 0;
 	virtual WindowFlags windowFlags() const = 0;
 	virtual View& view() const = 0;
+	virtual Rect& viewport() const = 0;
 	virtual AntiAliasing antiAliasing() const = 0;
 
 	virtual void show() = 0;

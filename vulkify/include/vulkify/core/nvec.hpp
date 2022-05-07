@@ -23,7 +23,7 @@ class nvec2 {
 	nvec2 rotated(Radian rad) const;
 	nvec2 inverted() const;
 
-	glm::vec2 const& value() const { return m_value; }
+	constexpr glm::vec2 const& value() const { return m_value; }
 	constexpr operator glm::vec2 const&() const { return value(); }
 	constexpr bool operator==(nvec2 const& rhs) const { return FloatEq{}(m_value.x, rhs.m_value.x) && FloatEq{}(m_value.y, rhs.m_value.y); }
 

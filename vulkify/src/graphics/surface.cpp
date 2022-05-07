@@ -55,10 +55,9 @@ void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
 }
 
 void RenderPass::setViewport() const {
-	if (!commandBuffer || !view.view) { return; }
+	if (!commandBuffer || !view.viewport) { return; }
 	auto const ext = glm::vec2(this->view.extent);
-	auto const viewport = view.view->viewport;
-	auto const v = Rect{viewport.extent * ext, viewport.origin * ext};
+	auto const v = Rect{view.viewport->extent * ext, view.viewport->origin * ext};
 	commandBuffer.setViewport(0, vk::Viewport(v.origin.x, v.origin.y + v.extent.y, v.extent.x, -v.extent.y));
 }
 

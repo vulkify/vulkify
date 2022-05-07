@@ -51,6 +51,7 @@ struct ShaderInput {
 struct RenderView {
 	glm::uvec2 extent{};
 	View const* view{};
+	Rect const* viewport{};
 };
 
 struct RenderPass {

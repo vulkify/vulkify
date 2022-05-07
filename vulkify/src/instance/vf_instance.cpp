@@ -498,6 +498,7 @@ struct VulkifyInstance::Impl {
 	DescriptorPool descriptorPool{};
 	ShaderInput::Textures shaderTextures{};
 	View view{};
+	Rect viewport{viewport_v};
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
@@ -602,6 +603,7 @@ WindowFlags VulkifyInstance::windowFlags() const {
 }
 
 View& VulkifyInstance::view() const { return m_impl->view; }
+Rect& VulkifyInstance::viewport() const { return m_impl->viewport; }
 
 AntiAliasing VulkifyInstance::antiAliasing() const {
 	switch (m_impl->vram.vram->colourSamples) {
@@ -723,7 +725,7 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 	proj.write(0, mat_p);
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
-	auto const view = RenderView{extent, &m_impl->view};
+	auto const view = RenderView{extent, &m_impl->view, &m_impl->viewport};
 	auto const lwl = m_impl->vram.vram->lineWidthLimit;
 	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view, lwl};
 }
