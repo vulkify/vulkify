@@ -3,40 +3,30 @@
 
 namespace vf {
 ///
-/// \brief Data structure specifying a quad shape
-///
-struct CircleState {
-	float diameter{100.0f};
-	std::uint32_t points{64};
-	glm::vec2 origin{};
-	Rgba vertex{white_v};
-};
-
-///
-/// \brief Primitive that models a quad / rectangle shape
+/// \brief Primitive that models a circle shape (as a regular polygon)
 ///
 class CircleShape : public OutlinedShape {
   public:
-	using CreateInfo = CircleState;
+	using State = PolygonCreateInfo;
 
 	static constexpr auto name_v = "circle";
 
 	CircleShape() = default;
-	CircleShape(Context const& context, std::string name = name_v, CreateInfo info = {});
+	CircleShape(Context const& context, std::string name = name_v, State initial = {});
 
-	CircleState const& state() const { return m_state; }
+	State const& state() const { return m_state; }
 	float diameter() const { return m_state.diameter; }
 	std::uint32_t points() const { return m_state.points; }
 	Texture const& texture() const { return m_texture; }
 
-	CircleShape& setState(CircleState state);
+	CircleShape& setState(State state);
 	CircleShape& setTexture(Texture texture, bool resizeToMatch);
 
-	void setOutline(float lineWidth, Rgba rgba) override;
-
   protected:
+	void refreshOutline() override;
+
 	CircleShape& refresh();
 
-	CircleState m_state{};
+	State m_state{};
 };
 } // namespace vf

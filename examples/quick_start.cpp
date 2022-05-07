@@ -59,26 +59,26 @@ struct Helper {
 	}
 
 	vf::QuadShape makeRgbQuad(vf::Texture const& texture) {
-		auto const quadCreateInfo = vf::QuadShape::CreateInfo{glm::vec2(100.0f, 100.0f)};
-		auto ret = vf::QuadShape(context, "rgb_quad", quadCreateInfo);
+		auto ret = vf::QuadShape(context, "rgb_quad", vf::QuadShape::State{glm::vec2(100.0f, 100.0f)});
 		ret.setTexture(texture.clone("rgb_texture_clone"), false);
 		ret.transform().position = viewRect.topRight() + glm::vec2(-padding_v.x, -padding_v.y);
+		ret.setOutline(5.0f, vf::magenta_v);
 		return ret;
 	}
 
-	vf::Mesh makePentagon(vf::Texture texture) {
-		auto pentagon = vf::Mesh(context, "pentagon");
-		pentagon.gbo.write(vf::Geometry::makeRegularPolygon(100.0f, 6));
+	vf::CircleShape makeHexagon(vf::Texture texture) {
+		auto ret = vf::CircleShape(context, "hexagon", {100.0f, 6});
 		auto bitmap = vf::Bitmap(vf::magenta_v);
 		texture.overwrite(bitmap.image(), vf::Texture::TopLeft{1, 1});
-		pentagon.texture = std::move(texture);
-		pentagon.instance.transform.position = viewRect.bottomLeft() + glm::vec2(padding_v.x, padding_v.y);
-		return pentagon;
+		ret.setTexture(std::move(texture), false);
+		ret.transform().position = viewRect.bottomLeft() + glm::vec2(padding_v.x, padding_v.y);
+		ret.setOutline(5.0f, vf::white_v);
+		return ret;
 	}
 
 	std::pair<vf::Mesh, vf::CircleShape> makeCircles() {
 		auto circle = vf::Mesh(context, "circle");
-		auto geometry = vf::Geometry::makeRegularPolygon(100.0f, 64);
+		auto geometry = vf::Geometry::makeRegularPolygon({100.0f, 64});
 		auto const circleRgbaStart = vf::yellow_v;
 		auto const circleRgbaEnd = vf::cyan_v;
 		auto span = std::span<vf::Vertex>(geometry.vertices).subspan(1); // exclude centre
@@ -86,7 +86,7 @@ struct Helper {
 		interpolateRgba(span.subspan(span.size() / 2), circleRgbaEnd, circleRgbaStart);
 		circle.gbo.write(std::move(geometry));
 		circle.instance.transform.position = viewRect.bottomRight() + glm::vec2(-padding_v.x, padding_v.y);
-		auto iris = vf::CircleShape(context, "iris", vf::CircleShape::CreateInfo{50.0f});
+		auto iris = vf::CircleShape(context, "iris", vf::CircleShape::State{50.0f});
 		iris.transform().position = circle.instance.transform.position;
 		iris.tint() = vf::black_v;
 		return {std::move(circle), std::move(iris)};
@@ -97,8 +97,7 @@ struct Helper {
 		auto loadResult = image.load(imagePath);
 		if (loadResult) { std::cout << imagePath << " [" << loadResult->x << 'x' << loadResult->y << "] loaded sucessfully\n"; }
 
-		auto const quadCreateInfo = vf::QuadShape::CreateInfo{glm::vec2(200.0f, 200.0f)};
-		auto ret = vf::QuadShape(context, "textured_quad", quadCreateInfo);
+		auto ret = vf::QuadShape(context, "textured_quad", vf::QuadShape::State{glm::vec2(200.0f, 200.0f)});
 		ret.setTexture(vf::Texture(context, "texture", image), false); // should be magenta if image is bad
 		return ret;
 	}
@@ -122,7 +121,7 @@ void test(vf::Context context) {
 	auto triangle = helper.makeTriangle();
 	auto rgbTexture = helper.makeRgbTexture();
 	auto rgbQuad = helper.makeRgbQuad(rgbTexture);
-	auto pentagon = helper.makePentagon(std::move(rgbTexture));
+	auto hexagon = helper.makeHexagon(std::move(rgbTexture));
 	auto [circle, iris] = helper.makeCircles();
 	auto texturedQuad = helper.makeTexturedQuad("test_image.png");
 	auto stars = helper.makeStars();
@@ -136,7 +135,7 @@ void test(vf::Context context) {
 	static constexpr auto clearA = vf::Rgba::make(0xfff000ff);
 	static constexpr auto clearB = vf::Rgba::make(0x000fffff);
 
-	vf::Primitive const* primitives[] = {&triangle, &rgbQuad, &pentagon, &circle, &iris, &texturedQuad, &stars};
+	vf::Primitive const* primitives[] = {&triangle, &rgbQuad, &hexagon, &circle, &iris, &texturedQuad, &stars};
 
 	context.show();
 	auto elapsed = vf::Time{};

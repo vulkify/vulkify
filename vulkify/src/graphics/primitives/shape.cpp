@@ -12,27 +12,26 @@ OutlinedShape::OutlinedShape(Context const& context, std::string name) : Shape(c
 }
 
 void OutlinedShape::setOutline(float lineWidth, Rgba rgba) {
-	bool const rgbaMatch = rgba == outlineRgba();
-	if (rgbaMatch && FloatEq{}(lineWidth, outlineWidth())) { return; }
-	auto geometry = m_geometry.geometry();
-	if (geometry.vertices.empty()) { return; }
-
-	if (!rgbaMatch) { buildOutline(std::move(geometry), rgba); }
-
 	m_outline.state.lineWidth = lineWidth;
+	m_outlineRgba = rgba;
+	if (!m_geometry.geometry().vertices.empty() && m_outline.geometry().vertices.empty()) { refreshOutline(); }
 }
 
 void OutlinedShape::draw(Surface const& surface) const {
 	Shape::draw(surface);
-	auto const outlineInstance = DrawInstance{m_instance.transform};
+	auto const outlineInstance = DrawInstance{m_instance.transform, m_outlineRgba};
 	surface.draw(Drawable{{&outlineInstance, 1}, m_outline, {}});
 }
 
-void OutlinedShape::buildOutline(Geometry geometry, Rgba rgba) {
-	auto const rgbav = rgba.normalize();
+void OutlinedShape::refreshOutline() { writeOutline(m_geometry.geometry()); }
+
+void OutlinedShape::writeOutline(Geometry geometry) {
+	if (geometry.vertices.empty()) { return; }
+
+	static auto const rgba = white_v.normalize();
 	for (auto& vertex : geometry.vertices) {
 		vertex.uv = {};
-		vertex.rgba = rgbav;
+		vertex.rgba = rgba;
 	}
 
 	geometry.indices.clear();
@@ -41,6 +40,5 @@ void OutlinedShape::buildOutline(Geometry geometry, Rgba rgba) {
 	geometry.indices.push_back(0);
 
 	m_outline.write(std::move(geometry));
-	m_outlineRgba = rgba;
 }
 } // namespace vf

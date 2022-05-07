@@ -3,37 +3,27 @@
 
 namespace vf {
 ///
-/// \brief Data structure specifying a quad shape
-///
-struct QuadState {
-	glm::vec2 size{100.0f, 100.0f};
-	glm::vec2 origin{};
-	QuadUV uv{};
-	Rgba vertex{white_v};
-};
-
-///
 /// \brief Primitive that models a quad / rectangle shape
 ///
 class QuadShape : public OutlinedShape {
   public:
-	using CreateInfo = QuadState;
+	using State = QuadCreateInfo;
 
 	static constexpr auto name_v = "quad";
 
 	QuadShape() = default;
-	QuadShape(Context const& context, std::string name = name_v, CreateInfo info = {});
+	QuadShape(Context const& context, std::string name = name_v, State initial = {});
 
-	QuadState const& state() const { return m_state; }
+	State const& state() const { return m_state; }
 	glm::vec2 size() const { return m_state.size; }
 	Texture const& texture() const { return m_texture; }
 
-	QuadShape& setState(QuadState state);
+	QuadShape& setState(State state);
 	QuadShape& setTexture(Texture texture, bool resizeToMatch);
 
   protected:
 	QuadShape& refresh();
 
-	QuadState m_state{};
+	State m_state{};
 };
 } // namespace vf

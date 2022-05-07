@@ -38,12 +38,13 @@ class OutlinedShape : public Shape {
 
 	float outlineWidth() const { return m_outline.state.lineWidth; }
 	Rgba outlineRgba() const { return m_outlineRgba; }
-	virtual void setOutline(float lineWidth, Rgba rgba);
+	void setOutline(float lineWidth, Rgba rgba);
 
 	void draw(Surface const& surface) const override;
 
   protected:
-	void buildOutline(Geometry geometry, Rgba rgba);
+	virtual void refreshOutline();
+	void writeOutline(Geometry geometry);
 
 	GeometryBuffer m_outline{};
 	Rgba m_outlineRgba{};

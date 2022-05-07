@@ -2,9 +2,9 @@
 #include <vulkify/graphics/primitives/quad_shape.hpp>
 
 namespace vf {
-QuadShape::QuadShape(Context const& context, std::string name, CreateInfo info) : OutlinedShape(context, std::move(name)) { setState(std::move(info)); }
+QuadShape::QuadShape(Context const& context, std::string name, State initial) : OutlinedShape(context, std::move(name)) { setState(std::move(initial)); }
 
-QuadShape& QuadShape::setState(QuadState state) {
+QuadShape& QuadShape::setState(State state) {
 	m_state = std::move(state);
 	return refresh();
 }
@@ -19,10 +19,9 @@ QuadShape& QuadShape::setTexture(Texture texture, bool resizeToMatch) {
 }
 
 QuadShape& QuadShape::refresh() {
-	if (m_state.size.x > 0.0f && m_state.size.y > 0.0f) {
-		auto quad = Geometry::makeQuad(m_state.size, m_state.origin, m_state.vertex, m_state.uv);
-		m_geometry.write(quad);
-	}
+	if (m_state.size.x <= 0.0f || m_state.size.y <= 0.0f) { return *this; }
+	m_geometry.write(Geometry::makeQuad(m_state));
+	refreshOutline();
 	return *this;
 }
 } // namespace vf

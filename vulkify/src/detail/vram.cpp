@@ -90,7 +90,6 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples)
 		VF_TRACE("[vf::(Internal)] Failed to create Vram!");
 		return {};
 	}
-	VF_TRACE("[vf::(Internal)] Vram constructed");
 	auto factory = ktl::make_unique<CommandFactory>();
 	factory->commandPools.factory().device = device;
 	vram.commandFactory = factory.get();

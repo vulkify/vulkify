@@ -34,6 +34,26 @@ struct QuadUV {
 };
 
 ///
+/// \brief Data structure specifying a quad shape
+///
+struct QuadCreateInfo {
+	glm::vec2 size{100.0f, 100.0f};
+	glm::vec2 origin{};
+	QuadUV uv{};
+	Rgba vertex{white_v};
+};
+
+///
+/// \brief Data structure specifying a regular polygon
+///
+struct PolygonCreateInfo {
+	float diameter{100.0f};
+	std::uint32_t points{64};
+	glm::vec2 origin{};
+	Rgba vertex{white_v};
+};
+
+///
 /// \brief Data structure specifying graphics geometry (
 ///
 /// Note: Geometry objects are uploaded directly to vertex/index buffers
@@ -42,7 +62,7 @@ struct Geometry {
 	std::vector<Vertex> vertices{};
 	std::vector<std::uint32_t> indices{};
 
-	static Geometry makeQuad(glm::vec2 size, glm::vec2 origin = {}, Rgba rgba = white_v, QuadUV const& uv = {});
-	static Geometry makeRegularPolygon(float diameter, std::uint32_t sides, glm::vec2 origin = {}, Rgba rgba = white_v);
+	static Geometry makeQuad(QuadCreateInfo const& info = {});
+	static Geometry makeRegularPolygon(PolygonCreateInfo const& info = {});
 };
 } // namespace vf

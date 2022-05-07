@@ -14,6 +14,8 @@ concept InstancedMeshStorage = std::convertible_to<T, std::span<DrawInstance con
 template <InstancedMeshStorage Storage = std::vector<DrawInstance>>
 class InstancedMesh : public MeshPrimitive {
   public:
+	static InstancedMesh makeQuad(Context const& context, std::string name, QuadCreateInfo const& info = {}, Texture texture = {});
+
 	InstancedMesh() = default;
 	InstancedMesh(Context const& context, std::string name) : MeshPrimitive(context, std::move(name)) {}
 
@@ -24,4 +26,22 @@ class InstancedMesh : public MeshPrimitive {
 	Texture texture{};
 	Storage instances{};
 };
+
+template <typename T>
+T makeQuadMesh(Context const& context, std::string name, QuadCreateInfo const& info = {}, Texture texture = {});
+
+// impl
+
+template <InstancedMeshStorage Storage>
+InstancedMesh<Storage> InstancedMesh<Storage>::makeQuad(Context const& context, std::string name, QuadCreateInfo const& info, Texture texture) {
+	return makeQuadMesh<InstancedMesh>(context, std::move(name), info, std::move(texture));
+}
+
+template <typename T>
+T makeQuadMesh(Context const& context, std::string name, QuadCreateInfo const& info, Texture texture) {
+	auto ret = T(context, std::move(name));
+	ret.gbo.write(Geometry::makeQuad(info));
+	ret.texture = std::move(texture);
+	return ret;
+}
 } // namespace vf
