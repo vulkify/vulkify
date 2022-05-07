@@ -47,8 +47,8 @@ class Instance {
 	virtual glm::uvec2 windowSize() const = 0;
 	virtual glm::ivec2 position() const = 0;
 	virtual glm::vec2 contentScale() const = 0;
-	virtual glm::vec2 cursorPosition() const = 0;
 	virtual CursorMode cursorMode() const = 0;
+	virtual glm::vec2 cursorPosition() const = 0;
 	virtual MonitorList monitors() const = 0;
 	virtual WindowFlags windowFlags() const = 0;
 	virtual View& view() const = 0;

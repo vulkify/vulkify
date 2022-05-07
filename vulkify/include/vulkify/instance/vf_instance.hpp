@@ -21,8 +21,8 @@ class VulkifyInstance : public Instance {
 	glm::uvec2 windowSize() const override;
 	glm::ivec2 position() const override;
 	glm::vec2 contentScale() const override;
-	glm::vec2 cursorPosition() const override;
 	CursorMode cursorMode() const override;
+	glm::vec2 cursorPosition() const override;
 	MonitorList monitors() const override;
 	WindowFlags windowFlags() const override;
 	View& view() const override;

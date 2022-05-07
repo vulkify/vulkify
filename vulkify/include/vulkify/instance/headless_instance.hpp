@@ -20,8 +20,8 @@ class HeadlessInstance : public Instance {
 	glm::uvec2 windowSize() const override { return m_windowSize; }
 	glm::ivec2 position() const override { return {}; }
 	glm::vec2 contentScale() const override { return glm::vec2(1.0f); }
-	glm::vec2 cursorPosition() const override { return {}; }
 	CursorMode cursorMode() const override { return {}; }
+	glm::vec2 cursorPosition() const override { return {}; }
 	MonitorList monitors() const override { return {}; }
 	WindowFlags windowFlags() const override { return m_windowFlags; }
 	View& view() const override { return m_view; }

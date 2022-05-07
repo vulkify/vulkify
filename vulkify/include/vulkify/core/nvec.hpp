@@ -7,6 +7,8 @@
 namespace vf {
 class nvec2 {
   public:
+	static nvec2 const identity_v;
+
 	static constexpr float sqrMag(glm::vec2 in);
 	static glm::vec2 normalize(glm::vec2 in);
 
@@ -17,8 +19,12 @@ class nvec2 {
 	static glm::vec2 rotate(glm::vec2 vec, Radian rad);
 
 	nvec2& rotate(Radian rad);
+	nvec2& invert();
+	nvec2 rotated(Radian rad) const;
+	nvec2 inverted() const;
 
-	constexpr operator glm::vec2 const&() const { return m_value; }
+	glm::vec2 const& value() const { return m_value; }
+	constexpr operator glm::vec2 const&() const { return value(); }
 	constexpr bool operator==(nvec2 const& rhs) const { return FloatEq{}(m_value.x, rhs.m_value.x) && FloatEq{}(m_value.y, rhs.m_value.y); }
 
   private:
@@ -26,6 +32,8 @@ class nvec2 {
 };
 
 // impl
+
+inline nvec2 const nvec2::identity_v = nvec2{};
 
 constexpr float nvec2::sqrMag(glm::vec2 const in) { return in.x * in.x + in.y * in.y; }
 
@@ -43,5 +51,22 @@ inline glm::vec2 nvec2::rotate(glm::vec2 const vec, Radian const rad) {
 inline nvec2& nvec2::rotate(Radian rad) {
 	m_value = rotate(m_value, rad);
 	return *this;
+}
+
+inline nvec2& nvec2::invert() {
+	m_value.y = -m_value.y;
+	return *this;
+}
+
+inline nvec2 nvec2::rotated(Radian rad) const {
+	auto ret = *this;
+	ret.rotate(rad);
+	return ret;
+}
+
+inline nvec2 nvec2::inverted() const {
+	auto ret = *this;
+	ret.invert();
+	return ret;
 }
 } // namespace vf

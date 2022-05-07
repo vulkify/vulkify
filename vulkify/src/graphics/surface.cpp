@@ -33,9 +33,10 @@ constexpr vk::PrimitiveTopology topology(Topology topo) {
 
 void RenderPass::writeView(DescriptorSet& set) const {
 	if (!set) { return; }
-	auto instance = DrawInstance{view.view->transform};
-	instance.transform.position = -instance.transform.position;
-	set.write(shaderInput.one.bindings.ubo, instance.drawModel());
+	// invert transformation
+	auto const transform = Transform{-view.view->position, view.view->orientation.inverted()};
+	auto const dm = DrawModel{{transform.position, transform.orientation.value()}, {glm::vec2(1.0f), glm::vec2()}};
+	set.write(shaderInput.one.bindings.ubo, dm);
 }
 
 void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> instances, Tex tex) const {

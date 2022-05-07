@@ -22,7 +22,7 @@ class Context {
 	glm::uvec2 windowSize() const { return m_instance->windowSize(); }
 	glm::ivec2 position() const { return m_instance->position(); }
 	glm::vec2 contentScale() const { return m_instance->contentScale(); }
-	glm::vec2 cursorPosition() const { return m_instance->cursorPosition(); }
+	glm::vec2 cursorPosition() const { return m_instance->cursorPosition() * contentScale(); }
 	CursorMode cursorMode() const { return m_instance->cursorMode(); }
 	MonitorList monitors() const { return m_instance->monitors(); }
 	WindowFlags windowFlags() const { return m_instance->windowFlags(); }
@@ -42,6 +42,11 @@ class Context {
 	void setWindowed(glm::uvec2 extent) { m_instance->setWindowed(extent); }
 	void setFullscreen(Monitor const& monitor, glm::uvec2 resolution = {}) { m_instance->setFullscreen(monitor, resolution); }
 	void updateWindowFlags(WindowFlags set, WindowFlags unset) { m_instance->updateWindowFlags(set, unset); }
+
+	glm::vec2 unproject(glm::vec2 point) const { return unproject(view(), point); }
+
+	static glm::mat3 unprojection(View const& view) { return Transform::rotation(view.orientation) * Transform::translation(view.position); }
+	static glm::vec2 unproject(View const& view, glm::vec2 point) { return unprojection(view) * glm::vec3(point, 1.0f); }
 
 	Vram const& vram() const { return m_instance->vram(); }
 

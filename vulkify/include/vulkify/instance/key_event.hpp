@@ -200,5 +200,8 @@ struct KeyEvent {
 	Key key{};
 	Action action{};
 	Mods mods{};
+
+	constexpr bool operator()(Key k, Action a) const { return key == k && action == a; }
+	constexpr bool operator()(Key k, Action a, Mods m) const { return mods == m && operator()(k, a); }
 };
 } // namespace vf

@@ -358,8 +358,6 @@ struct FrameSync {
 };
 
 struct SwapchainRenderer {
-	enum Image { eColour, eDepth };
-
 	Vram vram{};
 
 	Renderer renderer{};
@@ -574,8 +572,14 @@ glm::uvec2 VulkifyInstance::framebufferSize() const { return getFramebufferSize(
 glm::uvec2 VulkifyInstance::windowSize() const { return getWindowSize(m_impl->window->win); }
 glm::ivec2 VulkifyInstance::position() const { return getGlfwVec<int>(m_impl->window->win, &glfwGetWindowPos); }
 glm::vec2 VulkifyInstance::contentScale() const { return getGlfwVec<float>(m_impl->window->win, glfwGetWindowContentScale); }
-glm::vec2 VulkifyInstance::cursorPosition() const { return getGlfwVec<double>(m_impl->window->win, &glfwGetCursorPos); }
 CursorMode VulkifyInstance::cursorMode() const { return castCursorMode(glfwGetInputMode(m_impl->window->win, GLFW_CURSOR)); }
+
+glm::vec2 VulkifyInstance::cursorPosition() const {
+	auto const pos = getGlfwVec<double>(m_impl->window->win, &glfwGetCursorPos);
+	auto const hwin = glm::vec2(windowSize()) * 0.5f;
+	return {pos.x - hwin.x, hwin.y - pos.y};
+}
+
 MonitorList VulkifyInstance::monitors() const {
 	auto ret = MonitorList{};
 	int count;
