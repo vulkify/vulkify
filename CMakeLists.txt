@@ -95,4 +95,8 @@ add_subdirectory(vulkify)
 if(VULKIFY_BUILD_EXAMPLES)
   message(STATUS "Adding vulkify examples to build tree")
   add_subdirectory(examples)
+
+  enable_testing()
+  message(STATUS "Adding vulkify test target")
+  add_test(NAME vulkify-headless COMMAND ${PROJECT_NAME}-quick-start --headless)
 endif()

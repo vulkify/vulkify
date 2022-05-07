@@ -1,21 +1,20 @@
 #pragma once
-#include <ktl/async/kthread.hpp>
 #include <vulkify/core/result.hpp>
+#include <vulkify/core/time.hpp>
 #include <vulkify/instance/instance.hpp>
-#include <atomic>
 
 namespace vf {
 class HeadlessInstance : public Instance {
   public:
 	using Result = vf::Result<ktl::kunique_ptr<HeadlessInstance>>;
 
-	static Result make() { return ktl::make_unique<HeadlessInstance>(); }
+	static Result make(Time autoclose = 2s) { return ktl::make_unique<HeadlessInstance>(autoclose); }
 
-	HeadlessInstance();
+	HeadlessInstance(Time autoclose);
 
 	Vram const& vram() const override;
 	Gpu const& gpu() const override { return m_gpu; }
-	bool closing() const override { return m_closing; }
+	bool closing() const override { return Clock::now() - m_start > m_autoclose; }
 	glm::uvec2 framebufferSize() const override { return m_framebufferSize; }
 	glm::uvec2 windowSize() const override { return m_windowSize; }
 	glm::ivec2 position() const override { return {}; }
@@ -52,12 +51,10 @@ class HeadlessInstance : public Instance {
 	WindowFlags m_windowFlags{};
 	mutable View m_view{};
 	mutable Rect m_viewport{viewport_v};
-	std::atomic<bool> m_closing{};
 
   private:
-	void run(ktl::kthread::stop_t stop);
-
-	ktl::kthread m_thread{};
 	Gpu m_gpu = {"vulkify (headless)", {}, Gpu::Type::eOther};
+	Clock::time_point m_start = Clock::now();
+	Time m_autoclose{};
 };
 } // namespace vf

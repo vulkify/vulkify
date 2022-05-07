@@ -29,4 +29,4 @@ jobs:
       - name: build
         run: cmake --build build --config=Release
       - name: test
-        run: cd build && ctest --config=Release
+        run: cd build && ctest -C Release

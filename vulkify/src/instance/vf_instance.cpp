@@ -746,19 +746,7 @@ bool VulkifyInstance::endPass() {
 
 Vram const& VulkifyInstance::vram() const { return m_impl->vram.vram; }
 
-HeadlessInstance::HeadlessInstance() : m_thread(ktl::kthread([this](ktl::kthread::stop_t stop) { run(stop); })) {}
-
-void HeadlessInstance::run(ktl::kthread::stop_t stop) {
-	while (!stop.stop_requested()) {
-		auto line = std::string{};
-		std::getline(std::cin, line);
-		if (line[0] == 'q' || line[0] == 'Q') {
-			m_closing = true;
-			m_thread.request_stop();
-		}
-		ktl::kthread::yield();
-	}
-}
+HeadlessInstance::HeadlessInstance(Time autoclose) : m_autoclose(autoclose) {}
 
 Vram const& HeadlessInstance::vram() const { return g_inactive.vram; }
 } // namespace vf

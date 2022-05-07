@@ -172,9 +172,10 @@ void test(vf::Context context) {
 
 std::ostream& operator<<(std::ostream& o, vf::Version const& v) { return o << 'v' << v.major << '.' << v.minor << '.' << v.patch; }
 
-int main() {
+int main(int argc, char** argv) {
+	bool const headless = argc > 1 && argv[1] == std::string_view("--headless");
 	std::cout << "vulkify " << vf::version_v << '\n';
-	auto context = vf::Builder{}.setFlag(vf::WindowFlag::eResizable).build();
+	auto context = vf::Builder{}.setFlag(vf::WindowFlag::eResizable).setFlag(vf::InstanceFlag::eHeadless, headless).build();
 	if (!context) { return EXIT_FAILURE; }
 	test(std::move(context.value()));
 }
