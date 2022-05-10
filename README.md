@@ -32,7 +32,7 @@ Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
 
 ## Requirements
 
-- CMake 3.19+
+- CMake 3.17+
 - C++20 compiler and standard library
 - Vulkan 1.1+
 - Desktop windowing system/manager

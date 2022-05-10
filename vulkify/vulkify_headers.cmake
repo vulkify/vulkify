@@ -42,6 +42,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   include/vulkify/instance/event_type.hpp
   include/vulkify/instance/event.hpp
+  include/vulkify/instance/gamepad.hpp
   include/vulkify/instance/gpu.hpp
   include/vulkify/instance/headless_instance.hpp
   include/vulkify/instance/instance_create_info.hpp

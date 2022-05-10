@@ -141,31 +141,6 @@ enum class Key : std::uint32_t {
 	eMouseButtonLeft = eMouseButton1,
 	eMouseButtonRight = eMouseButton2,
 	eMouseButtonMiddle = eMouseButton3,
-
-	eGamepadButtonBegin = 410,
-	eGamepadButtonA = eGamepadButtonBegin,
-	eGamepadButtonB = 411,
-	eGamepadButtonX = 412,
-	eGamepadButtonY = 413,
-	eGamepadButtonLeftBumper = 414,
-	eGamepadButtonRightBumper = 415,
-	eGamepadButtonBack = 416,
-	eGamepadButtonStart = 417,
-	eGamepadButtonGuide = 418,
-	eGamepadButtonLeftThumb = 419,
-	eGamepadButtonRightThumb = 420,
-	eGamepadButtonDpadUp = 421,
-	eGamepadButtonDpadRight = 422,
-	eGamepadButtonDpadDown = 423,
-	eGamepadButtonDpadLeft = 424,
-	eGamepadButtonEnd,
-	eGamepadButtonLast = eGamepadButtonDpadLeft,
-	eGamepadButtonCross = eGamepadButtonA,
-	eGamepadButtonCircle = eGamepadButtonB,
-	eGamepadButtonSquare = eGamepadButtonX,
-	eGamepadButtonTriangle = eGamepadButtonY,
-
-	eAllEnd = eGamepadButtonEnd,
 };
 
 enum class Action : std::uint8_t { eRelease, ePress, eRepeat };
@@ -180,21 +155,6 @@ enum class Mod : std::uint8_t {
 	eNumLock = 1 << 5,
 };
 using Mods = ktl::enum_flags<Mod, std::underlying_type_t<Mod>, ktl::enum_trait_pot>;
-
-enum class Axis : std::uint8_t {
-	eUnknown,
-	eLeftX = 0,
-	eLeftY,
-	eRightX,
-	eRightY,
-	eLeftTrigger,
-	eRightTrigger,
-
-	eMouseBegin = 100,
-	eMouseScrollX = eMouseBegin,
-	eMouseScrollY,
-	eMouseEnd
-};
 
 struct KeyEvent {
 	Key key{};

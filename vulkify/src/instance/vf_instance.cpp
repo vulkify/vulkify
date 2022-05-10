@@ -25,11 +25,15 @@
 #include <vulkify/graphics/bitmap.hpp>
 #include <iostream>
 
+#include <vulkify/instance/gamepad.hpp>
+
 namespace vf {
 namespace {
 using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
 using ScancodeStorage = ktl::fixed_vector<std::uint32_t, Instance::max_scancodes_v>;
 using FileDropStorage = std::vector<std::string>;
+
+inline constexpr auto empty_cstr_v = "";
 
 struct CursorStorage {
 	struct Hasher {
@@ -48,6 +52,21 @@ struct {
 
 	bool match(GLFWwindow const* w) const { return w == window && events && scancodes && fileDrops; }
 } g_glfw;
+
+struct {
+	GLFWgamepadstate states[Gamepad::max_id_v]{};
+
+	void operator()() {
+		for (int i = 0; i < Gamepad::max_id_v; ++i) {
+			GLFWgamepadstate state;
+			if (glfwGetGamepadState(GLFW_JOYSTICK_1 + i, &state)) {
+				states[i] = state;
+			} else {
+				states[i] = {};
+			}
+		}
+	}
+} g_gamepads{};
 
 template <typename Out, typename In = int>
 constexpr glm::tvec2<Out> cast(glm::tvec2<In> const& in) {
@@ -507,6 +526,7 @@ VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(
 VulkifyInstance::~VulkifyInstance() {
 	m_impl->vulkan.device->waitIdle();
 	g_glfw = {};
+	g_gamepads = {};
 }
 
 VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
@@ -702,6 +722,7 @@ Instance::Poll VulkifyInstance::poll() {
 	m_impl->window->events.clear();
 	m_impl->window->scancodes.clear();
 	m_impl->window->fileDrops.clear();
+	g_gamepads();
 	glfwPollEvents();
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->fileDrops};
 }
@@ -749,4 +770,42 @@ Vram const& VulkifyInstance::vram() const { return m_impl->vram.vram; }
 HeadlessInstance::HeadlessInstance(Time autoclose) : m_autoclose(autoclose) {}
 
 Vram const& HeadlessInstance::vram() const { return g_inactive.vram; }
+
+// gamepad
+
+GamepadMap Gamepad::map() {
+	auto ret = GamepadMap{};
+	for (int i = GLFW_JOYSTICK_1; i <= GLFW_JOYSTICK_16; ++i) { ret.map[i] = glfwJoystickIsGamepad(i) == GLFW_TRUE; }
+	return ret;
+}
+
+Gamepad::operator bool() const {
+	if (id < 0) { return false; }
+	return glfwJoystickIsGamepad(GLFW_JOYSTICK_1 + id) == GLFW_TRUE;
+}
+
+char const* Gamepad::name() const {
+	if (!*this) { return empty_cstr_v; }
+	auto ret = glfwGetGamepadName(id);
+	if (!ret) { ret = glfwGetJoystickName(id); }
+	return ret ? ret : empty_cstr_v;
+}
+
+bool Gamepad::operator()(Button button) const {
+	if (!*this) { return false; }
+	auto const& buttons = g_gamepads.states[id].buttons;
+	auto const index = static_cast<int>(button);
+	if (index >= static_cast<int>(std::size(buttons))) { return false; }
+	return buttons[index] == GLFW_PRESS;
+}
+
+float Gamepad::operator()(Axis axis) const {
+	if (!*this) { return false; }
+	auto const& axes = g_gamepads.states[id].axes;
+	auto const index = static_cast<int>(axis);
+	if (index >= static_cast<int>(std::size(axes))) { return false; }
+	return axes[index];
+}
+
+std::size_t GamepadMap::count() const { return static_cast<std::size_t>(std::count(std::begin(map), std::end(map), true)); }
 } // namespace vf

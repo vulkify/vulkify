@@ -53,5 +53,4 @@ class VulkifyInstance : public Instance {
 
 	VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept;
 };
-
 } // namespace vf

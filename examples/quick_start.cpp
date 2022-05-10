@@ -115,7 +115,6 @@ struct Helper {
 
 void test(vf::Context context) {
 	std::cout << "using GPU: " << context.gpu().name << '\n';
-
 	auto helper = Helper{context};
 
 	auto triangle = helper.makeTriangle();
@@ -153,6 +152,11 @@ void test(vf::Context context) {
 			}
 			default: break;
 			}
+		}
+
+		if (auto pad = vf::Gamepad{0}) {
+			auto const dx = pad(vf::GamepadAxis::eLeftX) * frame.dt().count() * 100.0f;
+			context.view().position.x += dx;
 		}
 
 		for (auto [star, index] : ktl::enumerate(stars.instances)) {
