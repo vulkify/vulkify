@@ -161,8 +161,8 @@ struct Vram {
 };
 
 struct ImageWriter {
-	using Rect = vf::TRect<std::uint32_t, std::int32_t>;
-	using Offset = vf::TRect<std::int32_t, std::int32_t>;
+	using Rect = vf::TRect<std::uint32_t>;
+	using Offset = vf::TRect<std::int32_t>;
 
 	Vram const& vram;
 	vk::CommandBuffer cb;
@@ -172,8 +172,9 @@ struct ImageWriter {
 	static bool canBlit(VmaImage const& src, VmaImage const& dst);
 
 	bool write(VmaImage& out, std::span<std::byte const> data, Rect rect = {}, vk::ImageLayout il = {});
-	bool blit(VmaImage& in, VmaImage& out, Offset inr, Offset outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
-	bool copy(VmaImage& in, VmaImage& out, Rect inr, Rect outr, TPair<vk::ImageLayout> il = {}) const;
+	bool blit(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
+	bool copy(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, TPair<vk::ImageLayout> il = {}) const;
+	void clear(VmaImage& in, Rgba rgba) const;
 };
 
 struct UniqueVram {

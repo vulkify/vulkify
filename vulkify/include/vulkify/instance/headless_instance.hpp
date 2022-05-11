@@ -23,8 +23,7 @@ class HeadlessInstance : public Instance {
 	glm::vec2 cursorPosition() const override { return {}; }
 	MonitorList monitors() const override { return {}; }
 	WindowFlags windowFlags() const override { return m_windowFlags; }
-	View& view() const override { return m_view; }
-	Rect& viewport() const override { return m_viewport; }
+	RenderView& view() const override { return m_view; }
 	AntiAliasing antiAliasing() const override { return AntiAliasing::eNone; }
 
 	void show() override {}
@@ -49,8 +48,7 @@ class HeadlessInstance : public Instance {
 	glm::uvec2 m_framebufferSize{};
 	glm::uvec2 m_windowSize{};
 	WindowFlags m_windowFlags{};
-	mutable View m_view{};
-	mutable Rect m_viewport{viewport_v};
+	mutable RenderView m_view{};
 
   private:
 	Gpu m_gpu = {"vulkify (headless)", {}, Gpu::Type::eOther};

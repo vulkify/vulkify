@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/vec2.hpp>
 #include <glm/vec4.hpp>
+#include <vulkify/core/rect.hpp>
 #include <vulkify/core/rgba.hpp>
 #include <vector>
 
@@ -26,20 +27,12 @@ struct Vertex {
 };
 
 ///
-/// \brief Data structure specifying a quad's texture coordinates
-///
-struct QuadUV {
-	glm::vec2 topLeft{0.0f, 0.0f};
-	glm::vec2 bottomRight{1.0f, 1.0f};
-};
-
-///
 /// \brief Data structure specifying a quad shape
 ///
 struct QuadCreateInfo {
 	glm::vec2 size{100.0f, 100.0f};
 	glm::vec2 origin{};
-	QuadUV uv{};
+	UVRect uv{};
 	Rgba vertex{white_v};
 };
 

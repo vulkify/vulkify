@@ -18,8 +18,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/context/builder.hpp
   include/vulkify/context/context.hpp
   include/vulkify/context/frame.hpp
-  include/vulkify/context/space.hpp
 
+  include/vulkify/graphics/atlas.hpp
   include/vulkify/graphics/bitmap.hpp
   include/vulkify/graphics/buffer.hpp
   include/vulkify/graphics/draw_model.hpp
@@ -27,6 +27,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/geometry.hpp
   include/vulkify/graphics/image.hpp
   include/vulkify/graphics/primitive.hpp
+  include/vulkify/graphics/render_view.hpp
   include/vulkify/graphics/resource.hpp
   include/vulkify/graphics/shader.hpp
   include/vulkify/graphics/surface.hpp

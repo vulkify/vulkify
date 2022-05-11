@@ -4,6 +4,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   core/rgba.cpp
 
+  graphics/atlas.cpp
   graphics/bitmap.cpp
   graphics/buffer.cpp
   graphics/geometry.cpp

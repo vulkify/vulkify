@@ -1,6 +1,6 @@
 #pragma once
 #include <vulkify/context/frame.hpp>
-#include <vulkify/context/space.hpp>
+#include <vulkify/core/rect.hpp>
 
 namespace vf {
 class Context {
@@ -26,8 +26,8 @@ class Context {
 	CursorMode cursorMode() const { return m_instance->cursorMode(); }
 	MonitorList monitors() const { return m_instance->monitors(); }
 	WindowFlags windowFlags() const { return m_instance->windowFlags(); }
-	View& view() const { return m_instance->view(); }
-	Space space() const { return Space{m_instance->framebufferSize()}; }
+	RenderView& view() const { return m_instance->view(); }
+	Rect area() const { return Rect{m_instance->framebufferSize()}; }
 	AntiAliasing antiAliasing() const { return m_instance->antiAliasing(); }
 
 	Frame frame(Rgba clear = {});
@@ -45,8 +45,8 @@ class Context {
 
 	glm::vec2 unproject(glm::vec2 point) const { return unproject(view(), point); }
 
-	static glm::mat3 unprojection(View const& view) { return Transform::rotation(view.orientation) * Transform::translation(view.position); }
-	static glm::vec2 unproject(View const& view, glm::vec2 point) { return unprojection(view) * glm::vec3(point, 1.0f); }
+	static glm::mat3 unprojection(RenderView const& view) { return Transform::rotation(view.orientation) * Transform::translation(view.position); }
+	static glm::vec2 unproject(RenderView const& view, glm::vec2 point) { return unprojection(view) * glm::vec3(point, 1.0f); }
 
 	Vram const& vram() const { return m_instance->vram(); }
 

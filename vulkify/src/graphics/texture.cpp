@@ -54,8 +54,8 @@ Result<void> Texture::create(Image::View image) {
 
 Result<void> Texture::overwrite(Image::View const image, Rect const& region) {
 	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return Error::eInactiveInstance; }
-	if (static_cast<std::uint32_t>(region.origin.x) + region.extent.x > extent().x ||
-		static_cast<std::uint32_t>(region.origin.y) + region.extent.y > extent().y) {
+	if (static_cast<std::uint32_t>(region.offset.x) + region.extent.x > extent().x ||
+		static_cast<std::uint32_t>(region.offset.y) + region.extent.y > extent().y) {
 		return Error::eInvalidArgument;
 	}
 

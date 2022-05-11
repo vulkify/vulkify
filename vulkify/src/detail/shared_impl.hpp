@@ -5,13 +5,13 @@
 #include <glm/mat4x4.hpp>
 #include <ktl/unique_val.hpp>
 #include <vulkify/graphics/draw_model.hpp>
+#include <vulkify/graphics/render_view.hpp>
 
 namespace vf {
 struct PipelineFactory;
 class Instance;
 struct DrawModel;
 class Texture;
-struct View;
 
 inline vk::SamplerCreateInfo samplerInfo(Vram const& vram, vk::SamplerAddressMode mode, vk::Filter filter) {
 	auto ret = vk::SamplerCreateInfo{};
@@ -48,10 +48,9 @@ struct ShaderInput {
 	SetBind two{2};
 };
 
-struct RenderView {
+struct RenderPassView {
 	glm::uvec2 extent{};
-	View const* view{};
-	Rect const* viewport{};
+	RenderView const* view{};
 };
 
 struct RenderPass {
@@ -66,7 +65,7 @@ struct RenderPass {
 	vk::RenderPass renderPass{};
 	vk::CommandBuffer commandBuffer{};
 	ShaderInput shaderInput{};
-	RenderView view{};
+	RenderPassView view{};
 	TPair<float> lineWidthLimit{};
 
 	mutable vk::ShaderModule fragShader{};

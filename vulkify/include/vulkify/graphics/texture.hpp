@@ -20,7 +20,7 @@ class Texture : public GfxResource {
   public:
 	using CreateInfo = TextureCreateInfo;
 	using TopLeft = Bitmap::TopLeft;
-	using Rect = TRect<std::uint32_t, std::int32_t>;
+	using Rect = TRect<std::uint32_t>;
 
 	Texture() = default;
 	Texture(Context const& context, std::string name, Image::View image, CreateInfo const& createInfo = {});
@@ -45,5 +45,7 @@ class Texture : public GfxResource {
 
 	AddressMode m_addressMode{};
 	Filtering m_filtering{};
+
+	friend class Atlas;
 };
 } // namespace vf
