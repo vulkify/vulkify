@@ -1,4 +1,5 @@
 src/dyvk
+src/freetype
 src/glfw
 src/glm
 src/ktl

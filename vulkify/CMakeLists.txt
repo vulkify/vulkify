@@ -32,6 +32,7 @@ target_link_libraries(${PROJECT_NAME}
   vk-bootstrap::vk-bootstrap
   vma
   stb-image
+  freetype
   ${PROJECT_NAME}::options
 )
 target_compile_definitions(${PROJECT_NAME} PUBLIC
@@ -74,7 +75,4 @@ if(VULKIFY_INSTALL)
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.hpp"
   )
-  install_package_config(PACKAGE ${PROJECT_NAME})
-  install_package_version(PACKAGE ${PROJECT_NAME} VERSION ${${PROJECT_NAME}_version})
-  export_package_to_build_tree(PACKAGE ${PROJECT_NAME})
 endif()

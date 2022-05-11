@@ -11,6 +11,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/glfw/glfw
   GIT_TAG 3.3.7
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/glfw"
+  GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(glfw)
 
@@ -25,6 +26,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/karnkaul/dyvk
   GIT_TAG 036c72d
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/dyvk"
+  GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(dyvk)
 
@@ -40,6 +42,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/karnkaul/vk-bootstrap
   GIT_TAG 3480e74
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/vk-bootstrap"
+  GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(vk-bootstrap)
 
@@ -59,6 +62,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/karnkaul/glm
   GIT_TAG 9ee2352f
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/glm"
+  GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(glm)
 target_compile_options(glm INTERFACE
@@ -74,6 +78,20 @@ list(APPEND ext_targets vma)
 # stb
 add_subdirectory(src/stb)
 list(APPEND ext_targets stb-image)
+
+# freetype
+FetchContent_Declare(
+  freetype
+  GIT_REPOSITORY https://github.com/karnkaul/freetype
+  GIT_TAG d1e2d77
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/freetype"
+  GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(freetype)
+
+if(VULKIFY_INSTALL)
+  export(EXPORT freetype-targets)
+endif()
 
 if(VULKIFY_INSTALL)
   install(TARGETS ${ext_targets} EXPORT vulkify-ext-targets)
