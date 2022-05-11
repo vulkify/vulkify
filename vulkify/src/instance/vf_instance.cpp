@@ -27,6 +27,8 @@
 
 #include <vulkify/instance/gamepad.hpp>
 
+#include <ttf/ft.hpp>
+
 namespace vf {
 namespace {
 using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
@@ -508,6 +510,7 @@ struct VulkifyInstance::Impl {
 	UniqueVram vram{};
 	VKSurface surface{};
 	SwapchainRenderer renderer{};
+	FtUnique<FtLib> freetype{};
 	Gpu gpu{};
 
 	VKSurface::Acquire acquired{};
@@ -575,6 +578,9 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 
 	impl->shaderTextures = makeShaderTextures(impl->vram.vram);
 	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
+
+	impl->freetype = FtLib::make();
+	if (!impl->freetype) { return Error::eFreetypeInitFailure; }
 
 	impl->gpu = makeGPU(*vulkan);
 
@@ -808,4 +814,7 @@ float Gamepad::operator()(Axis axis) const {
 }
 
 std::size_t GamepadMap::count() const { return static_cast<std::size_t>(std::count(std::begin(map), std::end(map), true)); }
+
+// freetype
+
 } // namespace vf
