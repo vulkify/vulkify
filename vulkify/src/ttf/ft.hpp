@@ -18,16 +18,11 @@ struct FtLib {
 	constexpr bool operator==(FtLib const&) const = default;
 };
 
-struct FtPixmap {
-	std::vector<std::byte> bytes{};
-	glm::uvec2 extent{};
-};
-
 struct FtSlot {
 	Glyph::Metrics metrics{};
-	FtPixmap pixmap{};
+	std::vector<std::byte> pixmap{};
 
-	bool hasBitmap() const noexcept { return pixmap.extent.x > 0 && pixmap.extent.y > 0; }
+	bool hasBitmap() const noexcept { return !pixmap.empty(); }
 };
 
 struct FtFace {
@@ -46,7 +41,6 @@ struct FtFace {
 
 	Id glyphIndex(std::uint32_t codepoint) const noexcept;
 	bool loadGlyph(Id index, FT_Render_Mode mode = FT_RENDER_MODE_NORMAL) const;
-	glm::uvec2 glyphExtent() const;
 	std::vector<std::byte> buildGlyphImage() const;
 
 	FtSlot slot(std::uint32_t codepoint);

@@ -4,7 +4,7 @@
 #include <ktl/enumerate.hpp>
 #include <array>
 
-#include <vulkify/ttf/ttf.hpp>
+#include <vulkify/ttf/scribe.hpp>
 
 namespace {
 using InstanceStorage = std::array<vf::DrawInstance, 4>;
@@ -115,6 +115,18 @@ struct Helper {
 	}
 };
 
+struct AtlasQuad : vf::Primitive {
+	vf::Texture const& texture;
+	vf::GeometryBuffer gbo{};
+	vf::DrawInstance instance{};
+
+	AtlasQuad(vf::Context const& context, vf::Texture const& texture) : texture(texture), gbo(context, "atlas_quad") {}
+
+	void update(vf::Geometry geometry) { gbo.write(std::move(geometry)); }
+
+	void draw(vf::Surface const& surface) const override { surface.draw({{&instance, 1}, gbo, texture}); }
+};
+
 void test(vf::Context context) {
 	std::cout << "using GPU: " << context.gpu().name << '\n';
 	auto helper = Helper{context};
@@ -125,8 +137,16 @@ void test(vf::Context context) {
 	auto rgbQuad = helper.makeRgbQuad(rgbTexture);
 	auto hexagon = helper.makeHexagon(std::move(rgbTexture));
 	auto [circle, iris] = helper.makeCircles();
-	auto texturedQuad = helper.makeTexturedQuad("test_image.png");
+	// auto texturedQuad = helper.makeTexturedQuad("test_image.png");
 	auto stars = helper.makeStars();
+
+	auto ttf = vf::Ttf(context, "test.ttf");
+	if (ttf.load("test.ttf")) { std::cout << "[" << ttf.name() << "] loaded successfully\n"; }
+
+	auto texturedQuad = AtlasQuad(context, ttf.texture());
+	auto scribe = vf::Scribe{ttf};
+	scribe.write(vf::Scribe::Block{"Hello\nthere!"});
+	texturedQuad.update(scribe.geometry);
 
 	struct StarOffset {
 		float dscale{};
@@ -138,27 +158,6 @@ void test(vf::Context context) {
 	static constexpr auto clearB = vf::Rgba::make(0x000fffff);
 
 	vf::Primitive const* primitives[] = {&triangle, &rgbQuad, &hexagon, &circle, &iris, &texturedQuad, &stars};
-
-	auto atlas = vf::Atlas(context, "atlas", {2, 2});
-	auto image = vf::Image{};
-	auto imgId = vf::Atlas::Id{};
-	[[maybe_unused]] auto rgbId = atlas.add(rgbBitmap.image());
-	if (image.load("test_image.png")) { imgId = atlas.add(image); }
-	auto uv = atlas.get(imgId);
-	texturedQuad.setTexture(atlas.texture().clone("atlas"), false);
-	auto qci = texturedQuad.state();
-	qci.uv = uv;
-	texturedQuad.setState(qci);
-
-	auto ttf = vf::Ttf(context, "test.ttf");
-	if (ttf.load("test.ttf")) {
-		for (vf::Codepoint c = 32; c < 127; ++c) { ttf.glyph(c); }
-		auto const& glyph = ttf.glyph('A');
-		auto state = texturedQuad.state();
-		state.uv = glyph.uv;
-		texturedQuad.setState(state);
-		texturedQuad.setTexture(ttf.texture().clone(ttf.texture().name() + "_clone"), false);
-	}
 
 	context.show();
 	auto elapsed = vf::Time{};

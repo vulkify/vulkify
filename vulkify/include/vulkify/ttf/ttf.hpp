@@ -24,6 +24,7 @@ class Ttf {
 	bool contains(Codepoint codepoint) const { return m_map.contains(codepoint); }
 	Glyph const& glyph(Codepoint codepoint);
 
+	std::string_view name() const { return m_name; }
 	Atlas const& atlas() const { return m_atlas; }
 	Texture const& texture() const { return m_atlas.texture(); }
 

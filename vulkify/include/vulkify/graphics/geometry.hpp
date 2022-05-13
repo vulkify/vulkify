@@ -55,6 +55,11 @@ struct Geometry {
 	std::vector<Vertex> vertices{};
 	std::vector<std::uint32_t> indices{};
 
+	void add(std::span<Vertex const> v, std::span<std::uint32_t const> i);
+	void addQuad(QuadCreateInfo const& info);
+
+	void reserve(std::size_t verts, std::size_t inds);
+
 	static Geometry makeQuad(QuadCreateInfo const& info = {});
 	static Geometry makeRegularPolygon(PolygonCreateInfo const& info = {});
 };
