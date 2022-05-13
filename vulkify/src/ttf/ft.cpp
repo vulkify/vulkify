@@ -186,6 +186,17 @@ Glyph const& Ttf::glyph(Codepoint codepoint) {
 	return blank_v;
 }
 
+std::size_t Ttf::preload(std::span<Codepoint const> codepoints) {
+	auto ret = std::size_t{};
+	auto bulk = Atlas::Bulk{m_atlas};
+	for (auto const codepoint : codepoints) {
+		if (m_map.contains(codepoint)) { continue; }
+		Scribe::insert(bulk, *this, codepoint);
+		++ret;
+	}
+	return ret;
+}
+
 glm::vec2 Pen::write(Codepoint const codepoint) {
 	if (!out_ttf || !*out_ttf) { return head; }
 	auto glyph = out_ttf->glyph(codepoint);
@@ -213,9 +224,28 @@ glm::vec2 Scribe::extent(std::string_view line) const {
 	return {pen.head.x, pen.maxHeight};
 }
 
-namespace {} // namespace
+void Scribe::insert(Atlas::Bulk& out_bulk, Ttf& out_ttf, Codepoint codepoint) {
+	if (out_ttf.m_map.contains(codepoint)) { return; }
+	auto entry = Ttf::Entry{};
+	auto const slot = out_ttf.m_face->face->slot(codepoint);
+	if (slot.hasBitmap()) { entry.id = out_bulk.add({Image::View{slot.pixmap, slot.metrics.extent}}); }
+	entry.glyph.metrics = slot.metrics;
+	out_ttf.m_map.insert_or_assign(codepoint, std::move(entry));
+}
+
+Scribe& Scribe::preload(std::string_view text) {
+	auto bulk = Atlas::Bulk(ttf.m_atlas);
+	for (auto const ch : text) {
+		auto const codepoint = static_cast<Codepoint>(ch);
+		if (codepoint < codepoint_range_v.first || codepoint > codepoint_range_v.second || ttf.m_map.contains(codepoint)) { continue; }
+		if (std::isspace(static_cast<unsigned char>(codepoint))) { continue; }
+		insert(bulk, ttf, codepoint);
+	}
+	return *this;
+}
 
 Scribe& Scribe::write(std::string_view const text, Pivot pivot) {
+	preload(text);
 	auto start = origin;
 	pivot += 0.5f;
 	if (!FloatEq{}(pivot.x, 0.0f) || !FloatEq{}(pivot.y, 0.0f)) {

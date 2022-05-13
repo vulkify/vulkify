@@ -27,6 +27,7 @@ struct Scribe {
 	};
 
 	static constexpr auto centre_v = Pivot{};
+	static constexpr auto codepoint_range_v = std::pair(Codepoint{33}, Codepoint{255});
 
 	Ttf& ttf;
 	glm::vec2 origin{};
@@ -37,6 +38,8 @@ struct Scribe {
 	glm::vec2 extent(std::string_view line) const;
 	float lineHeight() const;
 
+	static void insert(Atlas::Bulk& out_bulk, Ttf& out_ttf, Codepoint codepoint);
+	Scribe& preload(std::string_view text);
 	Scribe& write(std::string_view text, Pivot pivot = centre_v);
 	Scribe& write(Block text, Pivot pivot = centre_v);
 	Scribe& linebreak();

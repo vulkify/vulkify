@@ -23,6 +23,7 @@ class Ttf {
 
 	bool contains(Codepoint codepoint) const { return m_map.contains(codepoint); }
 	Glyph const& glyph(Codepoint codepoint);
+	std::size_t preload(std::span<Codepoint const> codepoints);
 
 	std::string_view name() const { return m_name; }
 	Atlas const& atlas() const { return m_atlas; }
@@ -40,5 +41,7 @@ class Ttf {
 	ktl::hash_table<std::uint32_t, Entry> m_map{};
 	ktl::fixed_pimpl<Face, 32> m_face;
 	std::uint32_t m_height{};
+
+	friend struct Scribe;
 };
 } // namespace vf

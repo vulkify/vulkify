@@ -8,6 +8,7 @@ class Atlas {
   public:
 	static constexpr Extent initial_v = {1024, 128};
 	using Id = std::uint32_t;
+	class Bulk;
 
 	Atlas() = default;
 	Atlas(Context const& context, std::string name, Extent initial = initial_v);
@@ -26,8 +27,10 @@ class Atlas {
 	static constexpr glm::uvec2 pad_v = {1, 1};
 
 	void nextLine();
-	bool prepare(Extent extent);
-	bool resize(Extent extent);
+	bool prepare(struct ImageWriter& writer, Extent extent);
+	bool resize(ImageWriter& writer, Extent extent);
+	bool overwrite(ImageWriter& writer, Image::View image, Texture::Rect const& region);
+	Id insert(ImageWriter& writer, Image::View image);
 
 	Texture m_texture{};
 	ktl::hash_table<Id, UVRect> m_uvMap{};
@@ -37,5 +40,18 @@ class Atlas {
 		std::uint32_t nextY{};
 		Id next{};
 	} m_state{};
+};
+
+class Atlas::Bulk {
+  public:
+	Bulk(Atlas& out_atlas);
+	~Bulk();
+
+	Id add(Image::View image);
+
+  private:
+	struct Impl;
+	ktl::kunique_ptr<Impl> m_impl;
+	Atlas& m_atlas;
 };
 } // namespace vf

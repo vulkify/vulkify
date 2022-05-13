@@ -38,6 +38,7 @@ class Texture : public GfxResource {
 
   private:
 	Texture(Vram const& vram, std::string name, CreateInfo const& info);
+	Texture cloneImage(std::string name) const;
 
 	void refresh(Extent extent);
 	void write(Image::View image, Rect const& region);

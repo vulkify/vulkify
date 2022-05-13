@@ -79,14 +79,7 @@ Result<void> Texture::rescale(float scale) {
 }
 
 Texture Texture::clone(std::string name) const {
-	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return {}; }
-
-	auto ret = Texture(m_allocation->vram, std::move(name), {m_addressMode, m_filtering});
-	if (!ret.m_allocation) { return ret; }
-
-	auto const ext = extent();
-	if (ext.x == 0 || ext.y == 0) { return ret; }
-	ret.refresh(ext);
+	auto ret = cloneImage(std::move(name));
 	if (!ret.m_allocation->image.cache.image) { return ret; }
 
 	blit(m_allocation->image.cache, ret.m_allocation->image.cache, m_filtering);
@@ -103,6 +96,18 @@ Texture::Texture(Vram const& vram, std::string name, CreateInfo const& createInf
 	if (!m_allocation || !m_allocation->vram) { return; }
 	m_allocation->image.sampler = vram.device.device.createSamplerUnique(samplerInfo(vram, getMode(m_addressMode), getFilter(m_filtering)));
 	m_allocation->image.cache.setTexture(true);
+}
+
+Texture Texture::cloneImage(std::string name) const {
+	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return {}; }
+
+	auto ret = Texture(m_allocation->vram, std::move(name), {m_addressMode, m_filtering});
+	if (!ret.m_allocation) { return ret; }
+
+	auto const ext = extent();
+	if (ext.x == 0 || ext.y == 0) { return ret; }
+	ret.refresh(ext);
+	return ret;
 }
 
 void Texture::refresh(Extent extent) {
