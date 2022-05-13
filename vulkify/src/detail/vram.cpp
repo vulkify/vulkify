@@ -278,7 +278,7 @@ void ImageWriter::clear(VmaImage& in, Rgba rgba) const {
 	auto const c = rgba.normalize();
 	auto const colour = std::array{c.x, c.y, c.z, c.w};
 	in.transition(cb, vk::ImageLayout::eTransferDstOptimal);
-	auto isrr = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 0, 1, 1);
+	auto isrr = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
 	cb.clearColorImage(in.resource, vk::ImageLayout::eTransferDstOptimal, colour, isrr);
 }
 } // namespace vf

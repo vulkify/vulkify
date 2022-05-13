@@ -118,7 +118,7 @@ void Texture::refresh(Extent extent) {
 void Texture::write(Image::View const image, Rect const& region) {
 	auto cmd = InstantCommand(m_allocation->vram.commandFactory->get());
 	auto writer = ImageWriter{m_allocation->vram, cmd.cmd};
-	writer.write(m_allocation->image.cache.image, image.bytes, region, vk::ImageLayout::eShaderReadOnlyOptimal);
+	writer.write(m_allocation->image.cache.image, image.data, region, vk::ImageLayout::eShaderReadOnlyOptimal);
 	cmd.submit();
 }
 

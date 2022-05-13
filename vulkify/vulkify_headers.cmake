@@ -53,4 +53,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/instance/monitor.hpp
   include/vulkify/instance/vf_instance.hpp
   include/vulkify/instance/video_mode.hpp
+
+  include/vulkify/ttf/glyph.hpp
+  include/vulkify/ttf/ttf.hpp
 )

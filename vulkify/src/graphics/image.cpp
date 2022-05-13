@@ -62,8 +62,8 @@ Image::Decoded Image::decode(Encoded encoded) {
 	if (!stbi) { return {}; }
 	auto ret = Decoded{};
 	auto const size = sizeBytes(ext);
-	ret.bytes = std::make_unique<std::byte[]>(size);
-	std::memcpy(ret.bytes.get(), stbi.get(), size);
+	ret.data = std::make_unique<std::byte[]>(size);
+	std::memcpy(ret.data.get(), stbi.get(), size);
 	return ret;
 }
 
@@ -93,7 +93,7 @@ Result<Extent> Image::load(Encoded image) {
 }
 
 void Image::replace(Decoded image) {
-	m_impl->img = std::move(image.bytes);
+	m_impl->img = std::move(image.data);
 	m_impl->extent = image.extent;
 }
 

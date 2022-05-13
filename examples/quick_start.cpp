@@ -4,7 +4,7 @@
 #include <ktl/enumerate.hpp>
 #include <array>
 
-#include <vulkify/graphics/atlas.hpp>
+#include <vulkify/ttf/ttf.hpp>
 
 namespace {
 using InstanceStorage = std::array<vf::DrawInstance, 4>;
@@ -94,13 +94,13 @@ struct Helper {
 		return {std::move(circle), std::move(iris)};
 	}
 
-	vf::Mesh makeTexturedQuad(char const* imagePath) {
+	vf::QuadShape makeTexturedQuad(char const* imagePath) {
 		auto image = vf::Image{};
 		auto loadResult = image.load(imagePath);
 		if (loadResult) { std::cout << imagePath << " [" << loadResult->x << 'x' << loadResult->y << "] loaded sucessfully\n"; }
 
-		auto ret = vf::Mesh(context, "textured_quad");
-		ret.texture = vf::Texture(context, "texture", image); // should be magenta if image is bad
+		auto ret = vf::QuadShape(context, "textured_quad");
+		ret.setTexture(vf::Texture(context, "texture", image), false); // should be magenta if image is bad
 		return ret;
 	}
 
@@ -142,12 +142,23 @@ void test(vf::Context context) {
 	auto atlas = vf::Atlas(context, "atlas", {2, 2});
 	auto image = vf::Image{};
 	auto imgId = vf::Atlas::Id{};
-	auto rgbId = atlas.add(rgbBitmap.image());
+	[[maybe_unused]] auto rgbId = atlas.add(rgbBitmap.image());
 	if (image.load("test_image.png")) { imgId = atlas.add(image); }
 	auto uv = atlas.get(imgId);
-	texturedQuad.texture = atlas.texture().clone("atlas");
-	auto qci = vf::QuadCreateInfo{{200.0f, 200.0f}, {}, uv};
-	texturedQuad.gbo.write(vf::Geometry::makeQuad(qci));
+	texturedQuad.setTexture(atlas.texture().clone("atlas"), false);
+	auto qci = texturedQuad.state();
+	qci.uv = uv;
+	texturedQuad.setState(qci);
+
+	auto ttf = vf::Ttf(context, "test.ttf");
+	if (ttf.load("test.ttf")) {
+		for (vf::Codepoint c = 32; c < 127; ++c) { ttf.glyph(c); }
+		auto const& glyph = ttf.glyph('A');
+		auto state = texturedQuad.state();
+		state.uv = glyph.uv;
+		texturedQuad.setState(state);
+		texturedQuad.setTexture(ttf.texture().clone(ttf.texture().name() + "_clone"), false);
+	}
 
 	context.show();
 	auto elapsed = vf::Time{};

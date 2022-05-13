@@ -27,7 +27,7 @@ class Context {
 	MonitorList monitors() const { return m_instance->monitors(); }
 	WindowFlags windowFlags() const { return m_instance->windowFlags(); }
 	RenderView& view() const { return m_instance->view(); }
-	Rect area() const { return Rect{m_instance->framebufferSize()}; }
+	Rect area() const { return Rect{{m_instance->framebufferSize()}}; }
 	AntiAliasing antiAliasing() const { return m_instance->antiAliasing(); }
 
 	Frame frame(Rgba clear = {});

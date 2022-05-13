@@ -106,6 +106,10 @@ struct GfxShaderModule {
 	vk::Device device{};
 };
 
+struct FtSlotMap {
+	// ktl::hash_table<std::uint32_t, FtSlot> slots{};
+};
+
 struct Inactive {
 	Vram vram{};
 	GfxAllocation alloc{};

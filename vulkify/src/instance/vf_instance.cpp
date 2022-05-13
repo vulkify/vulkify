@@ -510,7 +510,7 @@ struct VulkifyInstance::Impl {
 	UniqueVram vram{};
 	VKSurface surface{};
 	SwapchainRenderer renderer{};
-	FtUnique<FtLib> freetype{};
+	ktl::kunique_ptr<FtLib> freetype{};
 	Gpu gpu{};
 
 	VKSurface::Acquire acquired{};
@@ -541,6 +541,10 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	auto window = makeWindow(createInfo);
 	if (!window) { return Error::eGlfwFailure; }
 
+	auto freetype = FtLib::make();
+	if (!freetype) { return Error::eFreetypeInitFailure; }
+	auto ftlib = ktl::make_unique<FtLib>(freetype);
+
 	auto vulkan = VKInstance::make([&window](vk::Instance inst) {
 		auto surface = VkSurfaceKHR{};
 		[[maybe_unused]] auto const res = glfwCreateWindowSurface(static_cast<VkInstance>(inst), window->win, {}, &surface);
@@ -551,6 +555,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	auto device = makeDevice(*vulkan);
 	auto vram = UniqueVram::make(*vulkan->instance, device, getSamples(createInfo.desiredAA));
 	if (!vram) { return Error::eVulkanInitFailure; }
+	vram.vram->ftlib = ftlib.get();
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
 	bool const linear = createInfo.instanceFlags.test(InstanceFlag::eLinearSwapchain);
@@ -578,9 +583,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	impl->shaderTextures = makeShaderTextures(impl->vram.vram);
 	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
 
-	impl->freetype = FtLib::make();
-	if (!impl->freetype) { return Error::eFreetypeInitFailure; }
-
+	impl->freetype = std::move(ftlib);
 	impl->gpu = makeGPU(*vulkan);
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
@@ -653,7 +656,7 @@ void VulkifyInstance::setIcons(std::span<Icon const> icons) {
 	vec.reserve(icons.size());
 	for (auto const& icon : icons) {
 		auto const extent = glm::ivec2(icon.bitmap.extent);
-		auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.pixels.data()));
+		auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.data.data()));
 		vec.push_back({extent.x, extent.y, pixels});
 	}
 	glfwSetWindowIcon(m_impl->window->win, static_cast<int>(vec.size()), vec.data());
@@ -692,7 +695,7 @@ void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
 
 Cursor VulkifyInstance::makeCursor(Icon icon) {
 	auto const extent = glm::ivec2(icon.bitmap.extent);
-	auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.pixels.data()));
+	auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.data.data()));
 	auto const img = GLFWimage{extent.x, extent.y, pixels};
 	auto const glfwCursor = glfwCreateCursor(&img, icon.hotspot.x, icon.hotspot.y);
 	if (glfwCursor) {
@@ -812,7 +815,4 @@ float Gamepad::operator()(Axis axis) const {
 }
 
 std::size_t GamepadMap::count() const { return static_cast<std::size_t>(std::count(std::begin(map), std::end(map), true)); }
-
-// freetype
-
 } // namespace vf

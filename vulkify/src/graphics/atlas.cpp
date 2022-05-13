@@ -11,11 +11,11 @@ constexpr std::uint32_t pot(std::uint32_t const in) {
 }
 } // namespace
 
-Atlas::Atlas(Context const& context, std::string name, Extent const initial) : m_texture(context, std::move(name), Bitmap(black_v, initial).image()) {}
+Atlas::Atlas(Context const& context, std::string name, Extent const initial) : m_texture(context, std::move(name), Bitmap({}, initial).image()) {}
 
 Atlas::Id Atlas::add(Image::View const image) {
 	if (!m_texture) { return {}; }
-	if (image.extent.x == 0 || image.extent.y == 0 || image.bytes.empty()) { return {}; }
+	if (image.extent.x == 0 || image.extent.y == 0 || image.data.empty()) { return {}; }
 	if (!prepare(image.extent)) { return {}; }
 
 	auto const rect = Texture::Rect{image.extent, m_state.head};
@@ -42,7 +42,7 @@ void Atlas::clear() {
 	if (!m_texture) { return; }
 	auto cmd = InstantCommand(m_texture.vram().commandFactory->get());
 	auto writer = ImageWriter{m_texture.vram(), cmd.cmd};
-	writer.clear(m_texture.m_allocation->image.cache.image, black_v);
+	writer.clear(m_texture.m_allocation->image.cache.image, {});
 	m_uvMap.clear();
 	m_state = {};
 }
@@ -53,24 +53,14 @@ void Atlas::nextLine() {
 	m_state.nextY = 0;
 }
 
-bool Atlas::prepare(Extent const extent) {
-	auto overflow = [&] { return extent.x + m_state.head.x + pad_v.x > m_texture.extent().x; };
-	auto area = m_state.head + extent + pad_v;
-	if (overflow()) {
-		// not enough width remaining, expand height, go to next line
-		area.y += m_state.nextY;
-		nextLine();
-	}
-	if (overflow()) {
-		// insufficient total width, expand width
-		area.x = extent.x + 2 * pad_v.x;
-	}
-	return reserve(area);
-}
+static constexpr bool in(glm::uvec2 extent, glm::uvec2 point) { return point.x < extent.x && point.y < extent.y; }
 
-bool Atlas::reserve(Extent const target) {
-	auto const current = m_texture.extent();
-	if (current.y >= target.y && current.x >= target.x) { return true; }
+bool Atlas::prepare(Extent const extent) {
+	if (auto end = m_state.head + extent + pad_v; in(m_texture.extent(), end)) { return true; }
+	nextLine();
+	auto end = m_state.head + extent + pad_v;
+	if (in(m_texture.extent(), end)) { return true; }
+	auto const target = Extent(std::max(m_texture.extent().x, end.x), std::max(m_texture.extent().y, end.y));
 	return resize(target);
 }
 

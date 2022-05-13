@@ -3,8 +3,9 @@
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 
-#include <glm/vec2.hpp>
+#include <vulkify/core/rect.hpp>
 #include <vulkify/core/unique.hpp>
+#include <vulkify/ttf/glyph.hpp>
 #include <span>
 
 namespace vf {
@@ -17,8 +18,20 @@ struct FtLib {
 	constexpr bool operator==(FtLib const&) const = default;
 };
 
+struct FtPixmap {
+	std::vector<std::byte> bytes{};
+	glm::uvec2 extent{};
+};
+
+struct FtSlot {
+	Glyph::Metrics metrics{};
+	FtPixmap pixmap{};
+
+	bool hasBitmap() const noexcept { return pixmap.extent.x > 0 && pixmap.extent.y > 0; }
+};
+
 struct FtFace {
-	using ID = std::uint32_t;
+	using Id = std::uint32_t;
 
 	FT_Face face{};
 
@@ -31,26 +44,12 @@ struct FtFace {
 	bool setCharSize(glm::uvec2 size = {0U, 16U * 64U}, glm::uvec2 res = {300U, 300U}) const noexcept;
 	bool setPixelSize(glm::uvec2 size = {0U, 16U}) const noexcept;
 
-	ID glyphIndex(std::uint32_t codepoint) const noexcept;
-	bool loadGlyph(ID index, FT_Render_Mode mode = FT_RENDER_MODE_NORMAL) const;
+	Id glyphIndex(std::uint32_t codepoint) const noexcept;
+	bool loadGlyph(Id index, FT_Render_Mode mode = FT_RENDER_MODE_NORMAL) const;
 	glm::uvec2 glyphExtent() const;
 	std::vector<std::byte> buildGlyphImage() const;
-};
 
-struct FtPixmap {
-	std::vector<std::byte> bytes{};
-	glm::uvec2 extent{};
-};
-
-struct FtSlot {
-	FtPixmap pixmap{};
-	glm::ivec2 topLeft{};
-	glm::ivec2 advance{};
-	std::uint32_t codepoint{};
-
-	bool hasBitmap() const noexcept { return pixmap.extent.x > 0 && pixmap.extent.y > 0; }
-
-	static FtSlot make(FtFace face, std::uint32_t codepoint);
+	FtSlot slot(std::uint32_t codepoint);
 };
 
 struct FtDeleter {

@@ -12,6 +12,7 @@
 namespace vf {
 class CommandPool;
 struct ShaderCache;
+struct FtLib;
 
 enum class BlitFlag { eSrc, eDst, eLinearFilter };
 using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
@@ -139,6 +140,7 @@ struct CommandFactory {
 struct Vram {
 	VKDevice device{};
 	VmaAllocator allocator{};
+	FtLib const* ftlib{};
 	CommandFactory* commandFactory{};
 	ShaderCache* shaderCache{};
 

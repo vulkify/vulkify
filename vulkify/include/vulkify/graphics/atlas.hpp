@@ -27,7 +27,6 @@ class Atlas {
 
 	void nextLine();
 	bool prepare(Extent extent);
-	bool reserve(Extent extent);
 	bool resize(Extent extent);
 
 	Texture m_texture{};
