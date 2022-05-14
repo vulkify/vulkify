@@ -27,6 +27,8 @@
 
 #include <vulkify/instance/gamepad.hpp>
 
+#include <ttf/ft.hpp>
+
 namespace vf {
 namespace {
 using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
@@ -508,6 +510,7 @@ struct VulkifyInstance::Impl {
 	UniqueVram vram{};
 	VKSurface surface{};
 	SwapchainRenderer renderer{};
+	FtUnique<FtLib> freetype{};
 	Gpu gpu{};
 
 	VKSurface::Acquire acquired{};
@@ -516,8 +519,7 @@ struct VulkifyInstance::Impl {
 	PipelineFactory pipelineFactory{};
 	DescriptorPool descriptorPool{};
 	ShaderInput::Textures shaderTextures{};
-	View view{};
-	Rect viewport{viewport_v};
+	RenderView view{};
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
@@ -539,6 +541,9 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	auto window = makeWindow(createInfo);
 	if (!window) { return Error::eGlfwFailure; }
 
+	auto freetype = FtLib::make();
+	if (!freetype) { return Error::eFreetypeInitFailure; }
+
 	auto vulkan = VKInstance::make([&window](vk::Instance inst) {
 		auto surface = VkSurfaceKHR{};
 		[[maybe_unused]] auto const res = glfwCreateWindowSurface(static_cast<VkInstance>(inst), window->win, {}, &surface);
@@ -549,6 +554,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	auto device = makeDevice(*vulkan);
 	auto vram = UniqueVram::make(*vulkan->instance, device, getSamples(createInfo.desiredAA));
 	if (!vram) { return Error::eVulkanInitFailure; }
+	vram.vram->ftlib = freetype.lib;
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
 	bool const linear = createInfo.instanceFlags.test(InstanceFlag::eLinearSwapchain);
@@ -576,6 +582,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	impl->shaderTextures = makeShaderTextures(impl->vram.vram);
 	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
 
+	impl->freetype = freetype;
 	impl->gpu = makeGPU(*vulkan);
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
@@ -622,8 +629,7 @@ WindowFlags VulkifyInstance::windowFlags() const {
 	return ret;
 }
 
-View& VulkifyInstance::view() const { return m_impl->view; }
-Rect& VulkifyInstance::viewport() const { return m_impl->viewport; }
+RenderView& VulkifyInstance::view() const { return m_impl->view; }
 
 AntiAliasing VulkifyInstance::antiAliasing() const {
 	switch (m_impl->vram.vram->colourSamples) {
@@ -649,7 +655,7 @@ void VulkifyInstance::setIcons(std::span<Icon const> icons) {
 	vec.reserve(icons.size());
 	for (auto const& icon : icons) {
 		auto const extent = glm::ivec2(icon.bitmap.extent);
-		auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.pixels.data()));
+		auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.data.data()));
 		vec.push_back({extent.x, extent.y, pixels});
 	}
 	glfwSetWindowIcon(m_impl->window->win, static_cast<int>(vec.size()), vec.data());
@@ -688,7 +694,7 @@ void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
 
 Cursor VulkifyInstance::makeCursor(Icon icon) {
 	auto const extent = glm::ivec2(icon.bitmap.extent);
-	auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.pixels.data()));
+	auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.data.data()));
 	auto const img = GLFWimage{extent.x, extent.y, pixels};
 	auto const glfwCursor = glfwCreateCursor(&img, icon.hotspot.x, icon.hotspot.y);
 	if (glfwCursor) {
@@ -746,7 +752,7 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 	proj.write(0, mat_p);
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
-	auto const view = RenderView{extent, &m_impl->view, &m_impl->viewport};
+	auto const view = RenderPassView{extent, &m_impl->view};
 	auto const lwl = m_impl->vram.vram->lineWidthLimit;
 	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view, lwl};
 }

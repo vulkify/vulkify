@@ -25,8 +25,7 @@ class VulkifyInstance : public Instance {
 	glm::vec2 cursorPosition() const override;
 	MonitorList monitors() const override;
 	WindowFlags windowFlags() const override;
-	View& view() const override;
-	Rect& viewport() const override;
+	RenderView& view() const override;
 	AntiAliasing antiAliasing() const override;
 
 	void show() override;

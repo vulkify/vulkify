@@ -48,15 +48,18 @@ Result<void> Texture::create(Image::View image) {
 	}
 
 	refresh(image.extent);
-	write(image, TopLeft{});
+	write(image, {image.extent});
 	return Result<void>::success();
 }
 
-Result<void> Texture::overwrite(Image::View const image, TopLeft const offset) {
+Result<void> Texture::overwrite(Image::View const image, Rect const& region) {
 	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return Error::eInactiveInstance; }
-	if (image.extent.x + offset.x > extent().x || image.extent.y + offset.y > extent().y) { return Error::eInvalidArgument; }
+	if (static_cast<std::uint32_t>(region.offset.x) + region.extent.x > extent().x ||
+		static_cast<std::uint32_t>(region.offset.y) + region.extent.y > extent().y) {
+		return Error::eInvalidArgument;
+	}
 
-	write(image, offset);
+	write(image, region);
 	return Result<void>::success();
 }
 
@@ -76,14 +79,7 @@ Result<void> Texture::rescale(float scale) {
 }
 
 Texture Texture::clone(std::string name) const {
-	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return {}; }
-
-	auto ret = Texture(m_allocation->vram, std::move(name), {m_addressMode, m_filtering});
-	if (!ret.m_allocation) { return ret; }
-
-	auto const ext = extent();
-	if (ext.x == 0 || ext.y == 0) { return ret; }
-	ret.refresh(ext);
+	auto ret = cloneImage(std::move(name));
 	if (!ret.m_allocation->image.cache.image) { return ret; }
 
 	blit(m_allocation->image.cache, ret.m_allocation->image.cache, m_filtering);
@@ -102,6 +98,18 @@ Texture::Texture(Vram const& vram, std::string name, CreateInfo const& createInf
 	m_allocation->image.cache.setTexture(true);
 }
 
+Texture Texture::cloneImage(std::string name) const {
+	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return {}; }
+
+	auto ret = Texture(m_allocation->vram, std::move(name), {m_addressMode, m_filtering});
+	if (!ret.m_allocation) { return ret; }
+
+	auto const ext = extent();
+	if (ext.x == 0 || ext.y == 0) { return ret; }
+	ret.refresh(ext);
+	return ret;
+}
+
 void Texture::refresh(Extent extent) {
 	auto const ext = vk::Extent3D(extent.x, extent.y, 1);
 	auto const format = m_allocation->image.cache.info.info.format;
@@ -112,10 +120,10 @@ void Texture::refresh(Extent extent) {
 	}
 }
 
-void Texture::write(Image::View const image, TopLeft const offset) {
+void Texture::write(Image::View const image, Rect const& region) {
 	auto cmd = InstantCommand(m_allocation->vram.commandFactory->get());
 	auto writer = ImageWriter{m_allocation->vram, cmd.cmd};
-	writer.write(m_allocation->image.cache.image, image.bytes, {image.extent, offset}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	writer.write(m_allocation->image.cache.image, image.data, region, vk::ImageLayout::eShaderReadOnlyOptimal);
 	cmd.submit();
 }
 
@@ -123,6 +131,6 @@ void Texture::setInvalid() {
 	VF_TRACEF("[vf::Texture:{}] Invalid bitmap", m_allocation->name);
 	static constexpr auto magenta_bytes_v = rgbaBytes(magenta_v);
 	m_allocation->image.cache.refresh({1, 1, 1});
-	write({magenta_bytes_v, {1, 1}}, TopLeft{});
+	write({magenta_bytes_v, {1, 1}}, {{1, 1}});
 }
 } // namespace vf

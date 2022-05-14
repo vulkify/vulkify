@@ -4,6 +4,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   core/rgba.cpp
 
+  graphics/atlas.cpp
   graphics/bitmap.cpp
   graphics/buffer.cpp
   graphics/geometry.cpp
@@ -42,4 +43,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   spir_v/default.frag.hpp
   spir_v/default.vert.hpp
+
+  ttf/ft.cpp
+  ttf/ft.hpp
 )

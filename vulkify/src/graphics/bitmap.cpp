@@ -7,9 +7,9 @@ constexpr bool validOffset(Extent view, Extent offset, Extent extent) { return v
 } // namespace
 
 Image Bitmap::View::image() const {
-	auto bytes = std::make_unique<std::byte[]>(pixels.size_bytes() * Image::channels_v);
+	auto bytes = std::make_unique<std::byte[]>(data.size_bytes() * Image::channels_v);
 	auto head = bytes.get();
-	for (auto const pixel : pixels) { head = rgbaToByte(pixel, head); }
+	for (auto const pixel : data) { head = rgbaToByte(pixel, head); }
 	auto ret = Image{};
 	ret.replace({std::move(bytes), extent});
 	return ret;
@@ -22,7 +22,7 @@ Bitmap::Bitmap(Rgba rgba, Extent const extent) {
 
 Bitmap::Bitmap(View bitmap) {
 	if (!valid(bitmap)) { return; }
-	m_pixels = {bitmap.pixels.begin(), bitmap.pixels.end()};
+	m_pixels = {bitmap.data.begin(), bitmap.data.end()};
 	m_extent = bitmap.extent;
 }
 

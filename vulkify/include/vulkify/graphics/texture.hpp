@@ -20,12 +20,14 @@ class Texture : public GfxResource {
   public:
 	using CreateInfo = TextureCreateInfo;
 	using TopLeft = Bitmap::TopLeft;
+	using Rect = TRect<std::uint32_t>;
 
 	Texture() = default;
 	Texture(Context const& context, std::string name, Image::View image, CreateInfo const& createInfo = {});
 
 	Result<void> create(Image::View image);
-	Result<void> overwrite(Image::View image, TopLeft offset = TopLeft{});
+	Result<void> overwrite(Image::View image);
+	Result<void> overwrite(Image::View image, Rect const& region);
 	Result<void> rescale(float scale);
 
 	Texture clone(std::string name) const;
@@ -36,12 +38,15 @@ class Texture : public GfxResource {
 
   private:
 	Texture(Vram const& vram, std::string name, CreateInfo const& info);
+	Texture cloneImage(std::string name) const;
 
 	void refresh(Extent extent);
-	void write(Image::View image, glm::uvec2 offset);
+	void write(Image::View image, Rect const& region);
 	void setInvalid();
 
 	AddressMode m_addressMode{};
 	Filtering m_filtering{};
+
+	friend class Atlas;
 };
 } // namespace vf

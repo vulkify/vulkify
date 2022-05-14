@@ -2,35 +2,39 @@
 #include <glm/vec2.hpp>
 
 namespace vf {
-template <typename ExtentT = float, typename OriginT = float>
+///
+/// \brief Generic 2D rect; origin and axis directions may vary across usage
+///
+template <typename Type>
 struct TRect {
-	glm::tvec2<ExtentT> extent{};
-	glm::tvec2<OriginT> origin{};
+	glm::tvec2<Type> extent{};
+	glm::tvec2<Type> offset{};
 
-	static constexpr TRect make(glm::tvec2<OriginT> topleft, glm::tvec2<OriginT> bottomRight);
-
-	constexpr glm::vec2 topLeft() const { return origin - glm::vec2(extent.x, -extent.y) * 0.5f; }
-	constexpr glm::vec2 topRight() const { return origin + extent * 0.5f; }
-	constexpr glm::vec2 bottomLeft() const { return origin - extent * 0.5f; }
-	constexpr glm::vec2 bottomRight() const { return origin + glm::vec2(extent.x, -extent.y) * 0.5f; }
-
-	template <typename T, typename U>
-	constexpr operator TRect<T, U>() const;
+	template <typename T>
+	constexpr operator TRect<T>() const {
+		return {glm::tvec2<T>(extent), glm::tvec2<T>(offset)};
+	}
 };
 
-using Rect = TRect<>;
-constexpr auto viewport_v = Rect{{1.0f, 1.0f}, {0.0f, 0.0f}};
+///
+/// \brief Data structure specifying world-space 2D rect
+///
+/// origin: centre, +x: right, +y: up
+///
+struct Rect : TRect<float> {
+	constexpr glm::vec2 topLeft() const { return offset - glm::vec2(extent.x, -extent.y) * 0.5f; }
+	constexpr glm::vec2 topRight() const { return offset + extent * 0.5f; }
+	constexpr glm::vec2 bottomLeft() const { return offset - extent * 0.5f; }
+	constexpr glm::vec2 bottomRight() const { return offset + glm::vec2(extent.x, -extent.y) * 0.5f; }
+};
 
-// impl
-
-template <typename ExtentT, typename OriginT>
-constexpr TRect<ExtentT, OriginT> TRect<ExtentT, OriginT>::make(glm::tvec2<OriginT> topleft, glm::tvec2<OriginT> bottomRight) {
-	return {{bottomRight.x - topleft.x, topleft.y - bottomRight.y}, glm::vec2(topleft + bottomRight) * 0.5f};
-}
-
-template <typename ExtentT, typename OriginT>
-template <typename T, typename U>
-constexpr TRect<ExtentT, OriginT>::operator TRect<T, U>() const {
-	return {glm::tvec2<T>(extent), glm::tvec2<U>(origin)};
-}
+///
+/// \brief Data structure specifying a quad's texture coordinates
+///
+/// origin: top-left, +x: right, +y: down, normalized [0-1]
+///
+struct UVRect {
+	glm::vec2 topLeft{0.0f, 0.0f};
+	glm::vec2 bottomRight{1.0f, 1.0f};
+};
 } // namespace vf

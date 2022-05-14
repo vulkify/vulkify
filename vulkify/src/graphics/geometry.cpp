@@ -6,17 +6,34 @@
 namespace vf {
 using v2 = glm::vec2;
 
-Geometry Geometry::makeQuad(QuadCreateInfo const& info) {
-	auto ret = Geometry{};
+void Geometry::add(std::span<Vertex const> v, std::span<std::uint32_t const> i) {
+	reserve(v.size(), i.size());
+	auto const offset = static_cast<std::uint32_t>(vertices.size());
+	std::copy(v.begin(), v.end(), std::back_inserter(vertices));
+	for (auto const index : i) { indices.push_back(index + offset); }
+}
+
+void Geometry::addQuad(QuadCreateInfo const& info) {
 	auto const colour = info.vertex.normalize();
 	auto const hs = info.size * 0.5f;
-	ret.vertices = {
+	Vertex const verts[] = {
 		{info.origin + v2(-hs.x, hs.y), info.uv.topLeft, colour},
 		{info.origin + v2(-hs.x, -hs.y), {info.uv.topLeft.x, info.uv.bottomRight.y}, colour},
 		{info.origin + v2(hs.x, -hs.y), info.uv.bottomRight, colour},
 		{info.origin + v2(hs.x, hs.y), {info.uv.bottomRight.x, info.uv.topLeft.y}, colour},
 	};
-	ret.indices = {0, 1, 2, 2, 3, 0};
+	std::uint32_t const idxs[] = {0, 1, 2, 2, 3, 0};
+	add(verts, idxs);
+}
+
+void Geometry::reserve(std::size_t verts, std::size_t inds) {
+	vertices.reserve(vertices.size() + verts);
+	indices.reserve(indices.size() + inds);
+}
+
+Geometry Geometry::makeQuad(QuadCreateInfo const& info) {
+	auto ret = Geometry{};
+	ret.addQuad(info);
 	return ret;
 }
 
@@ -31,8 +48,7 @@ Geometry Geometry::makeRegularPolygon(PolygonCreateInfo const& info) {
 		auto const c = glm::vec2(std::cos(rad), std::sin(rad));
 		return Vertex{centre.xy + c * radius, c * uvx + centre.uv, colour};
 	};
-	ret.vertices.reserve(info.points + 1);
-	ret.indices.reserve((info.points + 1) * 3);
+	ret.reserve(info.points + 1, (info.points + 1) * 3);
 	ret.vertices.push_back(centre);
 	ret.vertices.push_back(makeVertex({0.0f}));
 	for (std::uint32_t point = 1; point < info.points; ++point) {

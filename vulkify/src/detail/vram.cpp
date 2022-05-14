@@ -216,18 +216,19 @@ bool ImageWriter::canBlit(VmaImage const& src, VmaImage const& dst) { return src
 
 bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, Rect rect, vk::ImageLayout il) {
 	auto bci = vk::BufferCreateInfo({}, data.size(), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
-	auto buffer = vram.makeBuffer(bci, true, "image_copy_staging");
+	auto buffer = vram->makeBuffer(bci, true, "image_copy_staging");
 	if (!buffer || !buffer->write(data.data())) { return false; }
 
 	if (rect.extent.x == 0 && rect.extent.x == 0) {
-		if (rect.origin.x != 0 || rect.origin.y != 0) { return false; }
+		if (rect.offset.x != 0 || rect.offset.y != 0) { return false; }
 		rect.extent = {out.extent.width, out.extent.height};
 	}
 	if (rect.extent.x == 0 || rect.extent.y == 0) { return false; }
 
+	auto const offset = glm::ivec2(rect.offset);
 	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
 	auto icr = vk::ImageCopy(isrl, {}, isrl, {}, vk::Extent3D(rect.extent.x, rect.extent.y, 1));
-	auto bic = vk::BufferImageCopy({}, {}, {}, isrl, vk::Offset3D(rect.origin.x, rect.origin.y, 0), icr.extent);
+	auto bic = vk::BufferImageCopy({}, {}, {}, isrl, vk::Offset3D(offset.x, offset.y, 0), icr.extent);
 	out.transition(cb, vk::ImageLayout::eTransferDstOptimal);
 	cb.copyBufferToImage(buffer->resource, out.resource, out.layout, bic);
 	out.transition(cb, il);
@@ -236,7 +237,7 @@ bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, Rect rec
 	return true;
 }
 
-bool ImageWriter::blit(VmaImage& in, VmaImage& out, Offset inr, Offset outr, vk::Filter filter, TPair<vk::ImageLayout> il) const {
+bool ImageWriter::blit(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, vk::Filter filter, TPair<vk::ImageLayout> il) const {
 	if (!canBlit(in, out) || in.extent == out.extent) { return copy(in, out, inr, outr, il); }
 	if (in.extent.width == 0 || in.extent.height == 0) { return false; }
 	if (out.extent.width == 0 || out.extent.height == 0) { return false; }
@@ -244,8 +245,8 @@ bool ImageWriter::blit(VmaImage& in, VmaImage& out, Offset inr, Offset outr, vk:
 	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
 	in.transition(cb, vk::ImageLayout::eTransferSrcOptimal);
 	out.transition(cb, vk::ImageLayout::eTransferDstOptimal);
-	auto const srcOffsets = std::array<vk::Offset3D, 2>{{{inr.origin.x, inr.origin.y}, {inr.extent.x, inr.extent.y, 1}}};
-	auto const dstOffsets = std::array<vk::Offset3D, 2>{{{outr.origin.x, outr.origin.y}, {outr.extent.x, outr.extent.y, 1}}};
+	auto const srcOffsets = std::array<vk::Offset3D, 2>{{{inr.offset.x, inr.offset.y}, {inr.extent.x, inr.extent.y, 1}}};
+	auto const dstOffsets = std::array<vk::Offset3D, 2>{{{outr.offset.x, outr.offset.y}, {outr.extent.x, outr.extent.y, 1}}};
 	auto ib = vk::ImageBlit(isrl, srcOffsets, isrl, dstOffsets);
 	cb.blitImage(in.resource, in.layout, out.resource, out.layout, ib, filter);
 	in.transition(cb, il.first);
@@ -254,7 +255,7 @@ bool ImageWriter::blit(VmaImage& in, VmaImage& out, Offset inr, Offset outr, vk:
 	return true;
 }
 
-bool ImageWriter::copy(VmaImage& in, VmaImage& out, Rect inr, Rect outr, TPair<vk::ImageLayout> il) const {
+bool ImageWriter::copy(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, TPair<vk::ImageLayout> il) const {
 	if (in.extent.width == 0 || in.extent.height == 0) { return false; }
 	if (out.extent.width == 0 || out.extent.height == 0) { return false; }
 	if (inr.extent != outr.extent) { return false; }
@@ -262,13 +263,22 @@ bool ImageWriter::copy(VmaImage& in, VmaImage& out, Rect inr, Rect outr, TPair<v
 	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
 	in.transition(cb, vk::ImageLayout::eTransferSrcOptimal);
 	out.transition(cb, vk::ImageLayout::eTransferDstOptimal);
-	auto const ino = vk::Offset3D(inr.origin.x, inr.origin.y, 0);
-	auto const outo = vk::Offset3D(outr.origin.x, outr.origin.y, 0);
-	auto ib = vk::ImageCopy(isrl, ino, isrl, outo, vk::Extent3D(inr.extent.x, inr.extent.y, 1));
+	auto const ino = vk::Offset3D(inr.offset.x, inr.offset.y, 0);
+	auto const outo = vk::Offset3D(outr.offset.x, outr.offset.y, 0);
+	auto const extent = glm::uvec2(inr.extent);
+	auto ib = vk::ImageCopy(isrl, ino, isrl, outo, vk::Extent3D(extent.x, extent.y, 1));
 	cb.copyImage(in.resource, in.layout, out.resource, out.layout, ib);
 	in.transition(cb, il.first);
 	out.transition(cb, il.second);
 
 	return true;
+}
+
+void ImageWriter::clear(VmaImage& in, Rgba rgba) const {
+	auto const c = rgba.normalize();
+	auto const colour = std::array{c.x, c.y, c.z, c.w};
+	in.transition(cb, vk::ImageLayout::eTransferDstOptimal);
+	auto isrr = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
+	cb.clearColorImage(in.resource, vk::ImageLayout::eTransferDstOptimal, colour, isrr);
 }
 } // namespace vf

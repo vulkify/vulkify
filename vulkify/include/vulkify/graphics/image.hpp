@@ -8,13 +8,21 @@
 namespace vf {
 using Extent = glm::uvec2;
 
+template <typename T>
+struct TImageData {
+	T data{};
+	Extent extent{};
+
+	explicit constexpr operator bool() const { return extent.x > 0 && extent.y > 0; }
+};
+
 class Image {
   public:
 	static constexpr std::size_t channels_v = 4;
 	static constexpr std::size_t sizeBytes(Extent const extent) { return extent.x * extent.y * channels_v; }
 
-	struct View;
-	struct Decoded;
+	using View = TImageData<std::span<std::byte const>>;
+	using Decoded = TImageData<std::unique_ptr<std::byte[]>>;
 	struct Encoded;
 	static constexpr bool valid(Extent extent) { return extent.x > 0 && extent.y > 0; }
 	static constexpr bool valid(View view);
@@ -45,19 +53,9 @@ class Image {
 	ktl::fixed_pimpl<Impl, 32> m_impl;
 };
 
-struct Image::View {
-	std::span<std::byte const> bytes{};
-	Extent extent{};
-};
-
-struct Image::Decoded {
-	std::unique_ptr<std::byte[]> bytes{};
-	Extent extent{};
-};
-
 struct Image::Encoded {
 	std::span<std::byte const> bytes{};
 };
 
-constexpr bool Image::valid(Image::View view) { return valid(view.extent) && sizeBytes(view.extent) == view.bytes.size_bytes(); }
+constexpr bool Image::valid(Image::View view) { return valid(view.extent) && sizeBytes(view.extent) == view.data.size_bytes(); }
 } // namespace vf

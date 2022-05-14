@@ -19,11 +19,8 @@ class Bitmap {
   public:
 	using TopLeft = glm::uvec2;
 
-	struct View {
-		std::span<Rgba const> pixels{};
-		Extent extent{1, 1};
-
-		constexpr Rgba operator[](Index2D index) const { return pixels[index(extent.y)]; }
+	struct View : TImageData<std::span<Rgba const>> {
+		constexpr Rgba operator[](Index2D index) const { return data[index(extent.y)]; }
 		Image image() const;
 	};
 
@@ -37,7 +34,7 @@ class Bitmap {
 
 	static constexpr bool valid(Bitmap::View const& bitmap);
 
-	operator View() const { return {m_pixels, m_extent}; }
+	operator View() const { return {{m_pixels, m_extent}}; }
 	explicit operator bool() const { return valid(*this); }
 
 	Extent extent() const { return m_extent; }
@@ -57,7 +54,7 @@ class Bitmap {
 // impl
 
 constexpr bool Bitmap::valid(Bitmap::View const& bitmap) {
-	return bitmap.extent.x > 0 && bitmap.extent.y > 0 && Image::sizeBytes(bitmap.extent) == bitmap.pixels.size_bytes();
+	return bitmap.extent.x > 0 && bitmap.extent.y > 0 && Image::sizeBytes(bitmap.extent) == bitmap.data.size_bytes();
 }
 
 template <std::output_iterator<std::byte> Out>

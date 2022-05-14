@@ -36,29 +36,11 @@ option(VULKIFY_INSTALL "Install vulkify" ${is_root_project})
 option(VULKIFY_USE_PCH "Enable PCH" ON)
 option(VULKIFY_REQUIRE_VULKAN_1_1_0 "Require Vulkan 1.1 (needed for negative viewports - expect validation spam without it)" ON)
 
-# ktl
-if(VULKIFY_INSTALL)
-  set(KTL_INSTALL ON)
-
-  if(NOT KTL_INSTALL)
-    message(WARNING "Invalid INSTALL flags")
-  endif()
-endif()
-
-include(FetchContent)
-set(FETCHCONTENT_QUIET OFF)
-FetchContent_Declare(
-  ktl
-  GIT_REPOSITORY https://github.com/karnkaul/ktl
-  GIT_TAG a952dbc
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext/src/ktl"
-)
-FetchContent_MakeAvailable(ktl)
-
 # includes
 include(CheckPIESupported)
 check_pie_supported()
 include(cmake/platform.cmake) # set up helper cache variables
+include(cmake/utils.cmake)
 
 # git operations
 find_package(Git QUIET)
@@ -99,4 +81,10 @@ if(VULKIFY_BUILD_EXAMPLES)
   enable_testing()
   message(STATUS "Adding vulkify test target")
   add_test(NAME vulkify-headless COMMAND ${PROJECT_NAME}-quick-start --headless)
+endif()
+
+if(VULKIFY_INSTALL)
+  install_package_config(PACKAGE ${PROJECT_NAME} IN vulkify/config.cmake.in)
+  install_package_version(PACKAGE ${PROJECT_NAME} VERSION ${${PROJECT_NAME}_version})
+  export_package_to_build_tree(PACKAGE ${PROJECT_NAME})
 endif()

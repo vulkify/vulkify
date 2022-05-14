@@ -9,6 +9,9 @@
 #include <vulkify/core/unique.hpp>
 #include <vulkify/graphics/geometry.hpp>
 
+struct FT_LibraryRec_;
+using FT_Library = FT_LibraryRec_*;
+
 namespace vf {
 class CommandPool;
 struct ShaderCache;
@@ -107,22 +110,21 @@ struct BufferCache {
 };
 
 struct InstantCommand {
-	DeferQueue defer{};
-	CommandPool& pool;
+	CommandPool* pool{};
 	vk::CommandBuffer cmd{};
 
-	InstantCommand(CommandPool& pool) : pool(pool) { record(); }
+	InstantCommand(CommandPool& pool) : pool(&pool) { record(); }
 	~InstantCommand() { submit(); }
 
 	explicit operator bool() const { return cmd; }
 
 	void record() {
 		submit();
-		cmd = pool.acquire();
+		cmd = pool->acquire();
 	}
 
 	void submit() {
-		if (cmd) { pool.release(std::exchange(cmd, vk::CommandBuffer{}), true, std::move(defer)); }
+		if (cmd) { pool->release(std::exchange(cmd, vk::CommandBuffer{}), true); }
 	}
 };
 
@@ -139,6 +141,7 @@ struct CommandFactory {
 struct Vram {
 	VKDevice device{};
 	VmaAllocator allocator{};
+	FT_Library ftlib{};
 	CommandFactory* commandFactory{};
 	ShaderCache* shaderCache{};
 
@@ -161,19 +164,22 @@ struct Vram {
 };
 
 struct ImageWriter {
-	using Rect = vf::TRect<std::uint32_t, std::int32_t>;
-	using Offset = vf::TRect<std::int32_t, std::int32_t>;
+	using Rect = vf::TRect<std::uint32_t>;
+	using Offset = vf::TRect<std::int32_t>;
 
-	Vram const& vram;
+	Vram const* vram{};
 	vk::CommandBuffer cb;
+
+	ImageWriter(Vram const& vram, vk::CommandBuffer cb) : vram(&vram), cb(cb) {}
 
 	std::vector<UniqueBuffer> scratch{};
 
 	static bool canBlit(VmaImage const& src, VmaImage const& dst);
 
 	bool write(VmaImage& out, std::span<std::byte const> data, Rect rect = {}, vk::ImageLayout il = {});
-	bool blit(VmaImage& in, VmaImage& out, Offset inr, Offset outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
-	bool copy(VmaImage& in, VmaImage& out, Rect inr, Rect outr, TPair<vk::ImageLayout> il = {}) const;
+	bool blit(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
+	bool copy(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, TPair<vk::ImageLayout> il = {}) const;
+	void clear(VmaImage& in, Rgba rgba) const;
 };
 
 struct UniqueVram {

@@ -8,6 +8,10 @@ namespace vf {
 class nvec2 {
   public:
 	static nvec2 const identity_v;
+	static nvec2 const right_v;
+	static nvec2 const down_v;
+	static nvec2 const left_v;
+	static nvec2 const up_v;
 
 	static constexpr float sqrMag(glm::vec2 in);
 	static glm::vec2 normalize(glm::vec2 in);
@@ -34,6 +38,10 @@ class nvec2 {
 // impl
 
 inline nvec2 const nvec2::identity_v = nvec2{};
+inline nvec2 const nvec2::right_v = identity_v;
+inline nvec2 const nvec2::down_v = {0.0f, -1.0f};
+inline nvec2 const nvec2::left_v = {-1.0f, 0.0f};
+inline nvec2 const nvec2::up_v = {0.0f, 1.0f};
 
 constexpr float nvec2::sqrMag(glm::vec2 const in) { return in.x * in.x + in.y * in.y; }
 

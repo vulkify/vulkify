@@ -4,6 +4,8 @@
 #include <ktl/enumerate.hpp>
 #include <array>
 
+#include <vulkify/ttf/scribe.hpp>
+
 namespace {
 using InstanceStorage = std::array<vf::DrawInstance, 4>;
 using InstancedMesh = vf::InstancedMesh<InstanceStorage>;
@@ -11,7 +13,7 @@ constexpr auto padding_v = glm::vec2(200.0f, 100.0f);
 
 struct Helper {
 	vf::Context& context;
-	vf::Rect viewRect = context.space().rect;
+	vf::Rect area = context.area();
 
 	static vf::Geometry makeStar(float diameter) {
 		auto ret = vf::Geometry{};
@@ -46,22 +48,22 @@ struct Helper {
 		geometry.vertices.push_back(vf::Vertex{{0.0f, 50.0f}});
 		auto ret = vf::Mesh(context, "triangle");
 		ret.gbo.write(std::move(geometry));
-		ret.instance.transform.position = viewRect.topLeft() + glm::vec2(padding_v.x, -padding_v.y);
+		ret.instance.transform.position = area.topLeft() + glm::vec2(padding_v.x, -padding_v.y);
 		return ret;
 	}
 
-	vf::Texture makeRgbTexture() {
-		auto bitmap = vf::Bitmap(vf::white_v, {2, 2});
-		bitmap[vf::Index2D{0, 0}] = vf::red_v;
-		bitmap[vf::Index2D{0, 1}] = vf::green_v;
-		bitmap[vf::Index2D{1, 0}] = vf::blue_v;
-		return vf::Texture(context, "rgb_texture", bitmap.image());
+	vf::Bitmap makeRgbBitmap() {
+		auto ret = vf::Bitmap(vf::white_v, {2, 2});
+		ret[vf::Index2D{0, 0}] = vf::red_v;
+		ret[vf::Index2D{0, 1}] = vf::green_v;
+		ret[vf::Index2D{1, 0}] = vf::blue_v;
+		return ret;
 	}
 
 	vf::QuadShape makeRgbQuad(vf::Texture const& texture) {
 		auto ret = vf::QuadShape(context, "rgb_quad", vf::QuadShape::State{glm::vec2(100.0f, 100.0f)});
 		ret.setTexture(texture.clone("rgb_texture_clone"), false);
-		ret.transform().position = viewRect.topRight() + glm::vec2(-padding_v.x, -padding_v.y);
+		ret.transform().position = area.topRight() + glm::vec2(-padding_v.x, -padding_v.y);
 		ret.setOutline(5.0f, vf::magenta_v);
 		return ret;
 	}
@@ -69,9 +71,9 @@ struct Helper {
 	vf::CircleShape makeHexagon(vf::Texture texture) {
 		auto ret = vf::CircleShape(context, "hexagon", {100.0f, 6});
 		auto bitmap = vf::Bitmap(vf::magenta_v);
-		texture.overwrite(bitmap.image(), vf::Texture::TopLeft{1, 1});
+		texture.overwrite(bitmap.image(), vf::Texture::Rect{{1, 1}});
 		ret.setTexture(std::move(texture), false);
-		ret.transform().position = viewRect.bottomLeft() + glm::vec2(padding_v.x, padding_v.y);
+		ret.transform().position = area.bottomLeft() + glm::vec2(padding_v.x, padding_v.y);
 		ret.setOutline(5.0f, vf::white_v);
 		return ret;
 	}
@@ -85,7 +87,7 @@ struct Helper {
 		interpolateRgba(span.subspan(0, span.size() / 2), circleRgbaStart, circleRgbaEnd);
 		interpolateRgba(span.subspan(span.size() / 2), circleRgbaEnd, circleRgbaStart);
 		circle.gbo.write(std::move(geometry));
-		circle.instance.transform.position = viewRect.bottomRight() + glm::vec2(-padding_v.x, padding_v.y);
+		circle.instance.transform.position = area.bottomRight() + glm::vec2(-padding_v.x, padding_v.y);
 		auto iris = vf::CircleShape(context, "iris", vf::CircleShape::State{50.0f});
 		iris.transform().position = circle.instance.transform.position;
 		iris.tint() = vf::black_v;
@@ -97,7 +99,7 @@ struct Helper {
 		auto loadResult = image.load(imagePath);
 		if (loadResult) { std::cout << imagePath << " [" << loadResult->x << 'x' << loadResult->y << "] loaded sucessfully\n"; }
 
-		auto ret = vf::QuadShape(context, "textured_quad", vf::QuadShape::State{glm::vec2(200.0f, 200.0f)});
+		auto ret = vf::QuadShape(context, "textured_quad");
 		ret.setTexture(vf::Texture(context, "texture", image), false); // should be magenta if image is bad
 		return ret;
 	}
@@ -105,12 +107,24 @@ struct Helper {
 	InstancedMesh makeStars() {
 		auto stars = InstancedMesh(context, "stars");
 		stars.gbo.write(makeStar(100.0f));
-		stars.instances[0].transform.position = {0.0f, +(viewRect.extent.y * 0.5f - padding_v.y)};
-		stars.instances[1].transform.position = {+(viewRect.extent.x * 0.5f - padding_v.x), 0.0f};
-		stars.instances[2].transform.position = {0.0f, -(viewRect.extent.y * 0.5f - padding_v.y)};
-		stars.instances[3].transform.position = {-(viewRect.extent.x * 0.5f - padding_v.x), 0.0f};
+		stars.instances[0].transform.position = {0.0f, +(area.extent.y * 0.5f - padding_v.y)};
+		stars.instances[1].transform.position = {+(area.extent.x * 0.5f - padding_v.x), 0.0f};
+		stars.instances[2].transform.position = {0.0f, -(area.extent.y * 0.5f - padding_v.y)};
+		stars.instances[3].transform.position = {-(area.extent.x * 0.5f - padding_v.x), 0.0f};
 		return stars;
 	}
+};
+
+struct AtlasQuad : vf::Primitive {
+	vf::Texture const& texture;
+	vf::GeometryBuffer gbo{};
+	vf::DrawInstance instance{};
+
+	AtlasQuad(vf::Context const& context, vf::Texture const& texture) : texture(texture), gbo(context, "atlas_quad") {}
+
+	void update(vf::Geometry geometry) { gbo.write(std::move(geometry)); }
+
+	void draw(vf::Surface const& surface) const override { surface.draw({{&instance, 1}, gbo, texture}); }
 };
 
 void test(vf::Context context) {
@@ -118,12 +132,21 @@ void test(vf::Context context) {
 	auto helper = Helper{context};
 
 	auto triangle = helper.makeTriangle();
-	auto rgbTexture = helper.makeRgbTexture();
+	auto rgbBitmap = helper.makeRgbBitmap();
+	auto rgbTexture = vf::Texture(context, "rgb_texture", rgbBitmap.image());
 	auto rgbQuad = helper.makeRgbQuad(rgbTexture);
 	auto hexagon = helper.makeHexagon(std::move(rgbTexture));
 	auto [circle, iris] = helper.makeCircles();
-	auto texturedQuad = helper.makeTexturedQuad("test_image.png");
+	// auto texturedQuad = helper.makeTexturedQuad("test_image.png");
 	auto stars = helper.makeStars();
+
+	auto ttf = vf::Ttf(context, "test.ttf");
+	if (ttf.load("test.ttf")) { std::cout << "[" << ttf.name() << "] loaded successfully\n"; }
+
+	auto texturedQuad = AtlasQuad(context, ttf.texture());
+	auto scribe = vf::Scribe{ttf};
+	scribe.write(vf::Scribe::Block{"Hello\nthere!"});
+	texturedQuad.update(scribe.geometry);
 
 	struct StarOffset {
 		float dscale{};

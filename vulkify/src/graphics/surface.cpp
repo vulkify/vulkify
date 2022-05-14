@@ -55,10 +55,9 @@ void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
 }
 
 void RenderPass::setViewport() const {
-	if (!commandBuffer || !view.viewport) { return; }
-	auto const ext = glm::vec2(this->view.extent);
-	auto const v = Rect{view.viewport->extent * ext, view.viewport->origin * ext};
-	commandBuffer.setViewport(0, vk::Viewport(v.origin.x, v.origin.y + v.extent.y, v.extent.x, -v.extent.y));
+	if (!commandBuffer || !view.view) { return; }
+	auto const vp = view.extent * view.view->viewport;
+	commandBuffer.setViewport(0, vk::Viewport(vp.offset.x, vp.offset.y + vp.extent.y, vp.extent.x, -vp.extent.y)); // flip x / negative y
 }
 
 Surface::Surface() noexcept = default;

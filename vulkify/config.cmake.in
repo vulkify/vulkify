@@ -6,6 +6,7 @@ include(CMakeFindDependencyMacro)
 find_dependency(ktl)
 find_dependency(glfw3)
 find_dependency(dyvk)
+find_dependency(freetype)
 
 include("${CMAKE_CURRENT_LIST_DIR}/vk-bootstrap-targets.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/vulkify-ext-targets.cmake")

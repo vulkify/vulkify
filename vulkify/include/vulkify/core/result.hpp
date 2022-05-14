@@ -10,6 +10,7 @@ enum class Error {
 	eNoVulkanSupport,
 	eGlfwFailure,
 	eVulkanInitFailure,
+	eFreetypeInitFailure,
 
 	eInactiveInstance,
 	eMemoryError,
