@@ -16,6 +16,9 @@ struct TextureCreateInfo {
 	Filtering filtering{Filtering::eNearest};
 };
 
+///
+/// \brief GPU Texture (Image and sampler)
+///
 class Texture : public GfxResource {
   public:
 	using CreateInfo = TextureCreateInfo;

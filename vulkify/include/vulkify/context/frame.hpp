@@ -4,6 +4,9 @@
 #include <vulkify/instance/instance.hpp>
 
 namespace vf {
+///
+/// \brief Frame to render to (and present)
+///
 class Frame {
   public:
 	using Poll = Instance::Poll;

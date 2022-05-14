@@ -13,6 +13,9 @@ struct Geometry;
 struct PipelineState;
 class Shader;
 
+///
+/// \brief Surface being rendered to in a pass
+///
 class Surface {
   public:
 	static constexpr std::size_t small_buffer_v = 8;

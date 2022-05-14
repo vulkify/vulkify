@@ -5,6 +5,9 @@
 #include <vulkify/ttf/glyph.hpp>
 
 namespace vf {
+///
+/// \brief TrueType Font
+///
 class Ttf {
   public:
 	Ttf() noexcept;

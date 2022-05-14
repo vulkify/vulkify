@@ -14,6 +14,9 @@ struct DrawInstance {
 	DrawModel drawModel() const;
 };
 
+///
+/// \brief View to geometry, texture, and instances associated with a single draw call
+///
 struct Drawable {
 	std::span<DrawInstance const> instances{};
 	GeometryBuffer const& gbo;

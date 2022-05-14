@@ -6,6 +6,12 @@
 namespace vf {
 struct GfxCommandBuffer;
 
+///
+/// \brief Expandable Texture Atlas
+///
+/// Note: since the Texture extent is dynamic, rect UVs may change on adding images.
+/// Store each Id and query for its updated UV every frame if necessary - it's designed to be fast.
+///
 class Atlas {
   public:
 	static constexpr Extent initial_v = {1024, 128};
@@ -15,7 +21,16 @@ class Atlas {
 	Atlas() = default;
 	Atlas(Context const& context, std::string name, Extent initial = initial_v);
 
+	///
+	/// \brief Add image to atlas and obtain associated Id
+	///
+	/// Atlas expands texture height by default, unless width of image exceeds texture width,
+	/// in whichh case it expands the width as well. Texture dimensions are always powers of two.
+	///
 	Id add(Image::View image);
+	///
+	/// \brief Obtain
+	///
 	UVRect get(Id id, UVRect const& fallback = {{}, {}}) const;
 
 	bool contains(Id id) const { return m_uvMap.contains(id); }
@@ -44,6 +59,12 @@ class Atlas {
 	} m_state{};
 };
 
+///
+/// \brief Adds images to an Atlas in bulk
+///
+/// Note: There's no difference in the interface. Bulk::add simply collects all the underlying commands
+/// and batch submits them to the GPU in its destructor. Atlas::add submits each image before returning.
+///
 class Atlas::Bulk {
   public:
 	Bulk(Atlas& out_atlas);

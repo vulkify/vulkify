@@ -3,6 +3,9 @@
 #include <span>
 
 namespace vf {
+///
+/// \brief Packed 4x 8-bit channel colour
+///
 struct Rgba {
 	using Channel = std::uint8_t;
 
@@ -12,11 +15,26 @@ struct Rgba {
 	static constexpr Rgba make(std::span<Channel const, 4> channels) { return {{channels[0], channels[1], channels[2], channels[3]}}; }
 	static constexpr Rgba make(std::uint32_t mask);
 
+	///
+	/// \brief Normalize a channel to [0-1]
+	///
 	static float normalize(Channel ch);
+	///
+	/// \brief Unnormalize f to [0-255]
+	///
 	static Channel unnormalize(float f);
 
+	///
+	/// \brief Gamma correct linear
+	///
 	static glm::vec4 srgb(glm::vec4 const& linear);
+	///
+	/// \brief Gamme uncorrect srgb
+	///
 	static glm::vec4 linear(glm::vec4 const& srgb);
+	///
+	/// \brief Interpolate between two Rgba values
+	///
 	static Rgba lerp(Rgba a, Rgba b, float t);
 
 	constexpr bool operator==(Rgba const& rhs) const = default;
@@ -24,7 +42,13 @@ struct Rgba {
 	Rgba srgb() const;
 	Rgba linear() const;
 
+	///
+	/// \brief Obtain channels as packed 32 bit unsigned int
+	///
 	constexpr std::uint32_t toU32() const;
+	///
+	/// \brief Obtain channels as normalized floats
+	///
 	glm::vec4 normalize() const { return {normalize(channels[0]), normalize(channels[1]), normalize(channels[2]), normalize(channels[3])}; }
 };
 

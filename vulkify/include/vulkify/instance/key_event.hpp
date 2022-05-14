@@ -2,6 +2,9 @@
 #include <ktl/enum_flags/enum_flags.hpp>
 
 namespace vf {
+///
+/// \brief Set of all Keys
+///
 enum class Key : std::uint32_t {
 	eUnknown = 0,
 	eSpace = 32,
@@ -143,8 +146,14 @@ enum class Key : std::uint32_t {
 	eMouseButtonMiddle = eMouseButton3,
 };
 
+///
+/// \brief Set of all Actions
+///
 enum class Action : std::uint8_t { eRelease, ePress, eRepeat };
 
+///
+/// \brief Bit flag representing a key Mod
+///
 enum class Mod : std::uint8_t {
 	eNone = 0,
 	eShift = 1 << 0,
@@ -154,8 +163,14 @@ enum class Mod : std::uint8_t {
 	eCapsLock = 1 << 4,
 	eNumLock = 1 << 5,
 };
+///
+/// \brief Bit flags for key Mods
+///
 using Mods = ktl::enum_flags<Mod, std::underlying_type_t<Mod>, ktl::enum_trait_pot>;
 
+///
+/// \brief A single key event
+///
 struct KeyEvent {
 	Key key{};
 	Action action{};

@@ -3,6 +3,9 @@
 #include <vulkify/core/rect.hpp>
 
 namespace vf {
+///
+/// \brief Vulkify "HQ": owns Instance and drives rendering frames
+///
 class Context {
   public:
 	using Result = vf::Result<Context>;

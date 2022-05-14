@@ -3,6 +3,13 @@
 #include <vulkify/core/nvec.hpp>
 
 namespace vf {
+///
+/// \brief Right-handed transformation in world space
+///
+/// Origin (0, 0): centre
+/// +x: right, +y: up
+/// +rotation: counter-clockwise
+///
 struct Transform {
 	static glm::mat3 translation(glm::vec2 position);
 	static glm::mat3 rotation(nvec2 orientation);

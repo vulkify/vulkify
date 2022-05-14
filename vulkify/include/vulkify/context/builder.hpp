@@ -3,6 +3,9 @@
 #include <string>
 
 namespace vf {
+///
+/// \brief Context (and Instance) builder
+///
 class Builder {
   public:
 	std::string const& title() const { return m_title; }

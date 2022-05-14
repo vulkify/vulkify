@@ -8,6 +8,9 @@ concept EqualityComparable = requires(T a, T b) {
 	{ a == b } -> std::convertible_to<bool>;
 };
 
+///
+/// \brief Optional unique owned instance of Type and a custom Deleter
+///
 template <EqualityComparable Type, typename Deleter = void>
 class Unique {
   public:
@@ -43,6 +46,9 @@ class Unique {
 	Deleter m_del{};
 };
 
+///
+/// \brief Optional unique owned instance of Type
+///
 template <EqualityComparable Type>
 class Unique<Type, void> {
   public:

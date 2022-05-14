@@ -5,8 +5,14 @@
 #include <vulkify/instance/key_event.hpp>
 
 namespace vf {
+///
+/// \brief Value of an Event
+///
 using EventValue = ktl::kvariant<glm::ivec2, glm::vec2, KeyEvent, bool>;
 
+///
+/// \brief Event type and value
+///
 struct Event {
 	EventValue value{};
 	EventType type{};

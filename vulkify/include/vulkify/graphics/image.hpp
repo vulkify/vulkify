@@ -8,6 +8,9 @@
 namespace vf {
 using Extent = glm::uvec2;
 
+///
+/// \brief Data and extent for an image
+///
 template <typename T>
 struct TImageData {
 	T data{};
@@ -16,17 +19,26 @@ struct TImageData {
 	explicit constexpr operator bool() const { return extent.x > 0 && extent.y > 0; }
 };
 
+///
+/// \brief Byte representation of an image
+///
 class Image {
   public:
 	static constexpr std::size_t channels_v = 4;
 	static constexpr std::size_t sizeBytes(Extent const extent) { return extent.x * extent.y * channels_v; }
 
 	using View = TImageData<std::span<std::byte const>>;
+	///
+	/// \brief Decompressed RGBA bytes
+	///
 	using Decoded = TImageData<std::unique_ptr<std::byte[]>>;
 	struct Encoded;
 	static constexpr bool valid(Extent extent) { return extent.x > 0 && extent.y > 0; }
 	static constexpr bool valid(View view);
 
+	///
+	/// \brief Attempt to decompress encoded image
+	///
 	static Decoded decode(Encoded encoded);
 
 	Image() noexcept;
@@ -53,6 +65,9 @@ class Image {
 	ktl::fixed_pimpl<Impl, 32> m_impl;
 };
 
+///
+/// \brief Compressed PNG, JPG, etc
+///
 struct Image::Encoded {
 	std::span<std::byte const> bytes{};
 };

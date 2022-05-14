@@ -21,6 +21,9 @@ struct PipelineState {
 	float lineWidth{1.0f};
 };
 
+///
+/// \brief GPU Vertex (and index) buffer
+///
 class GeometryBuffer : public GfxResource {
   public:
 	using State = PipelineState;
@@ -37,6 +40,9 @@ class GeometryBuffer : public GfxResource {
 	Geometry m_geometry{};
 };
 
+///
+/// \brief GPU Uniform buffer
+///
 class UniformBuffer : public GfxResource {
   public:
 	UniformBuffer() = default;

@@ -5,7 +5,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/core/float_eq.hpp
   include/vulkify/core/nvec.hpp
   include/vulkify/core/per_thread.hpp
-  include/vulkify/core/ptr.hpp
   include/vulkify/core/radian.hpp
   include/vulkify/core/result.hpp
   include/vulkify/core/rect.hpp

@@ -3,6 +3,9 @@
 namespace vf {
 class Context;
 
+///
+/// \brief Set of all Gamepad Buttons
+///
 enum class GamepadButton {
 	eA,
 	eB,
@@ -26,6 +29,9 @@ enum class GamepadButton {
 	eDpadLeft,
 };
 
+///
+/// \brief Set of all Gamepad Axes
+///
 enum class GamepadAxis {
 	eUnknown = -1,
 	eLeftX = 0,
@@ -38,6 +44,9 @@ enum class GamepadAxis {
 
 struct GamepadMap;
 
+///
+/// \brief State of a Gamepad (identified by Id)
+///
 struct Gamepad {
 	using Id = int;
 	static constexpr Id max_id_v{16};
@@ -56,6 +65,9 @@ struct Gamepad {
 	float operator()(Axis axis) const;
 };
 
+///
+/// \brief Map of all connected Gamepads
+///
 struct GamepadMap {
 	bool map[Gamepad::max_id_v]{};
 

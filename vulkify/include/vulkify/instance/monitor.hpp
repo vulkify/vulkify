@@ -16,6 +16,9 @@ struct Monitor {
 	bool operator==(Monitor const& rhs) const { return handle == rhs.handle; }
 };
 
+///
+/// \brief List of connected Monitors
+///
 struct MonitorList {
 	Monitor primary{};
 	std::vector<Monitor> others{};

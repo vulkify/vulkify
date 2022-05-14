@@ -7,6 +7,9 @@
 #include <vector>
 
 namespace vf {
+///
+/// \brief Two-dimensional index
+///
 struct Index2D {
 	std::size_t row{};
 	std::size_t col{};
@@ -15,6 +18,9 @@ struct Index2D {
 	constexpr std::size_t operator()(std::size_t rows) const { return row * rows + col; }
 };
 
+///
+/// \brief 2D bitmap of Rgba pixels
+///
 class Bitmap {
   public:
 	using TopLeft = glm::uvec2;

@@ -2,6 +2,9 @@
 #include <ktl/expected.hpp>
 
 namespace vf {
+///
+/// \brief Set of all Vulkify error types
+///
 enum class Error {
 	eUnknown,
 
@@ -17,6 +20,9 @@ enum class Error {
 	eIOError,
 };
 
+///
+/// \brief T or an Error
+///
 template <typename T>
 using Result = ktl::expected<T, Error>;
 } // namespace vf

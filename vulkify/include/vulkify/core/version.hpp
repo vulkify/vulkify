@@ -2,6 +2,9 @@
 #include <compare>
 
 namespace vf {
+///
+/// \brief Semantic version
+///
 struct Version {
 	int major{};
 	int minor{};

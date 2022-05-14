@@ -6,6 +6,9 @@ namespace vf {
 struct GfxAllocation;
 struct Vram;
 
+///
+/// \brief Low level GPU resource allocation
+///
 class GfxResource {
   public:
 	GfxResource();

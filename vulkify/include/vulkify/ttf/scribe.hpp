@@ -3,6 +3,17 @@
 #include <vulkify/ttf/ttf.hpp>
 
 namespace vf {
+///
+/// \brief Splits lines in a loop
+///
+struct LineViewer {
+	std::string_view text{};
+	constexpr bool getline(std::string_view& out);
+};
+
+///
+/// \brief Writes codepoints and moves write-head
+///
 struct Pen {
 	Ttf* out_ttf{};
 	Geometry* out_geometry{};
@@ -13,11 +24,9 @@ struct Pen {
 	glm::vec2 write(std::span<Codepoint const> codepoints);
 };
 
-struct LineViewer {
-	std::string_view text{};
-	constexpr bool getline(std::string_view& out);
-};
-
+///
+/// \brief Writes aligned text using a Ttf
+///
 struct Scribe {
 	using Pivot = glm::vec2;
 	using Block = LineViewer;

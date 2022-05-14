@@ -1,6 +1,9 @@
 #pragma once
 
 namespace vf {
+///
+/// \brief Set of all Event Types
+///
 enum class EventType {
 	// void
 	eClose,
@@ -24,4 +27,4 @@ enum class EventType {
 	eKey,
 	eMouseButton,
 };
-}
+} // namespace vf

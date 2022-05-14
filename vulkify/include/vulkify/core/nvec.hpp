@@ -6,7 +6,7 @@
 
 namespace vf {
 ///
-/// \brief Represents a normalized 2D vector
+/// \brief Normalized 2D vector
 ///
 /// Identity faces right (+1, 0)
 ///
