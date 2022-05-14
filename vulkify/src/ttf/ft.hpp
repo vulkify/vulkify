@@ -30,8 +30,8 @@ struct FtFace {
 
 	FT_Face face{};
 
-	static FtFace make(FtLib const& lib, std::span<std::byte const> bytes) noexcept;
-	static FtFace make(FtLib const& lib, char const* path) noexcept;
+	static FtFace make(FT_Library lib, std::span<std::byte const> bytes) noexcept;
+	static FtFace make(FT_Library lib, char const* path) noexcept;
 
 	explicit operator bool() const noexcept { return face != nullptr; }
 	constexpr bool operator==(FtFace const&) const = default;

@@ -510,7 +510,7 @@ struct VulkifyInstance::Impl {
 	UniqueVram vram{};
 	VKSurface surface{};
 	SwapchainRenderer renderer{};
-	ktl::kunique_ptr<FtLib> freetype{};
+	FtUnique<FtLib> freetype{};
 	Gpu gpu{};
 
 	VKSurface::Acquire acquired{};
@@ -543,7 +543,6 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 
 	auto freetype = FtLib::make();
 	if (!freetype) { return Error::eFreetypeInitFailure; }
-	auto ftlib = ktl::make_unique<FtLib>(freetype);
 
 	auto vulkan = VKInstance::make([&window](vk::Instance inst) {
 		auto surface = VkSurfaceKHR{};
@@ -555,7 +554,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	auto device = makeDevice(*vulkan);
 	auto vram = UniqueVram::make(*vulkan->instance, device, getSamples(createInfo.desiredAA));
 	if (!vram) { return Error::eVulkanInitFailure; }
-	vram.vram->ftlib = ftlib.get();
+	vram.vram->ftlib = freetype.lib;
 
 	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
 	bool const linear = createInfo.instanceFlags.test(InstanceFlag::eLinearSwapchain);
@@ -583,7 +582,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	impl->shaderTextures = makeShaderTextures(impl->vram.vram);
 	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
 
-	impl->freetype = std::move(ftlib);
+	impl->freetype = freetype;
 	impl->gpu = makeGPU(*vulkan);
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));

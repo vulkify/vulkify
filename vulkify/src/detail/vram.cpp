@@ -216,7 +216,7 @@ bool ImageWriter::canBlit(VmaImage const& src, VmaImage const& dst) { return src
 
 bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, Rect rect, vk::ImageLayout il) {
 	auto bci = vk::BufferCreateInfo({}, data.size(), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
-	auto buffer = vram.makeBuffer(bci, true, "image_copy_staging");
+	auto buffer = vram->makeBuffer(bci, true, "image_copy_staging");
 	if (!buffer || !buffer->write(data.data())) { return false; }
 
 	if (rect.extent.x == 0 && rect.extent.x == 0) {

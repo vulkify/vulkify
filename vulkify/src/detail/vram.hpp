@@ -9,10 +9,12 @@
 #include <vulkify/core/unique.hpp>
 #include <vulkify/graphics/geometry.hpp>
 
+struct FT_LibraryRec_;
+using FT_Library = FT_LibraryRec_*;
+
 namespace vf {
 class CommandPool;
 struct ShaderCache;
-struct FtLib;
 
 enum class BlitFlag { eSrc, eDst, eLinearFilter };
 using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
@@ -108,22 +110,21 @@ struct BufferCache {
 };
 
 struct InstantCommand {
-	DeferQueue defer{};
-	CommandPool& pool;
+	CommandPool* pool{};
 	vk::CommandBuffer cmd{};
 
-	InstantCommand(CommandPool& pool) : pool(pool) { record(); }
+	InstantCommand(CommandPool& pool) : pool(&pool) { record(); }
 	~InstantCommand() { submit(); }
 
 	explicit operator bool() const { return cmd; }
 
 	void record() {
 		submit();
-		cmd = pool.acquire();
+		cmd = pool->acquire();
 	}
 
 	void submit() {
-		if (cmd) { pool.release(std::exchange(cmd, vk::CommandBuffer{}), true, std::move(defer)); }
+		if (cmd) { pool->release(std::exchange(cmd, vk::CommandBuffer{}), true); }
 	}
 };
 
@@ -140,7 +141,7 @@ struct CommandFactory {
 struct Vram {
 	VKDevice device{};
 	VmaAllocator allocator{};
-	FtLib const* ftlib{};
+	FT_Library ftlib{};
 	CommandFactory* commandFactory{};
 	ShaderCache* shaderCache{};
 
@@ -166,8 +167,10 @@ struct ImageWriter {
 	using Rect = vf::TRect<std::uint32_t>;
 	using Offset = vf::TRect<std::int32_t>;
 
-	Vram const& vram;
+	Vram const* vram{};
 	vk::CommandBuffer cb;
+
+	ImageWriter(Vram const& vram, vk::CommandBuffer cb) : vram(&vram), cb(cb) {}
 
 	std::vector<UniqueBuffer> scratch{};
 

@@ -16,19 +16,19 @@ FtLib FtLib::make() noexcept {
 	return ret;
 }
 
-FtFace FtFace::make(FtLib const& lib, std::span<std::byte const> bytes) noexcept {
+FtFace FtFace::make(FT_Library lib, std::span<std::byte const> bytes) noexcept {
 	static_assert(sizeof(FT_Byte) == sizeof(std::byte));
 	FtFace ret;
-	if (FT_New_Memory_Face(lib.lib, reinterpret_cast<FT_Byte const*>(bytes.data()), static_cast<FT_Long>(bytes.size()), 0, &ret.face)) {
+	if (FT_New_Memory_Face(lib, reinterpret_cast<FT_Byte const*>(bytes.data()), static_cast<FT_Long>(bytes.size()), 0, &ret.face)) {
 		VF_TRACE("[vf::Ttf] Failed to make font face");
 		return {};
 	}
 	return ret;
 }
 
-FtFace FtFace::make(FtLib const& lib, char const* path) noexcept {
+FtFace FtFace::make(FT_Library lib, char const* path) noexcept {
 	FtFace ret;
-	if (FT_New_Face(lib.lib, path, 0, &ret.face)) {
+	if (FT_New_Face(lib, path, 0, &ret.face)) {
 		VF_TRACE("[vf::Ttf] Failed to make font face");
 		return {};
 	}
@@ -114,7 +114,7 @@ void FtDeleter::operator()(FtFace const& face) const noexcept { FT_Done_Face(fac
 
 struct Ttf::Face {
 	FtUnique<FtFace> face{};
-	FtLib lib{};
+	FT_Library lib{};
 };
 
 static constexpr auto initial_extent_v = glm::uvec2(512, 128);
@@ -126,7 +126,7 @@ Ttf::~Ttf() noexcept = default;
 
 Ttf::Ttf(Context const& context, std::string name) : m_atlas(context, name + "_atlas", initial_extent_v), m_name(std::move(name)) {
 	if (!context.vram().ftlib) { return; }
-	m_face->lib = *context.vram().ftlib;
+	m_face->lib = context.vram().ftlib;
 }
 
 Ttf::operator bool() const { return m_face->lib && m_face->face; }
