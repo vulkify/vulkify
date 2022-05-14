@@ -172,46 +172,6 @@ static void copy(Vram const& vram, VmaBuffer dst, vk::CommandBuffer cmd, Span co
 	*out++ = std::move(stage);
 }
 
-BufferCache Vram::makeVIBuffer(Geometry const& geometry, BufferCache::Type type, char const* name) const {
-	static constexpr auto s_vert = Vertex{};
-	if (!device || !commandFactory) { return {}; }
-	auto verts = std::span<Vertex const>(geometry.vertices);
-	if (verts.empty()) { verts = {&s_vert, 1}; }
-	auto ret = BufferCache{};
-	ret.type = type;
-	bool const gpuOnly = type == BufferCache::Type::eGpuOnly;
-	bool const host = gpuOnly ? false : true;
-
-	auto bci = vk::BufferCreateInfo{};
-	bci.usage = vk::BufferUsageFlagBits::eVertexBuffer;
-	if (gpuOnly) { bci.usage |= vk::BufferUsageFlagBits::eTransferDst; }
-	static auto count = std::atomic<int>{};
-	auto nameFallback = std::string{};
-	name = getName(name, nameFallback, count);
-	bci.size = verts.size_bytes();
-	auto str = ktl::str_format("{}_vbo", name);
-	ret.buffers.push_back(makeBuffer(bci, host, str.c_str()));
-	if (!geometry.indices.empty()) {
-		bci.usage = vk::BufferUsageFlagBits::eIndexBuffer;
-		bci.size = geometry.indices.size() * sizeof(decltype(geometry.indices[0]));
-		str = ktl::str_format("{}_ibo", name);
-		ret.buffers.push_back(makeBuffer(bci, host, str.c_str()));
-	}
-
-	auto cmd = InstantCommand(commandFactory->get());
-	auto scratch = ktl::fixed_vector<UniqueBuffer, 4>{};
-	if (gpuOnly) {
-		copy(*this, ret.buffers[0].get(), cmd.cmd, verts, name, std::back_inserter(scratch));
-		if (ret.buffers.size() == 2) { copy(*this, ret.buffers[1].get(), cmd.cmd, geometry.indices, name, std::back_inserter(scratch)); }
-	} else {
-		ret.buffers[0]->write(verts.data());
-		if (ret.buffers.size() == 2) { ret.buffers[1]->write(geometry.indices.data()); }
-	}
-	cmd.submit();
-
-	return ret;
-}
-
 bool ImageWriter::canBlit(VmaImage const& src, VmaImage const& dst) { return src.blitFlags().test(BlitFlag::eSrc) && dst.blitFlags().test(BlitFlag::eDst); }
 
 bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, Rect rect, vk::ImageLayout il) {

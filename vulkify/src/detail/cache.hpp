@@ -1,4 +1,5 @@
 #pragma once
+#include <detail/rotator.hpp>
 #include <detail/vram.hpp>
 
 namespace vf {
@@ -65,5 +66,44 @@ struct ImageCache {
 	}
 
 	VKImage peek() const noexcept { return {image->resource, view ? *view : vk::ImageView(), {info.info.extent.width, info.info.extent.height}}; }
+};
+
+struct BufferCache {
+	std::string name{};
+	mutable vk::BufferCreateInfo info{};
+	mutable Rotator<UniqueBuffer, 8> buffers{};
+	std::vector<std::byte> data{std::byte{}};
+	Vram const* vram{};
+
+	BufferCache() = default;
+	BufferCache(Vram const& vram) : vram(&vram) {}
+
+	void setVbo(std::size_t buffering) {
+		if (!vram) { return; }
+		info.usage = vk::BufferUsageFlagBits::eVertexBuffer;
+		info.size = 1;
+		for (std::size_t i = 0; i < buffering; ++i) { buffers.push(vram->makeBuffer(info, true, this->name.c_str())); }
+	}
+
+	void setIbo(std::size_t buffering) {
+		if (!vram) { return; }
+		info.usage = vk::BufferUsageFlagBits::eIndexBuffer;
+		info.size = 1;
+		for (std::size_t i = 0; i < buffering; ++i) { buffers.push(vram->makeBuffer(info, true, this->name.c_str())); }
+	}
+
+	VmaBuffer const& get(bool next) const {
+		static auto const blank_v = VmaBuffer{};
+		if (!vram) { return blank_v; }
+		auto& buffer = buffers.get();
+		if (buffers.get()->size < data.size()) {
+			info.size = data.size();
+			vram->device.defer(std::move(buffer));
+			buffer = vram->makeBuffer(info, true, name.c_str());
+		}
+		buffer->write(data.data(), data.size());
+		if (next) { buffers.next(); }
+		return buffer;
+	}
 };
 } // namespace vf

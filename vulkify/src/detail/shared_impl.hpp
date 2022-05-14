@@ -1,6 +1,6 @@
 #pragma once
+#include <detail/cache.hpp>
 #include <detail/descriptor_set.hpp>
-#include <detail/image_cache.hpp>
 #include <detail/vram.hpp>
 #include <glm/mat4x4.hpp>
 #include <ktl/unique_val.hpp>
@@ -84,9 +84,15 @@ struct ImageSampler {
 	bool operator==(ImageSampler const& rhs) const { return !sampler && !rhs.sampler && !cache.image && !rhs.cache.image; }
 };
 
+struct BufferCaches {
+	static constexpr std::size_t max_caches_v = 4;
+
+	ktl::fixed_vector<BufferCache, max_caches_v> caches{};
+};
+
 struct GfxAllocation {
 	ImageSampler image{};
-	BufferCache buffer{};
+	BufferCaches buffers{};
 	Vram vram{};
 	std::string name{};
 

@@ -22,9 +22,9 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   instance/vf_instance.cpp
 
+  detail/cache.hpp
   detail/command_pool.hpp
   detail/defer_queue.hpp
-  detail/image_cache.hpp
   detail/pipeline_factory.cpp
   detail/pipeline_factory.hpp
   detail/renderer.cpp

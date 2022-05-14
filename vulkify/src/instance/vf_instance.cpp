@@ -18,11 +18,11 @@
 #include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
 #include <detail/vk_surface.hpp>
-
 #include <detail/vram.hpp>
 
 #include <glm/mat4x4.hpp>
 #include <vulkify/graphics/bitmap.hpp>
+#include <vulkify/graphics/geometry.hpp>
 #include <iostream>
 
 #include <vulkify/instance/gamepad.hpp>
@@ -415,6 +415,7 @@ struct SwapchainRenderer {
 	VKSync sync() const { return frameSync.get().sync(); }
 
 	void resync(std::size_t buffering) {
+		vram.buffering = buffering;
 		for (auto& sync : frameSync.storage) { vram.device.defer(std::move(sync)); }
 		frameSync.storage.clear();
 		auto const count = static_cast<std::uint32_t>(buffering);
@@ -559,9 +560,9 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
 	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
 
-	auto presenter = SwapchainRenderer::make(impl->vram.vram, impl->surface.info.imageFormat);
-	if (!presenter) { return Error::eVulkanInitFailure; }
-	impl->renderer = std::move(presenter);
+	auto renderer = SwapchainRenderer::make(impl->vram.vram, impl->surface.info.imageFormat);
+	if (!renderer) { return Error::eVulkanInitFailure; }
+	impl->renderer = std::move(renderer);
 	impl->vram.vram->textureFormat = textureFormat(impl->surface.info.imageFormat);
 
 	impl->setLayouts = makeSetLayouts(impl->surface.device.device);
@@ -572,8 +573,8 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, impl->vertexInput(), std::move(sl), csamples, srr);
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
-	auto const buffering = impl->renderer.frameSync.storage.size();
-	impl->descriptorPool = DescriptorPool::make(impl->vram.vram, impl->pipelineFactory.setLayouts, buffering);
+	impl->vram.vram->buffering = impl->renderer.frameSync.storage.size();
+	impl->descriptorPool = DescriptorPool::make(impl->vram.vram, impl->pipelineFactory.setLayouts);
 	if (!impl->descriptorPool) { return Error::eVulkanInitFailure; }
 
 	impl->shaderTextures = makeShaderTextures(impl->vram.vram);
