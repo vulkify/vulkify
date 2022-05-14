@@ -4,6 +4,8 @@
 #include <vulkify/graphics/texture.hpp>
 
 namespace vf {
+struct GfxCommandBuffer;
+
 class Atlas {
   public:
 	static constexpr Extent initial_v = {1024, 128};
@@ -27,10 +29,10 @@ class Atlas {
 	static constexpr glm::uvec2 pad_v = {1, 1};
 
 	void nextLine();
-	bool prepare(struct ImageWriter& writer, Extent extent);
-	bool resize(ImageWriter& writer, Extent extent);
-	bool overwrite(ImageWriter& writer, Image::View image, Texture::Rect const& region);
-	Id insert(ImageWriter& writer, Image::View image);
+	bool prepare(GfxCommandBuffer& cb, Extent extent);
+	bool resize(GfxCommandBuffer& cb, Extent extent);
+	bool overwrite(GfxCommandBuffer& cb, Image::View image, Texture::Rect const& region);
+	Id insert(GfxCommandBuffer& cb, Image::View image);
 
 	Texture m_texture{};
 	ktl::hash_table<Id, UVRect> m_uvMap{};
@@ -50,8 +52,7 @@ class Atlas::Bulk {
 	Id add(Image::View image);
 
   private:
-	struct Impl;
-	ktl::kunique_ptr<Impl> m_impl;
+	ktl::kunique_ptr<GfxCommandBuffer> m_impl;
 	Atlas& m_atlas;
 };
 } // namespace vf

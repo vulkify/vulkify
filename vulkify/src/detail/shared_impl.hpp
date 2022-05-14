@@ -106,6 +106,14 @@ struct GfxShaderModule {
 	vk::Device device{};
 };
 
+struct GfxCommandBuffer {
+	InstantCommand cmd;
+	ImageWriter writer;
+
+	GfxCommandBuffer(Vram const& vram) : cmd(vram.commandFactory->get()), writer(vram, cmd.cmd) {}
+	~GfxCommandBuffer() { cmd.submit(); }
+};
+
 struct Inactive {
 	Vram vram{};
 	GfxAllocation alloc{};

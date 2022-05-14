@@ -5,6 +5,11 @@
 #include <cmath>
 
 namespace vf {
+///
+/// \brief Represents a normalized 2D vector
+///
+/// Identity faces right (+1, 0)
+///
 class nvec2 {
   public:
 	static nvec2 const identity_v;
@@ -18,7 +23,7 @@ class nvec2 {
 
 	nvec2() = default;
 	explicit nvec2(glm::vec2 v) : m_value(normalize(v)) {}
-	nvec2(float x, float y) : nvec2(glm::vec2(x, y)) {}
+	explicit nvec2(float x, float y) : nvec2(glm::vec2(x, y)) {}
 
 	static glm::vec2 rotate(glm::vec2 vec, Radian rad);
 
@@ -39,9 +44,9 @@ class nvec2 {
 
 inline nvec2 const nvec2::identity_v = nvec2{};
 inline nvec2 const nvec2::right_v = identity_v;
-inline nvec2 const nvec2::down_v = {0.0f, -1.0f};
-inline nvec2 const nvec2::left_v = {-1.0f, 0.0f};
-inline nvec2 const nvec2::up_v = {0.0f, 1.0f};
+inline nvec2 const nvec2::down_v = nvec2{0.0f, -1.0f};
+inline nvec2 const nvec2::left_v = nvec2{-1.0f, 0.0f};
+inline nvec2 const nvec2::up_v = nvec2{0.0f, 1.0f};
 
 constexpr float nvec2::sqrMag(glm::vec2 const in) { return in.x * in.x + in.y * in.y; }
 

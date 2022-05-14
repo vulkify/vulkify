@@ -10,6 +10,8 @@ Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
 
 ## Features
 
+- [x] No binary dependencies: builds **everything** from source
+  - [x] Self contained deps (no downloads in build scripts)
 - [x] Dedicated fullscreen, borderless, and decorated windows
 - [x] sRGB / linear framebuffers
 - [x] Stall-less swapchain recreation
@@ -25,9 +27,10 @@ Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
   - [x] Custom descriptor set
   - [ ] Custom uniform buffer
   - [ ] Custom texture
-- [ ] Shape outlines
-- [ ] Cursor unprojection
-- [ ] Fonts (Freetype)
+- [x] Shape outlines
+- [x] Cursor unprojection
+- [x] TrueType Fonts
+- [x] Bulk command buffer recording
 - [ ] Text
 
 ## Requirements
@@ -77,6 +80,7 @@ I would rather require dependency injection than use owning globals. :)
 - [stb](https://github.com/nothings/stb)
 - [VulkanHPP](https://github.com/KhronosGroup/Vulkan-Hpp)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+- [freetype](https://github.com/freetype/freetype)
 - [ktl](https://github.com/karnkaul/ktl)
 
 [Original repository](https://github.com/vulkify/vulkify)

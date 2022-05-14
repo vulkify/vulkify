@@ -25,12 +25,10 @@ constexpr std::array<std::byte, Image::channels_v> rgbaBytes(Rgba rgba) {
 
 void blit(ImageCache& in_cache, ImageCache& out_cache, Filtering filtering) {
 	static constexpr auto layout = vk::ImageLayout::eShaderReadOnlyOptimal;
-	auto cmd = InstantCommand(in_cache.info.vram.commandFactory->get());
-	auto writer = ImageWriter{in_cache.info.vram, cmd.cmd};
+	auto cb = GfxCommandBuffer(in_cache.info.vram);
 	auto inr = TRect<std::uint32_t>{{in_cache.image->extent.width, in_cache.image->extent.height}};
 	auto outr = TRect<std::uint32_t>{{out_cache.image->extent.width, out_cache.image->extent.height}};
-	writer.blit(in_cache.image, out_cache.image, inr, outr, getFilter(filtering), {layout, layout});
-	cmd.submit();
+	cb.writer.blit(in_cache.image, out_cache.image, inr, outr, getFilter(filtering), {layout, layout});
 }
 } // namespace
 
@@ -121,10 +119,8 @@ void Texture::refresh(Extent extent) {
 }
 
 void Texture::write(Image::View const image, Rect const& region) {
-	auto cmd = InstantCommand(m_allocation->vram.commandFactory->get());
-	auto writer = ImageWriter{m_allocation->vram, cmd.cmd};
-	writer.write(m_allocation->image.cache.image, image.data, region, vk::ImageLayout::eShaderReadOnlyOptimal);
-	cmd.submit();
+	auto cb = GfxCommandBuffer(m_allocation->vram);
+	cb.writer.write(m_allocation->image.cache.image, image.data, region, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 void Texture::setInvalid() {

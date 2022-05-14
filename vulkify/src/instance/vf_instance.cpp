@@ -197,8 +197,7 @@ Result<std::shared_ptr<UniqueGlfw>> getOrMakeGlfw() {
 		glfwTerminate();
 		return Error::eNoVulkanSupport;
 	}
-	// TODO
-	// glfwSetErrorCallback([](int code, char const* szDesc) { log("GLFW Error! [{}]: {}", code, szDesc); });
+	glfwSetErrorCallback([](int code, char const* szDesc) { VF_TRACEF("[vf::Context] GLFW Error [{}]: {}", code, szDesc); });
 	auto ret = std::make_shared<UniqueGlfw>(true);
 	s_glfw = ret;
 	return ret;
@@ -486,12 +485,10 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 	if (!ret.white.view || !ret.magenta.view) { return {}; }
 	std::byte imageBytes[4]{};
 	Bitmap::rgbaToByte(white_v, imageBytes);
-	auto cmd = InstantCommand(vram.commandFactory->get());
-	auto writer = ImageWriter{vram, cmd.cmd};
-	writer.write(ret.white.image.get(), imageBytes, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	auto cb = GfxCommandBuffer(vram);
+	cb.writer.write(ret.white.image.get(), imageBytes, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 	Bitmap::rgbaToByte(magenta_v, imageBytes);
-	writer.write(ret.magenta.image.get(), imageBytes, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
-	cmd.submit();
+	cb.writer.write(ret.magenta.image.get(), imageBytes, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	return ret;
 }

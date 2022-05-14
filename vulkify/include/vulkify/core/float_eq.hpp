@@ -1,11 +1,18 @@
 #pragma once
+#include <concepts>
 
 namespace vf {
+///
+/// \brief Epsilon based floating point equality comparator
+///
+template <std::floating_point Type = float>
 struct FloatEq {
-	static constexpr float epsilson_v = 0.0001f;
+	using type = Type;
 
-	static constexpr float abs(float x) { return x < 0.0f ? -x : x; }
+	static constexpr Type epsilson_v = static_cast<Type>(0.0001f);
 
-	constexpr bool operator()(float const a, float const b) const { return abs(a - b) < epsilson_v; }
+	static constexpr Type abs(float x) { return x < Type{} ? -x : x; }
+
+	constexpr bool operator()(Type const a, Type const b) const { return abs(a - b) < epsilson_v; }
 };
 } // namespace vf
