@@ -14,5 +14,7 @@ struct Glyph {
 	Metrics metrics{};
 	UVRect uv{};
 	Codepoint codepoint{};
+
+	explicit constexpr operator bool() const { return metrics.extent.x > 0; }
 };
 } // namespace vf

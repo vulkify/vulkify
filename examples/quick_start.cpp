@@ -4,8 +4,6 @@
 #include <ktl/enumerate.hpp>
 #include <array>
 
-#include <vulkify/ttf/scribe.hpp>
-
 namespace {
 using InstanceStorage = std::array<vf::DrawInstance, 4>;
 using InstancedMesh = vf::InstancedMesh<InstanceStorage>;
@@ -115,18 +113,6 @@ struct Helper {
 	}
 };
 
-struct AtlasQuad : vf::Primitive {
-	vf::Texture const& texture;
-	vf::GeometryBuffer gbo{};
-	vf::DrawInstance instance{};
-
-	AtlasQuad(vf::Context const& context, vf::Texture const& texture) : texture(texture), gbo(context, "atlas_quad") {}
-
-	void update(vf::Geometry geometry) { gbo.write(std::move(geometry)); }
-
-	void draw(vf::Surface const& surface) const override { surface.draw({{&instance, 1}, gbo, texture}); }
-};
-
 void test(vf::Context context) {
 	std::cout << "using GPU: " << context.gpu().name << '\n';
 	auto helper = Helper{context};
@@ -143,10 +129,10 @@ void test(vf::Context context) {
 	auto ttf = vf::Ttf(context, "test.ttf");
 	if (ttf.load("test.ttf")) { std::cout << "[" << ttf.name() << "] loaded successfully\n"; }
 
-	auto texturedQuad = AtlasQuad(context, ttf.texture());
-	auto scribe = vf::Scribe{ttf};
-	scribe.write(vf::Scribe::Block{"Hello\nthere!"});
-	texturedQuad.update(scribe.geometry);
+	auto text = vf::Text(context, "test_text");
+	text.setFont(&ttf);
+	text.text = "Hello\nthere!";
+	text.transform().position = {200.0f, 0.0f};
 
 	struct StarOffset {
 		float dscale{};
@@ -157,7 +143,7 @@ void test(vf::Context context) {
 	static constexpr auto clearA = vf::Rgba::make(0xfff000ff);
 	static constexpr auto clearB = vf::Rgba::make(0x000fffff);
 
-	vf::Primitive const* primitives[] = {&triangle, &rgbQuad, &hexagon, &circle, &iris, &texturedQuad, &stars};
+	vf::Primitive const* primitives[] = {&triangle, &rgbQuad, &hexagon, &circle, &iris, &text, &stars};
 
 	context.show();
 	auto elapsed = vf::Time{};
