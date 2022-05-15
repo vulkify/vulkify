@@ -29,6 +29,7 @@ struct Pen {
 /// \brief Writes aligned text using a Ttf
 ///
 struct Scribe {
+	using Height = Glyph::Height;
 	using Pivot = glm::vec2;
 	using Block = LineViewer;
 	struct LineSpec {
@@ -40,6 +41,7 @@ struct Scribe {
 	static constexpr auto codepoint_range_v = std::pair(Codepoint{33}, Codepoint{255});
 
 	Ttf& ttf;
+	Height height{Glyph::height_v};
 	glm::vec2 origin{};
 
 	LineSpec lineSpec{};
@@ -48,7 +50,6 @@ struct Scribe {
 	glm::vec2 extent(std::string_view line) const;
 	float lineHeight() const;
 
-	static void insert(Atlas::Bulk& out_bulk, Ttf& out_ttf, Codepoint codepoint);
 	Scribe& preload(std::string_view text);
 	Scribe& write(std::string_view text, Pivot pivot = centre_v);
 	Scribe& write(Block text, Pivot pivot = centre_v);

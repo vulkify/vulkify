@@ -113,8 +113,8 @@ struct Helper {
 
 	vf::Text makeText(vf::Ttf& ttf) {
 		auto ret = vf::Text(context, "test_text");
-		ttf.setHeight(80);
 		ret.setFont(&ttf);
+		ret.height = 80;
 		ret.text = "vulkify";
 		ret.tint() = vf::Rgba::make(0xec3841ff);
 		ret.transform().position.y = area.extent.y * 0.5f - padding_v.y;

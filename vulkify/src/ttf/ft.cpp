@@ -113,8 +113,8 @@ void FtDeleter::operator()(FtFace const& face) const noexcept { FT_Done_Face(fac
 // ttf
 
 struct Ttf::Face {
+	Vram const* vram{};
 	FtUnique<FtFace> face{};
-	FT_Library lib{};
 };
 
 static constexpr auto initial_extent_v = glm::uvec2(512, 128);
@@ -124,77 +124,108 @@ Ttf::Ttf(Ttf&&) noexcept = default;
 Ttf& Ttf::operator=(Ttf&&) noexcept = default;
 Ttf::~Ttf() noexcept = default;
 
-Ttf::Ttf(Context const& context, std::string name) : m_atlas(context, name + "_atlas", initial_extent_v), m_name(std::move(name)) {
+Ttf::Ttf(Context const& context, std::string name) : m_name(std::move(name)) {
 	if (!context.vram().ftlib) { return; }
-	m_face->lib = context.vram().ftlib;
+	m_face->vram = &context.vram();
 }
 
-Ttf::operator bool() const { return m_face->lib && m_face->face; }
+Ttf::operator bool() const { return m_face->vram && m_face->face; }
 
 bool Ttf::load(std::span<std::byte const> bytes) {
-	if (!m_face->lib) { return false; }
-	if (auto face = FtFace::make(m_face->lib, bytes)) {
+	if (!m_face->vram) { return false; }
+	if (auto face = FtFace::make(m_face->vram->ftlib, bytes)) {
 		m_face->face = face;
-		setHeight(64);
+		onLoaded();
 		return true;
 	}
 	return false;
 }
 
 bool Ttf::load(char const* path) {
-	if (!m_face->lib) { return false; }
-	if (auto face = FtFace::make(m_face->lib, path)) {
+	if (!m_face->vram) { return false; }
+	if (auto face = FtFace::make(m_face->vram->ftlib, path)) {
 		m_face->face = face;
-		setHeight(64);
+		onLoaded();
 		return true;
 	}
 	return false;
 }
 
-Ttf& Ttf::setHeight(std::uint32_t height) {
-	if (m_height != height) {
-		m_height = height;
-		if (m_face->face) { m_face->face->setPixelSize({0, m_height}); }
-		m_atlas.clear();
-		glyph(0);
-	}
-	return *this;
+bool Ttf::contains(Codepoint codepoint, Height height) const {
+	if (auto it = m_fonts.find(height); it != m_fonts.end()) { return it->second.map.contains(codepoint); }
+	return false;
 }
 
-Glyph const& Ttf::glyph(Codepoint codepoint) {
+Glyph const& Ttf::glyph(Codepoint codepoint, Height height) {
 	static auto const blank_v = Glyph{};
 	if (!*this) { return blank_v; }
+	auto& font = getOrMake(height);
 
 	Entry* ret{};
-	if (auto it = m_map.find(codepoint); it != m_map.end()) { ret = &it->second; }
-	if (!ret) {
-		auto entry = Entry{};
-		auto const slot = m_face->face->slot(codepoint);
-		if (slot.hasBitmap()) {
-			auto const image = Image::View{slot.pixmap, slot.metrics.extent};
-			entry.id = m_atlas.add(image);
-		}
-		entry.glyph.metrics = slot.metrics;
-		auto [it, _] = m_map.insert_or_assign(codepoint, std::move(entry));
-		ret = &it->second;
-	}
+	if (auto it = font.map.find(codepoint); it != font.map.end()) { ret = &it->second; }
+	if (!ret) { ret = &insert(font, codepoint, {}); }
 
 	if (ret) {
-		ret->glyph.uv = m_atlas.get(ret->id);
+		ret->glyph.uv = font.atlas.get(ret->id);
 		return ret->glyph;
 	}
 	return blank_v;
 }
 
-std::size_t Ttf::preload(std::span<Codepoint const> codepoints) {
+std::size_t Ttf::preload(std::span<Codepoint const> codepoints, Height const height) {
+	if (!m_face->face) { return {}; }
 	auto ret = std::size_t{};
-	auto bulk = Atlas::Bulk{m_atlas};
+	auto& font = getOrMake(height);
+	auto bulk = Atlas::Bulk{font.atlas};
 	for (auto const codepoint : codepoints) {
-		if (m_map.contains(codepoint)) { continue; }
-		Scribe::insert(bulk, *this, codepoint);
+		if (font.map.contains(codepoint)) { continue; }
+		insert(font, codepoint, &bulk);
 		++ret;
 	}
 	return ret;
+}
+
+Ptr<Atlas const> Ttf::atlas(Height height) const {
+	if (auto it = m_fonts.find(height); it != m_fonts.end()) { return &it->second.atlas; }
+	return {};
+}
+
+Ptr<Texture const> Ttf::texture(Height height) const {
+	if (auto a = atlas(height)) { return &a->texture(); }
+	return {};
+}
+
+void Ttf::onLoaded() {
+	assert(m_face->vram);
+	m_fonts.clear();
+	getOrMake(height_v);
+}
+
+Ttf::Font& Ttf::getOrMake(Height height) {
+	auto it = m_fonts.find(height);
+	if (it == m_fonts.end()) {
+		auto [i, _] = m_fonts.insert_or_assign(height, Font{Atlas(*m_face->vram, m_name, initial_extent_v)});
+		it = i;
+		m_face->face->setPixelSize({0, height});
+		insert(it->second, {}, nullptr);
+	}
+	return it->second;
+}
+
+Ttf::Entry& Ttf::insert(Font& out_font, Codepoint const codepoint, Atlas::Bulk* bulk) {
+	auto const slot = m_face->face->slot(codepoint);
+	auto entry = Entry{};
+	if (slot.hasBitmap()) {
+		auto const image = Image::View{slot.pixmap, slot.metrics.extent};
+		if (bulk) {
+			entry.id = bulk->add(image);
+		} else {
+			entry.id = out_font.atlas.add(image);
+		}
+	}
+	entry.glyph.metrics = slot.metrics;
+	auto [it, _] = out_font.map.insert_or_assign(codepoint, std::move(entry));
+	return it->second;
 }
 
 Glyph const& Pen::glyph(Codepoint codepoint) const {
@@ -231,22 +262,14 @@ glm::vec2 Scribe::extent(std::string_view line) const {
 	return {pen.head.x, pen.maxHeight};
 }
 
-void Scribe::insert(Atlas::Bulk& out_bulk, Ttf& out_ttf, Codepoint codepoint) {
-	if (out_ttf.m_map.contains(codepoint)) { return; }
-	auto entry = Ttf::Entry{};
-	auto const slot = out_ttf.m_face->face->slot(codepoint);
-	if (slot.hasBitmap()) { entry.id = out_bulk.add({Image::View{slot.pixmap, slot.metrics.extent}}); }
-	entry.glyph.metrics = slot.metrics;
-	out_ttf.m_map.insert_or_assign(codepoint, std::move(entry));
-}
-
 Scribe& Scribe::preload(std::string_view text) {
-	auto bulk = Atlas::Bulk(ttf.m_atlas);
+	auto& font = ttf.getOrMake(height);
+	auto bulk = Atlas::Bulk(font.atlas);
 	for (auto const ch : text) {
 		auto const codepoint = static_cast<Codepoint>(ch);
-		if (codepoint < codepoint_range_v.first || codepoint > codepoint_range_v.second || ttf.m_map.contains(codepoint)) { continue; }
+		if (codepoint < codepoint_range_v.first || codepoint > codepoint_range_v.second || font.map.contains(codepoint)) { continue; }
 		if (std::isspace(static_cast<unsigned char>(codepoint))) { continue; }
-		insert(bulk, ttf, codepoint);
+		ttf.insert(font, codepoint, &bulk);
 	}
 	return *this;
 }
