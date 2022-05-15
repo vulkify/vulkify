@@ -24,7 +24,7 @@ The following is a set of guidelines for contributing to repositories hosted in 
 
 ## Code of Conduct
 
-This project and everyone participating in it is governed by the [vulkify Code of Conduct](https://github.com/vulkify/vulkify/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
+This project and everyone participating in it is governed by the [vulkify Code of Conduct](../CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 * [Github Discussions](https://github.com/vulkify/vulkify/discussions)
 * [vulkify FAQ](https://github.com/vulkify/vulkify/wiki/FAQ)
