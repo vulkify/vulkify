@@ -5,7 +5,7 @@
 #include <array>
 
 namespace {
-using InstanceStorage = std::array<vf::DrawInstance, 4>;
+using InstanceStorage = std::array<vf::DrawInstance, 3>;
 using InstancedMesh = vf::InstancedMesh<InstanceStorage>;
 constexpr auto padding_v = glm::vec2(200.0f, 100.0f);
 
@@ -97,7 +97,7 @@ struct Helper {
 		auto loadResult = image.load(imagePath);
 		if (loadResult) { std::cout << imagePath << " [" << loadResult->x << 'x' << loadResult->y << "] loaded sucessfully\n"; }
 
-		auto ret = vf::QuadShape(context, "textured_quad");
+		auto ret = vf::QuadShape(context, "textured_quad", {{200.0f, 200.0f}});
 		ret.setTexture(vf::Texture(context, "texture", image), false); // should be magenta if image is bad
 		return ret;
 	}
@@ -105,16 +105,29 @@ struct Helper {
 	InstancedMesh makeStars() {
 		auto stars = InstancedMesh(context, "stars");
 		stars.gbo.write(makeStar(100.0f));
-		stars.instances[0].transform.position = {0.0f, +(area.extent.y * 0.5f - padding_v.y)};
-		stars.instances[1].transform.position = {+(area.extent.x * 0.5f - padding_v.x), 0.0f};
-		stars.instances[2].transform.position = {0.0f, -(area.extent.y * 0.5f - padding_v.y)};
-		stars.instances[3].transform.position = {-(area.extent.x * 0.5f - padding_v.x), 0.0f};
+		stars.instances[0].transform.position = {+(area.extent.x * 0.5f - padding_v.x), 0.0f};
+		stars.instances[1].transform.position = {0.0f, -(area.extent.y * 0.5f - padding_v.y)};
+		stars.instances[2].transform.position = {-(area.extent.x * 0.5f - padding_v.x), 0.0f};
 		return stars;
+	}
+
+	vf::Text makeText(vf::Ttf& ttf) {
+		auto ret = vf::Text(context, "test_text");
+		ttf.setHeight(80);
+		ret.setFont(&ttf);
+		ret.text = "vulkify";
+		ret.tint() = vf::Rgba::make(0xec3841ff);
+		ret.transform().position.y = area.extent.y * 0.5f - padding_v.y;
+		return ret;
 	}
 };
 
 void test(vf::Context context) {
 	std::cout << "using GPU: " << context.gpu().name << '\n';
+
+	auto ttf = vf::Ttf(context, "test_font.ttf");
+	if (ttf.load("test_font.ttf")) { std::cout << "[" << ttf.name() << "] loaded successfully\n"; }
+
 	auto helper = Helper{context};
 
 	auto triangle = helper.makeTriangle();
@@ -123,27 +136,22 @@ void test(vf::Context context) {
 	auto rgbQuad = helper.makeRgbQuad(rgbTexture);
 	auto hexagon = helper.makeHexagon(std::move(rgbTexture));
 	auto [circle, iris] = helper.makeCircles();
-	// auto texturedQuad = helper.makeTexturedQuad("test_image.png");
+	auto texturedQuad = helper.makeTexturedQuad("test_image.png");
 	auto stars = helper.makeStars();
+	auto text = helper.makeText(ttf);
 
-	auto ttf = vf::Ttf(context, "test.ttf");
-	if (ttf.load("test.ttf")) { std::cout << "[" << ttf.name() << "] loaded successfully\n"; }
-
-	auto text = vf::Text(context, "test_text");
-	text.setFont(&ttf);
-	text.text = "Hello\nthere!";
-	text.transform().position = {200.0f, 0.0f};
+	auto textY = text.transform().position.y;
 
 	struct StarOffset {
 		float dscale{};
 		float drot{};
 	};
 
-	static constexpr StarOffset starOffsets[stars.instances.size()] = {{-1.0f, 1.0f}, {-0.5f, 2.0f}, {0.25f, 5.0f}, {0.75f, 3.0f}};
+	static constexpr StarOffset starOffsets[stars.instances.size()] = {{-0.5f, 2.0f}, {0.25f, 5.0f}, {0.75f, 3.0f}};
 	static constexpr auto clearA = vf::Rgba::make(0xfff000ff);
 	static constexpr auto clearB = vf::Rgba::make(0x000fffff);
 
-	vf::Primitive const* primitives[] = {&triangle, &rgbQuad, &hexagon, &circle, &iris, &text, &stars};
+	vf::Primitive const* primitives[] = {&triangle, &rgbQuad, &hexagon, &circle, &iris, &texturedQuad, &stars, &text};
 
 	context.show();
 	auto elapsed = vf::Time{};
@@ -176,6 +184,8 @@ void test(vf::Context context) {
 		}
 
 		circle.instance.transform.orientation.rotate(vf::Radian{frame.dt().count()});
+		auto const textDy = std::abs(std::sin(elapsed.count()) * 3.0f);
+		text.transform().position.y = textY - (textDy * 10.0f);
 
 		for (auto primitive : primitives) { frame.draw(*primitive); }
 	}

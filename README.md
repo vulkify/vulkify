@@ -4,8 +4,6 @@
 
 ## A lightweight 2D graphics framework
 
-![Screenshot](docs/screenshot.png)
-
 Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
 
 ## Features
