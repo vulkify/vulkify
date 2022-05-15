@@ -89,7 +89,7 @@ bool Surface::bind(GeometryBuffer::State const& state) const {
 
 bool Surface::draw(Drawable const& drawable) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
-	if (drawable.instances.empty() || !drawable.gbo || drawable.gbo.resource().buffers.caches.empty()) { return false; }
+	if (drawable.instances.empty() || !drawable.gbo || drawable.gbo.resource().buffers[0].data.empty()) { return false; }
 	if (drawable.instances.size() <= small_buffer_v) {
 		auto buffer = ktl::fixed_vector<DrawModel, small_buffer_v>{};
 		addDrawModels(drawable.instances, std::back_inserter(buffer));
@@ -115,12 +115,12 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) 
 	auto const lineWidth = std::clamp(drawable.gbo.state.lineWidth, m_renderPass->lineWidthLimit.first, m_renderPass->lineWidthLimit.second);
 	m_renderPass->commandBuffer.setLineWidth(lineWidth);
 
-	auto const& vbo = drawable.gbo.resource().buffers.caches[0].get(true);
+	auto const& vbo = drawable.gbo.resource().buffers[0].get(true);
 	m_renderPass->commandBuffer.bindVertexBuffers(0, vbo.resource, vk::DeviceSize{});
 	auto const& geo = drawable.gbo.geometry();
 	auto const instanceCount = static_cast<std::uint32_t>(models.size());
 	if (!geo.indices.empty()) {
-		auto const& ibo = drawable.gbo.resource().buffers.caches[1].get(true);
+		auto const& ibo = drawable.gbo.resource().buffers[1].get(true);
 		m_renderPass->commandBuffer.bindIndexBuffer(ibo.resource, vk::DeviceSize{}, vk::IndexType::eUint32);
 		m_renderPass->commandBuffer.drawIndexed(static_cast<std::uint32_t>(geo.indices.size()), instanceCount, 0, 0, 0);
 	} else {

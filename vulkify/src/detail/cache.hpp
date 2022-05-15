@@ -68,29 +68,46 @@ struct ImageCache {
 	VKImage peek() const noexcept { return {image->resource, view ? *view : vk::ImageView(), {info.info.extent.width, info.info.extent.height}}; }
 };
 
+enum class BufferType { eVertex, eIndex, eUniform, eStorage };
+
 struct BufferCache {
 	std::string name{};
 	mutable vk::BufferCreateInfo info{};
-	mutable Rotator<UniqueBuffer, 8> buffers{};
+	mutable Rotator<UniqueBuffer, 4> buffers{};
 	std::vector<std::byte> data{std::byte{}};
 	Vram const* vram{};
 
 	BufferCache() = default;
-	BufferCache(Vram const& vram) : vram(&vram) {}
 
-	void setVbo(std::size_t buffering) {
-		if (!vram) { return; }
-		info.usage = vk::BufferUsageFlagBits::eVertexBuffer;
-		info.size = 1;
-		for (std::size_t i = 0; i < buffering; ++i) { buffers.push(vram->makeBuffer(info, true, this->name.c_str())); }
+	BufferCache(Vram const& vram, std::size_t buffering, BufferType type) : vram(&vram) {
+		switch (type) {
+		case BufferType::eIndex: setIbo(buffering); break;
+		case BufferType::eVertex: setVbo(buffering); break;
+		default: assert(false && "Invalid buffer type"); break;
+		}
 	}
 
-	void setIbo(std::size_t buffering) {
-		if (!vram) { return; }
-		info.usage = vk::BufferUsageFlagBits::eIndexBuffer;
-		info.size = 1;
-		for (std::size_t i = 0; i < buffering; ++i) { buffers.push(vram->makeBuffer(info, true, this->name.c_str())); }
+	BufferCache(Vram const& vram, BufferType type) : vram(&vram) {
+		switch (type) {
+		case BufferType::eStorage: setSsbo(); break;
+		case BufferType::eUniform: setUbo(); break;
+		default: assert(false && "Invalid buffer type"); break;
+		}
 	}
+
+	explicit operator bool() const { return vram && !buffers.storage.empty(); }
+
+	void init(vk::BufferUsageFlags usage, std::size_t rotations) {
+		if (!vram) { return; }
+		info.usage = usage;
+		info.size = 1;
+		for (std::size_t i = 0; i < rotations; ++i) { buffers.push(vram->makeBuffer(info, true, this->name.c_str())); }
+	}
+
+	void setVbo(std::size_t buffering) { init(vk::BufferUsageFlagBits::eVertexBuffer, buffering); }
+	void setIbo(std::size_t buffering) { init(vk::BufferUsageFlagBits::eIndexBuffer, buffering); }
+	void setUbo() { init(vk::BufferUsageFlagBits::eUniformBuffer, 1); }
+	void setSsbo() { init(vk::BufferUsageFlagBits::eStorageBuffer, 1); }
 
 	VmaBuffer const& get(bool next) const {
 		static auto const blank_v = VmaBuffer{};

@@ -20,7 +20,6 @@ Atlas::Id Atlas::add(Image::View const image) {
 	auto cb = GfxCommandBuffer(m_texture.vram());
 	if (!prepare(cb, image.extent)) { return {}; }
 	auto ret = insert(cb, image);
-	cb.cmd.submit();
 
 	return ret;
 }

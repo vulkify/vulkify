@@ -96,26 +96,6 @@ struct VmaImage : VmaResource<vk::Image> {
 
 using UniqueImage = Unique<VmaImage, VmaImage::Deleter>;
 using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
-enum class BufferType { eGpuOnly, eCpuToGpu };
-
-struct InstantCommand {
-	CommandPool& pool;
-	vk::CommandBuffer cmd{};
-
-	InstantCommand(CommandPool& pool) : pool(pool) { record(); }
-	~InstantCommand() { submit(); }
-
-	explicit operator bool() const { return cmd; }
-
-	void record() {
-		submit();
-		cmd = pool.acquire();
-	}
-
-	void submit() {
-		if (cmd) { pool.release(std::exchange(cmd, vk::CommandBuffer{}), true); }
-	}
-};
 
 struct CommandFactory {
 	struct Factory {

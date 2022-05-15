@@ -33,11 +33,8 @@ class GeometryBuffer : public GfxResource {
 
 	Result<void> write(Geometry geometry);
 
-	Geometry const& geometry() const { return m_geometry; }
+	Geometry geometry() const;
 	State state{};
-
-  protected:
-	Geometry m_geometry{};
 };
 
 ///

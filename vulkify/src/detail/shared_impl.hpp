@@ -84,15 +84,9 @@ struct ImageSampler {
 	bool operator==(ImageSampler const& rhs) const { return !sampler && !rhs.sampler && !cache.image && !rhs.cache.image; }
 };
 
-struct BufferCaches {
-	static constexpr std::size_t max_caches_v = 4;
-
-	ktl::fixed_vector<BufferCache, max_caches_v> caches{};
-};
-
 struct GfxAllocation {
+	BufferCache buffers[2]{};
 	ImageSampler image{};
-	BufferCaches buffers{};
 	Vram vram{};
 	std::string name{};
 
@@ -113,11 +107,12 @@ struct GfxShaderModule {
 };
 
 struct GfxCommandBuffer {
-	InstantCommand cmd;
+	CommandPool& pool;
+	vk::CommandBuffer cmd;
 	ImageWriter writer;
 
-	GfxCommandBuffer(Vram const& vram) : cmd(vram.commandFactory->get()), writer(vram, cmd.cmd) {}
-	~GfxCommandBuffer() { cmd.submit(); }
+	GfxCommandBuffer(Vram const& vram) : pool(vram.commandFactory->get()), cmd(pool.acquire()), writer(vram, cmd) {}
+	~GfxCommandBuffer() { pool.release(std::move(cmd), true); }
 };
 
 struct Inactive {
