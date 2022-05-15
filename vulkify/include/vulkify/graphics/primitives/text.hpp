@@ -1,15 +1,19 @@
 #pragma once
 #include <ktl/not_null.hpp>
 #include <vulkify/graphics/buffer.hpp>
-#include <vulkify/graphics/drawable.hpp>
-#include <vulkify/graphics/primitive.hpp>
+#include <vulkify/graphics/primitives/mesh.hpp>
 
 namespace vf {
 class Ttf;
 
 class Text : public Primitive {
   public:
-	using Pivot = glm::vec2;
+	enum class Horz { eLeft, eCentre, eRight };
+	enum class Vert { eDown, eMid, eUp };
+	struct Align {
+		Horz horz{Horz::eCentre};
+		Vert vert{Vert::eMid};
+	};
 
 	Text() = default;
 	Text(Context const& context, std::string name);
@@ -18,23 +22,24 @@ class Text : public Primitive {
 
 	Text& setFont(ktl::not_null<Ttf*> ttf);
 
-	Rgba& tint() { return m_instance.tint; }
-	Rgba const& tint() const { return m_instance.tint; }
-	Transform& transform() { return m_instance.transform; }
-	Transform const& transform() const { return m_instance.transform; }
+	Rgba& tint() { return m_mesh.instance.tint; }
+	Rgba const& tint() const { return m_mesh.instance.tint; }
+	Transform& transform() { return m_mesh.instance.transform; }
+	Transform const& transform() const { return m_mesh.instance.transform; }
 
 	void draw(Surface const& surface) const override;
 
 	std::string text{};
-	Pivot pivot{};
+	Align align{};
 
   protected:
-	Drawable drawable() const;
+	///
+	/// \brief Requires m_ttf to be not-null
+	///
 	void update() const;
 
   private:
-	mutable GeometryBuffer m_gbo{};
-	DrawInstance m_instance{};
+	mutable Mesh m_mesh{};
 	Ttf* m_ttf{};
 };
 } // namespace vf

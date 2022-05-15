@@ -105,7 +105,7 @@ bool Surface::draw(Drawable const& drawable) const {
 bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) const {
 	bind(drawable.gbo.state);
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
-	if (drawable.texture) { tex = {*drawable.texture.resource().image.sampler, *drawable.texture.resource().image.cache.view}; }
+	if (drawable.texture) { tex = {*drawable.texture->resource().image.sampler, *drawable.texture->resource().image.cache.view}; }
 
 	auto set = m_renderPass->descriptorPool->postInc(m_renderPass->shaderInput.one.set, "UBO:M,SSBO:V");
 	if (!set) { return false; }

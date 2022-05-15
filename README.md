@@ -31,7 +31,7 @@ Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
 - [x] Cursor unprojection
 - [x] TrueType Fonts
 - [x] Bulk command buffer recording
-- [ ] Text
+- [x] Text
 
 ## Requirements
 
