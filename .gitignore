@@ -10,5 +10,4 @@ compile_commands.json
 /CMakePresets.json
 /CMakeUserPresets.json
 
-examples/out/*
 wiki

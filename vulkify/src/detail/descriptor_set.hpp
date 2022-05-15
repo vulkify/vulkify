@@ -109,9 +109,9 @@ struct DescriptorPool {
 		{vk::DescriptorType::eCombinedImageSampler, 4},
 	};
 
-	static DescriptorPool make(Vram vram, std::vector<vk::DescriptorSetLayout> layouts, std::size_t buffering) {
+	static DescriptorPool make(Vram vram, std::vector<vk::DescriptorSetLayout> layouts) {
 		auto ret = DescriptorPool{};
-		for (std::size_t frame = 0; frame < buffering; ++frame) {
+		for (std::size_t frame = 0; frame < vram.buffering; ++frame) {
 			auto storage = Storage{};
 			for (auto const& [layout, number] : ktl::enumerate<std::uint32_t>(layouts)) {
 				auto info = vk::DescriptorPoolCreateInfo({}, 1024, static_cast<std::uint32_t>(std::size(pool_sizes_v)), pool_sizes_v);

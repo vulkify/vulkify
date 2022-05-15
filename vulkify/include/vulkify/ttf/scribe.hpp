@@ -20,7 +20,8 @@ struct Pen {
 	glm::vec2 head{};
 	float maxHeight{};
 
-	glm::vec2 write(Codepoint const codepoint);
+	Glyph const& glyph(Codepoint codepoint) const;
+	glm::vec2 write(Codepoint codepoint);
 	glm::vec2 write(std::span<Codepoint const> codepoints);
 };
 

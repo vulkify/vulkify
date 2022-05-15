@@ -6,8 +6,8 @@
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/core/per_thread.hpp>
 #include <vulkify/core/rect.hpp>
+#include <vulkify/core/rgba.hpp>
 #include <vulkify/core/unique.hpp>
-#include <vulkify/graphics/geometry.hpp>
 
 struct FT_LibraryRec_;
 using FT_Library = FT_LibraryRec_*;
@@ -97,37 +97,6 @@ struct VmaImage : VmaResource<vk::Image> {
 using UniqueImage = Unique<VmaImage, VmaImage::Deleter>;
 using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 
-struct BufferCache {
-	enum class Type { eGpuOnly, eCpuToGpu };
-
-	static constexpr std::size_t max_buffers_v = 4;
-
-	ktl::fixed_vector<UniqueBuffer, max_buffers_v> buffers{};
-	Type type{};
-
-	explicit operator bool() const { return !buffers.empty(); }
-	bool operator==(BufferCache const& rhs) const { return buffers.empty() && rhs.buffers.empty(); }
-};
-
-struct InstantCommand {
-	CommandPool& pool;
-	vk::CommandBuffer cmd{};
-
-	InstantCommand(CommandPool& pool) : pool(pool) { record(); }
-	~InstantCommand() { submit(); }
-
-	explicit operator bool() const { return cmd; }
-
-	void record() {
-		submit();
-		cmd = pool.acquire();
-	}
-
-	void submit() {
-		if (cmd) { pool.release(std::exchange(cmd, vk::CommandBuffer{}), true); }
-	}
-};
-
 struct CommandFactory {
 	struct Factory {
 		VKDevice device{};
@@ -142,6 +111,7 @@ struct Vram {
 	VKDevice device{};
 	VmaAllocator allocator{};
 	FT_Library ftlib{};
+	std::size_t buffering{};
 	CommandFactory* commandFactory{};
 	ShaderCache* shaderCache{};
 
@@ -155,8 +125,6 @@ struct Vram {
 
 	UniqueImage makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear = false) const;
 	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, bool host, char const* name) const;
-
-	BufferCache makeVIBuffer(Geometry const& geometry, BufferCache::Type type, char const* name) const;
 
 	struct Deleter {
 		void operator()(Vram const& vram) const;

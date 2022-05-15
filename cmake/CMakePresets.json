@@ -85,6 +85,106 @@
 				"CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
 				"CMAKE_CXX_FLAGS": "-fsanitize=undefined"
 			}
+		},
+		{
+			"name": "rpi-debug",
+			"description": "Debug build for Raspberry Pi (disables Vulkan 1.1 requirement)",
+			"inherits": "nc-debug",
+			"cacheVariables": {
+				"VULKIFY_REQUIRE_VULKAN_1_1_0": "OFF"
+			}
+		},
+		{
+			"name": "rpi-release",
+			"description": "Release build for Raspberry Pi (disables Vulkan 1.1 requirement)",
+			"inherits": "nc-release",
+			"cacheVariables": {
+				"VULKIFY_REQUIRE_VULKAN_1_1_0": "OFF"
+			}
+		}
+	],
+	"buildPresets": [
+		{
+			"name": "default",
+			"configurePreset": "default"
+		},
+		{
+			"name": "ninja-clang",
+			"configurePreset": "ninja-clang"
+		},
+		{
+			"name": "nc-debug",
+			"configurePreset": "nc-debug"
+		},
+		{
+			"name": "mg-debug",
+			"configurePreset": "mg-debug"
+		},
+		{
+			"name": "nc-release",
+			"configurePreset": "nc-release"
+		},
+		{
+			"name": "nc-relw",
+			"configurePreset": "nc-relw"
+		},
+		{
+			"name": "vs19",
+			"configurePreset": "vs22"
+		},
+		{
+			"name": "nc-ubsan",
+			"configurePreset": "nc-ubsan"
+		},
+		{
+			"name": "rpi-debug",
+			"configurePreset": "rpi-debug"
+		},
+		{
+			"name": "rpi-release",
+			"configurePreset": "rpi-release"
+		}
+	],
+	"testPresets": [
+		{
+			"name": "default",
+			"configurePreset": "default"
+		},
+		{
+			"name": "ninja-clang",
+			"configurePreset": "ninja-clang"
+		},
+		{
+			"name": "nc-debug",
+			"configurePreset": "nc-debug"
+		},
+		{
+			"name": "mg-debug",
+			"configurePreset": "mg-debug"
+		},
+		{
+			"name": "nc-release",
+			"configurePreset": "nc-release"
+		},
+		{
+			"name": "nc-relw",
+			"configurePreset": "nc-relw"
+		},
+		{
+			"name": "vs19",
+			"configurePreset": "vs22"
+		},
+		{
+			"name": "nc-ubsan",
+			"configurePreset": "nc-ubsan"
+		},
+		{
+			"name": "rpi-debug",
+			"configurePreset": "rpi-debug"
+		},
+		{
+			"name": "rpi-release",
+			"configurePreset": "rpi-release"
 		}
 	]
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <vulkify/core/ptr.hpp>
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/core/transform.hpp>
 #include <vulkify/graphics/draw_model.hpp>
@@ -20,7 +21,7 @@ struct DrawInstance {
 struct Drawable {
 	std::span<DrawInstance const> instances{};
 	GeometryBuffer const& gbo;
-	Texture const& texture;
+	Ptr<Texture const> texture{};
 };
 
 // impl

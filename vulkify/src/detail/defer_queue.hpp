@@ -4,6 +4,11 @@
 #include <vector>
 
 namespace vf {
+template <typename T>
+concept BoolLike = requires(T const& t) {
+	static_cast<bool>(t);
+};
+
 struct DeferQueue {
 	struct Base {
 		int delay;
@@ -21,7 +26,7 @@ struct DeferQueue {
 
 	std::vector<Entry> entries{};
 
-	template <typename T>
+	template <BoolLike T>
 	void push(T t, int delay = default_delay_v) {
 		if (t) { entries.push_back(ktl::make_unique<Model<T>>(std::move(t), delay)); }
 	}
@@ -34,9 +39,9 @@ struct DeferQueue {
 struct Defer {
 	DeferQueue* queue{};
 
-	template <typename... T>
-	void operator()(T&&... t) const {
-		if (queue) { (queue->push(std::forward<T>(t)), ...); }
+	template <BoolLike... T>
+	void operator()(T... t) const {
+		if (queue) { (queue->push(std::move(t)), ...); }
 	}
 };
 } // namespace vf

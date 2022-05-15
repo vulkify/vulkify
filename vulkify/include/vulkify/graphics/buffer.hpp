@@ -33,11 +33,8 @@ class GeometryBuffer : public GfxResource {
 
 	Result<void> write(Geometry geometry);
 
-	Geometry const& geometry() const { return m_geometry; }
+	Geometry geometry() const;
 	State state{};
-
-  protected:
-	Geometry m_geometry{};
 };
 
 ///
@@ -49,7 +46,7 @@ class UniformBuffer : public GfxResource {
 	UniformBuffer(Context const& context, std::string name);
 
 	std::size_t size() const;
-	Result<void> resize(std::size_t size);
+	Result<void> reserve(std::size_t size);
 	Result<void> write(BufferWrite data);
 
 	template <typename T>

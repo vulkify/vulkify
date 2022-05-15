@@ -197,22 +197,29 @@ std::size_t Ttf::preload(std::span<Codepoint const> codepoints) {
 	return ret;
 }
 
+Glyph const& Pen::glyph(Codepoint codepoint) const {
+	static auto const blank_v = Glyph{};
+	if (!out_ttf || !*out_ttf) { return blank_v; }
+	if (auto const& glyph = out_ttf->glyph(codepoint)) { return glyph; }
+	return out_ttf->glyph({});
+}
+
 glm::vec2 Pen::write(Codepoint const codepoint) {
 	if (!out_ttf || !*out_ttf) { return head; }
-	auto glyph = out_ttf->glyph(codepoint);
-	if (glyph.metrics.advance.x == 0) { glyph = out_ttf->glyph({}); }
-	if (glyph.metrics.advance.x > 0) {
-		auto const pen = head + glm::vec2(glyph.metrics.topLeft);
-		auto const hs = glm::vec2(glyph.metrics.extent) * 0.5f;
+	auto const& g = glyph(codepoint);
+	if (g) {
+		auto const pen = head + glm::vec2(g.metrics.topLeft);
+		auto const hs = glm::vec2(g.metrics.extent) * 0.5f;
 		auto const origin = pen + glm::vec2(hs.x, -hs.y);
-		if (out_geometry) { out_geometry->addQuad({glyph.metrics.extent, origin, glyph.uv}); }
-		head += glyph.metrics.advance;
-		maxHeight = std::max(maxHeight, static_cast<float>(glyph.metrics.extent.y));
+		if (out_geometry) { out_geometry->addQuad({g.metrics.extent, origin, g.uv}); }
+		head += g.metrics.advance;
+		maxHeight = std::max(maxHeight, static_cast<float>(g.metrics.extent.y));
 	}
 	return head;
 }
 
 glm::vec2 Pen::write(std::span<Codepoint const> codepoints) {
+	if (!out_ttf || !*out_ttf) { return head; }
 	if (out_geometry) { out_geometry->reserve(codepoints.size() * 4, codepoints.size() * 6); }
 	for (auto const codepoint : codepoints) { write(codepoint); }
 	return head;

@@ -18,12 +18,13 @@ target_sources(${PROJECT_NAME} PRIVATE
   graphics/primitives/mesh.cpp
   graphics/primitives/quad_shape.cpp
   graphics/primitives/shape.cpp
+  graphics/primitives/text.cpp
 
   instance/vf_instance.cpp
 
+  detail/cache.hpp
   detail/command_pool.hpp
   detail/defer_queue.hpp
-  detail/image_cache.hpp
   detail/pipeline_factory.cpp
   detail/pipeline_factory.hpp
   detail/renderer.cpp

@@ -1,6 +1,6 @@
 #pragma once
+#include <detail/cache.hpp>
 #include <detail/descriptor_set.hpp>
-#include <detail/image_cache.hpp>
 #include <detail/vram.hpp>
 #include <glm/mat4x4.hpp>
 #include <ktl/unique_val.hpp>
@@ -85,8 +85,8 @@ struct ImageSampler {
 };
 
 struct GfxAllocation {
+	BufferCache buffers[2]{};
 	ImageSampler image{};
-	BufferCache buffer{};
 	Vram vram{};
 	std::string name{};
 
@@ -107,11 +107,12 @@ struct GfxShaderModule {
 };
 
 struct GfxCommandBuffer {
-	InstantCommand cmd;
+	CommandPool& pool;
+	vk::CommandBuffer cmd;
 	ImageWriter writer;
 
-	GfxCommandBuffer(Vram const& vram) : cmd(vram.commandFactory->get()), writer(vram, cmd.cmd) {}
-	~GfxCommandBuffer() { cmd.submit(); }
+	GfxCommandBuffer(Vram const& vram) : pool(vram.commandFactory->get()), cmd(pool.acquire()), writer(vram, cmd) {}
+	~GfxCommandBuffer() { pool.release(std::move(cmd), true); }
 };
 
 struct Inactive {

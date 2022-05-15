@@ -9,12 +9,12 @@ template <typename T>
 concept InstancedMeshStorage = std::convertible_to<T, std::span<DrawInstance const>>;
 
 ///
-/// \brief Primitive with public GeometryBuffer, Texture, and std::vector<DrawInstance> (customizable)
+/// \brief Primitive with public GeometryBuffer, Ptr<Texture const>, and std::vector<DrawInstance> (customizable)
 ///
 template <InstancedMeshStorage Storage = std::vector<DrawInstance>>
 class InstancedMesh : public MeshPrimitive {
   public:
-	static InstancedMesh makeQuad(Context const& context, std::string name, QuadCreateInfo const& info = {}, Texture texture = {});
+	static InstancedMesh makeQuad(Context const& context, std::string name, QuadCreateInfo const& info = {}, Ptr<Texture const> texture = {});
 
 	InstancedMesh() = default;
 	InstancedMesh(Context const& context, std::string name) : MeshPrimitive(context, std::move(name)) {}
@@ -23,22 +23,21 @@ class InstancedMesh : public MeshPrimitive {
 
 	void draw(Surface const& surface) const override { surface.draw(drawable()); }
 
-	Texture texture{};
 	Storage instances{};
 };
 
 template <typename T>
-T makeQuadMesh(Context const& context, std::string name, QuadCreateInfo const& info = {}, Texture texture = {});
+T makeQuadMesh(Context const& context, std::string name, QuadCreateInfo const& info = {}, Ptr<Texture const> texture = {});
 
 // impl
 
 template <InstancedMeshStorage Storage>
-InstancedMesh<Storage> InstancedMesh<Storage>::makeQuad(Context const& context, std::string name, QuadCreateInfo const& info, Texture texture) {
-	return makeQuadMesh<InstancedMesh>(context, std::move(name), info, std::move(texture));
+InstancedMesh<Storage> InstancedMesh<Storage>::makeQuad(Context const& context, std::string name, QuadCreateInfo const& info, Ptr<Texture const> texture) {
+	return makeQuadMesh<InstancedMesh>(context, std::move(name), info, texture);
 }
 
 template <typename T>
-T makeQuadMesh(Context const& context, std::string name, QuadCreateInfo const& info, Texture texture) {
+T makeQuadMesh(Context const& context, std::string name, QuadCreateInfo const& info, Ptr<Texture const> texture) {
 	auto ret = T(context, std::move(name));
 	ret.gbo.write(Geometry::makeQuad(info));
 	ret.texture = std::move(texture);

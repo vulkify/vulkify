@@ -89,7 +89,7 @@ bool Surface::bind(GeometryBuffer::State const& state) const {
 
 bool Surface::draw(Drawable const& drawable) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
-	if (drawable.instances.empty() || !drawable.gbo || drawable.gbo.resource().buffer.buffers.empty()) { return false; }
+	if (drawable.instances.empty() || !drawable.gbo || drawable.gbo.resource().buffers[0].data.empty()) { return false; }
 	if (drawable.instances.size() <= small_buffer_v) {
 		auto buffer = ktl::fixed_vector<DrawModel, small_buffer_v>{};
 		addDrawModels(drawable.instances, std::back_inserter(buffer));
@@ -105,8 +105,7 @@ bool Surface::draw(Drawable const& drawable) const {
 bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) const {
 	bind(drawable.gbo.state);
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
-	if (drawable.texture) { tex = {*drawable.texture.resource().image.sampler, *drawable.texture.resource().image.cache.view}; }
-	auto const& buffers = drawable.gbo.resource().buffer.buffers;
+	if (drawable.texture) { tex = {*drawable.texture->resource().image.sampler, *drawable.texture->resource().image.cache.view}; }
 
 	auto set = m_renderPass->descriptorPool->postInc(m_renderPass->shaderInput.one.set, "UBO:M,SSBO:V");
 	if (!set) { return false; }
@@ -115,11 +114,14 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) 
 	m_renderPass->setViewport();
 	auto const lineWidth = std::clamp(drawable.gbo.state.lineWidth, m_renderPass->lineWidthLimit.first, m_renderPass->lineWidthLimit.second);
 	m_renderPass->commandBuffer.setLineWidth(lineWidth);
-	m_renderPass->commandBuffer.bindVertexBuffers(0, buffers[0]->resource, vk::DeviceSize{});
+
+	auto const& vbo = drawable.gbo.resource().buffers[0].get(true);
+	m_renderPass->commandBuffer.bindVertexBuffers(0, vbo.resource, vk::DeviceSize{});
 	auto const& geo = drawable.gbo.geometry();
 	auto const instanceCount = static_cast<std::uint32_t>(models.size());
-	if (buffers.size() > 1) {
-		m_renderPass->commandBuffer.bindIndexBuffer(buffers[1]->resource, vk::DeviceSize{}, vk::IndexType::eUint32);
+	if (!geo.indices.empty()) {
+		auto const& ibo = drawable.gbo.resource().buffers[1].get(true);
+		m_renderPass->commandBuffer.bindIndexBuffer(ibo.resource, vk::DeviceSize{}, vk::IndexType::eUint32);
 		m_renderPass->commandBuffer.drawIndexed(static_cast<std::uint32_t>(geo.indices.size()), instanceCount, 0, 0, 0);
 	} else {
 		m_renderPass->commandBuffer.draw(static_cast<std::uint32_t>(geo.vertices.size()), instanceCount, 0, 0);

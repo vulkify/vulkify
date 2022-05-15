@@ -4,7 +4,7 @@
 namespace vf {
 Shape::Shape(Context const& context, std::string name) : m_geometry(context, std::move(name)) {}
 
-void Shape::draw(Surface const& surface) const { surface.draw(Drawable{{&m_instance, 1}, m_geometry, m_texture}); }
+void Shape::draw(Surface const& surface) const { surface.draw(Drawable{{&m_instance, 1}, m_geometry, &m_texture}); }
 
 OutlinedShape::OutlinedShape(Context const& context, std::string name) : Shape(context, std::move(name)), m_outline(context, m_geometry.name() + "_outline") {
 	m_outline.state.topology = Topology::eLineStrip;

@@ -5,11 +5,11 @@
 
 namespace vf {
 ///
-/// \brief Primitive with public GeometryBuffer, Texture, and DrawInstance
+/// \brief Primitive with public GeometryBuffer, Ptr<Texture const>, and DrawInstance
 ///
 class Mesh : public MeshPrimitive {
   public:
-	static Mesh makeQuad(Context const& context, std::string name, QuadCreateInfo const& info = {}, Texture texture = {});
+	static Mesh makeQuad(Context const& context, std::string name, QuadCreateInfo const& info = {}, Ptr<Texture const> texture = {});
 
 	Mesh() = default;
 	Mesh(Context const& context, std::string name);
@@ -17,7 +17,6 @@ class Mesh : public MeshPrimitive {
 	Drawable drawable() const { return {{&instance, 1}, gbo, texture}; }
 	void draw(Surface const& surface) const override;
 
-	Texture texture{};
 	DrawInstance instance{};
 };
 } // namespace vf
