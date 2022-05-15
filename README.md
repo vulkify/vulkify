@@ -4,6 +4,8 @@
 
 ## A lightweight 2D graphics framework
 
+https://user-images.githubusercontent.com/16272243/168480491-a55fdc7d-c9ee-4dba-81ec-d1e085930f9f.mp4
+
 Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
 
 ## Features
@@ -45,31 +47,10 @@ Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
 
 Refer to [quick_start.cpp](examples/quick_start.cpp) for currently working code. Documentation and README are WIPs.
 
-## API
 
-### Introduction
+## [Wiki](https://github.com/vulkify/vulkify/wiki)
 
-A `vf::Context` owns and manages all resources, including windowing (GLFW) and graphics (Vulkan device, queue, surface, swapchain, etc). There may only be one context active at a time (creation of a duplicate will fail), and all resources are invalidated with it being destroyed. It uses an `Instance` (abstract) to drive the underlying systems, and while a const reference to it may be obtained through the context, its state cannot be changed except by the context itself. `Builder` can be used to customize and create both a context and its instance.
-
-```cpp
-auto context = vf::Builder{}/*.[setOptions()...]*/.build();
-if (!context) { /* handle error* */ }
-// use *context...
-```
-
->_*Note:* `HeadlessInstance` / `InstanceFlag::eHeadless` is designed to use nothing and auto-close after a specified period of time (for automation)._
-
-Most end-user types require an active context (and instance) to be activated themselves, most of which can be default constructed (as inactive). Some low level types may take a const reference to `Vram` in their constructors, which is an opaque type (not exposed outside the library), and can be obtained via `context.vram()`.
-
-### FAQ
-
-**Why does everything need a `Context`?**
-
-Because it owns the active resources like GLFW Window, Vulkan device, queue, surface, swapchain, images, buffers, pipelines, descriptor sets, etc.
-
-**But there can only be one `Context`...**
-
-I would rather require dependency injection than use owning globals. :)
+Documentation and sample code is available on [the wiki](https://github.com/vulkify/vulkify/wiki) (WIP).
 
 ## External Dependencies
 
