@@ -84,7 +84,7 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples)
 	vkFunc.vkGetInstanceProcAddr = dl.vkGetInstanceProcAddr;
 	vkFunc.vkGetDeviceProcAddr = dl.vkGetDeviceProcAddr;
 	allocatorInfo.pVulkanFunctions = &vkFunc;
-	auto const framebufferSamples = getSamples(device.gpu.getProperties().limits.framebufferColorSampleCounts, samples);
+	auto const limits = device.gpu.getProperties().limits;
 	auto vram = Vram{device};
 	if (vmaCreateAllocator(&allocatorInfo, &vram.allocator) != VK_SUCCESS) {
 		VF_TRACE("[vf::(Internal)] Failed to create Vram!");
@@ -93,10 +93,8 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples)
 	auto factory = ktl::make_unique<CommandFactory>();
 	factory->commandPools.factory().device = device;
 	vram.commandFactory = factory.get();
-	vram.maxAnisotropy = device.gpu.getProperties().limits.maxSamplerAnisotropy;
-	vram.colourSamples = framebufferSamples;
-	auto const lwl = device.gpu.getProperties().limits.lineWidthRange;
-	vram.lineWidthLimit = {lwl[0], lwl[1]};
+	vram.deviceLimits = limits;
+	vram.colourSamples = getSamples(limits.framebufferColorSampleCounts, samples);
 	return {std::move(factory), vram};
 }
 
@@ -118,6 +116,10 @@ void setDebugName(VKDevice const& device, U handle, char const* name) {
 
 UniqueImage Vram::makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear) const {
 	if (!allocator || !commandFactory) { return {}; }
+	if (info.extent.width > deviceLimits.maxImageDimension2D || info.extent.height > deviceLimits.maxImageDimension2D) {
+		VF_TRACEF("[vf::(internal)] Invalid image extent: [{}, {}]", info.extent.width, info.extent.height);
+		return {};
+	}
 	info.tiling = linear ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal;
 	if (info.imageType == vk::ImageType()) { info.imageType = vk::ImageType::e2D; }
 	if (info.mipLevels == 0U) { info.mipLevels = 1U; }

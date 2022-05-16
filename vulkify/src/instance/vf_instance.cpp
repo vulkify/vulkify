@@ -13,6 +13,7 @@
 
 #include <detail/descriptor_set.hpp>
 #include <detail/pipeline_factory.hpp>
+#include <detail/render_pass.hpp>
 #include <detail/renderer.hpp>
 #include <detail/rotator.hpp>
 #include <detail/shared_impl.hpp>
@@ -570,7 +571,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	auto const srr = createInfo.instanceFlags.test(InstanceFlag::eSuperSampling);
 	auto sl = makeSetLayouts(impl->setLayouts);
 	auto const csamples = impl->vram.vram->colourSamples;
-	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, impl->vertexInput(), std::move(sl), csamples, srr);
+	impl->pipelineFactory = PipelineFactory::make(impl->vram.vram->device, impl->vertexInput(), std::move(sl), csamples, srr);
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
 	impl->vram.vram->buffering = impl->renderer.frameSync.storage.size();
@@ -751,7 +752,7 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
 	auto const view = RenderPassView{extent, &m_impl->view};
-	auto const lwl = m_impl->vram.vram->lineWidthLimit;
+	auto const lwl = std::pair(m_impl->vram.vram->deviceLimits.lineWidthRange[0], m_impl->vram.vram->deviceLimits.lineWidthRange[1]);
 	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view, lwl};
 }
 

@@ -115,9 +115,8 @@ struct Vram {
 	CommandFactory* commandFactory{};
 	ShaderCache* shaderCache{};
 
-	float maxAnisotropy{};
+	vk::PhysicalDeviceLimits deviceLimits{};
 	vk::SampleCountFlagBits colourSamples{};
-	TPair<float> lineWidthLimit{};
 	vk::Format textureFormat = vk::Format::eR8G8B8A8Srgb;
 
 	bool operator==(Vram const& rhs) const { return commandFactory == rhs.commandFactory && allocator == rhs.allocator; }

@@ -202,9 +202,14 @@ void Ttf::onLoaded() {
 }
 
 Ttf::Font& Ttf::getOrMake(Height height) {
+	auto atlasName = [](std::string ttfName, Ttf::Height const height) {
+		auto str = std::stringstream{};
+		str << ttfName << '_' << height;
+		return str.str();
+	};
 	auto it = m_fonts.find(height);
 	if (it == m_fonts.end()) {
-		auto [i, _] = m_fonts.insert_or_assign(height, Font{Atlas(*m_face->vram, m_name, initial_extent_v)});
+		auto [i, _] = m_fonts.insert_or_assign(height, Font{Atlas(*m_face->vram, atlasName(m_name, height), initial_extent_v)});
 		it = i;
 		m_face->face->setPixelSize({0, height});
 		insert(it->second, {}, nullptr);

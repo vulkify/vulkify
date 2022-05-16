@@ -1,4 +1,5 @@
 #include <detail/pipeline_factory.hpp>
+#include <detail/render_pass.hpp>
 #include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
 #include <ktl/fixed_vector.hpp>
@@ -69,7 +70,7 @@ Surface::~Surface() {
 	if (m_renderPass->instance) { m_renderPass->instance.value->endPass(); }
 }
 
-Surface::operator bool() const { return m_renderPass->commandBuffer; }
+Surface::operator bool() const { return m_renderPass->instance; }
 
 bool Surface::setShader(Shader const& shader) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
