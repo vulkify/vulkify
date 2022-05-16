@@ -519,6 +519,7 @@ struct VulkifyInstance::Impl {
 	DescriptorPool descriptorPool{};
 	ShaderInput::Textures shaderTextures{};
 	RenderView view{};
+	std::thread::id renderThread{};
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
@@ -583,6 +584,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 
 	impl->freetype = freetype;
 	impl->gpu = makeGPU(*vulkan);
+	impl->renderThread = std::this_thread::get_id();
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
@@ -753,7 +755,7 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
 	auto const view = RenderPassView{extent, &m_impl->view};
 	auto const lwl = std::pair(m_impl->vram.vram->deviceLimits.lineWidthRange[0], m_impl->vram.vram->deviceLimits.lineWidthRange[1]);
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view, lwl};
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view, lwl, m_impl->renderThread};
 }
 
 bool VulkifyInstance::endPass() {

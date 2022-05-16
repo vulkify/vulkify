@@ -91,6 +91,10 @@ bool Surface::bind(GeometryBuffer::State const& state) const {
 bool Surface::draw(Drawable const& drawable) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
 	if (drawable.instances.empty() || !drawable.gbo || drawable.gbo.resource().buffers[0].data.empty()) { return false; }
+	if (m_renderPass->renderThread != std::this_thread::get_id()) {
+		VF_TRACE("[vf::Context] Multi-threaded rendering is not supported");
+		return false;
+	}
 	if (drawable.instances.size() <= small_buffer_v) {
 		auto buffer = ktl::fixed_vector<DrawModel, small_buffer_v>{};
 		addDrawModels(drawable.instances, std::back_inserter(buffer));
@@ -104,6 +108,10 @@ bool Surface::draw(Drawable const& drawable) const {
 }
 
 bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) const {
+	if (m_renderPass->renderThread != std::this_thread::get_id()) {
+		VF_TRACE("[vf::Surface] Multi-threaded rendering is not supported!");
+		return false;
+	}
 	bind(drawable.gbo.state);
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
 	if (drawable.texture) { tex = {*drawable.texture->resource().image.sampler, *drawable.texture->resource().image.cache.view}; }

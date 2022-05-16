@@ -53,6 +53,7 @@ struct RenderPass {
 	ShaderInput shaderInput{};
 	RenderPassView view{};
 	TPair<float> lineWidthLimit{};
+	std::thread::id renderThread{};
 
 	mutable vk::ShaderModule fragShader{};
 	mutable vk::PipelineLayout bound{};
