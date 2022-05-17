@@ -43,7 +43,7 @@ void RenderPass::writeView(DescriptorSet& set) const {
 void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> instances, Tex tex) const {
 	if (!set || instances.empty() || !tex.sampler || !tex.view) { return; }
 	auto const& sb = shaderInput.one;
-	set.write(sb.bindings.ssbo, instances.data(), instances.size() * sizeof(decltype(instances[0])));
+	set.write(sb.bindings.ssbo, instances);
 	set.update(sb.bindings.sampler, tex.sampler, tex.view);
 	set.bind(commandBuffer, bound);
 }

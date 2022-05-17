@@ -488,9 +488,9 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 	std::byte imageBytes[4]{};
 	Bitmap::rgbaToByte(white_v, imageBytes);
 	auto cb = GfxCommandBuffer(vram);
-	cb.writer.write(ret.white.image.get(), imageBytes, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	cb.writer.write(ret.white.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 	Bitmap::rgbaToByte(magenta_v, imageBytes);
-	cb.writer.write(ret.magenta.image.get(), imageBytes, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	cb.writer.write(ret.magenta.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	return ret;
 }

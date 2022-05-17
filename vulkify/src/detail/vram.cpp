@@ -53,10 +53,9 @@ void ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image) const {
 	cb.pipelineBarrier(stages.first, stages.second, {}, {}, {}, barrier);
 }
 
-bool VmaBuffer::write(void const* data, std::size_t size) {
-	if (size == full_v) { size = this->size; }
+bool VmaBuffer::write(BufferWrite data) {
 	if (!map || size == 0) { return false; }
-	std::memcpy(map, data, size);
+	std::memcpy(map, data.data, data.size);
 	return true;
 }
 
@@ -176,10 +175,10 @@ static void copy(Vram const& vram, VmaBuffer dst, vk::CommandBuffer cmd, Span co
 
 bool ImageWriter::canBlit(VmaImage const& src, VmaImage const& dst) { return src.blitFlags().test(BlitFlag::eSrc) && dst.blitFlags().test(BlitFlag::eDst); }
 
-bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, Rect rect, vk::ImageLayout il) {
-	auto bci = vk::BufferCreateInfo({}, data.size(), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
+bool ImageWriter::write(VmaImage& out, BufferWrite const data, Rect rect, vk::ImageLayout il) {
+	auto bci = vk::BufferCreateInfo({}, data.size, vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
 	auto buffer = vram->makeBuffer(bci, true, "image_copy_staging");
-	if (!buffer || !buffer->write(data.data())) { return false; }
+	if (!buffer || !buffer->write(data)) { return false; }
 
 	if (rect.extent.x == 0 && rect.extent.x == 0) {
 		if (rect.offset.x != 0 || rect.offset.y != 0) { return false; }
