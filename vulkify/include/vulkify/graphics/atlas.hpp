@@ -43,6 +43,8 @@ class Atlas {
   private:
 	static constexpr glm::uvec2 pad_v = {1, 1};
 
+	Atlas(Vram const& vram, std::string name, Extent initial = initial_v);
+
 	void nextLine();
 	bool prepare(GfxCommandBuffer& cb, Extent extent);
 	bool resize(GfxCommandBuffer& cb, Extent extent);
@@ -57,6 +59,8 @@ class Atlas {
 		std::uint32_t nextY{};
 		Id next{};
 	} m_state{};
+
+	friend class Ttf;
 };
 
 ///

@@ -1,6 +1,7 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
 #include <ktl/hash_table.hpp>
+#include <vulkify/core/ptr.hpp>
 #include <vulkify/graphics/atlas.hpp>
 #include <vulkify/ttf/glyph.hpp>
 
@@ -10,6 +11,9 @@ namespace vf {
 ///
 class Ttf {
   public:
+	using Height = Glyph::Height;
+	static constexpr auto height_v = Glyph::height_v;
+
 	Ttf() noexcept;
 	Ttf(Ttf&&) noexcept;
 	Ttf& operator=(Ttf&&) noexcept;
@@ -21,16 +25,13 @@ class Ttf {
 	bool load(std::span<std::byte const> bytes);
 	bool load(char const* path);
 
-	std::uint32_t height() const { return m_height; }
-	Ttf& setHeight(std::uint32_t size);
-
-	bool contains(Codepoint codepoint) const { return m_map.contains(codepoint); }
-	Glyph const& glyph(Codepoint codepoint);
-	std::size_t preload(std::span<Codepoint const> codepoints);
+	bool contains(Codepoint codepoint, Height height = height_v) const;
+	Glyph const& glyph(Codepoint codepoint, Height height = height_v);
+	std::size_t preload(std::span<Codepoint const> codepoints, Height height = height_v);
 
 	std::string_view name() const { return m_name; }
-	Atlas const& atlas() const { return m_atlas; }
-	Texture const& texture() const { return m_atlas.texture(); }
+	Ptr<Atlas const> atlas(Height height = height_v) const;
+	Ptr<Texture const> texture(Height height = height_v) const;
 
   private:
 	struct Face;
@@ -38,12 +39,18 @@ class Ttf {
 		Glyph glyph{};
 		Atlas::Id id{};
 	};
+	struct Font {
+		Atlas atlas{};
+		ktl::hash_table<Codepoint, Entry> map{};
+	};
 
-	Atlas m_atlas{};
+	void onLoaded();
+	Font& getOrMake(Height height);
+	Entry& insert(Font& out_font, Codepoint codepoint, Atlas::Bulk* bulk);
+
 	std::string m_name{};
-	ktl::hash_table<std::uint32_t, Entry> m_map{};
-	ktl::fixed_pimpl<Face, 32> m_face;
-	std::uint32_t m_height{};
+	ktl::hash_table<Height, Font> m_fonts{};
+	ktl::fixed_pimpl<Face, 64> m_face;
 
 	friend struct Scribe;
 };

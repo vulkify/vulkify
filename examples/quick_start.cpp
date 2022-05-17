@@ -69,7 +69,7 @@ struct Helper {
 	vf::CircleShape makeHexagon(vf::Texture texture) {
 		auto ret = vf::CircleShape(context, "hexagon", {100.0f, 6});
 		auto bitmap = vf::Bitmap(vf::magenta_v);
-		texture.overwrite(bitmap.image(), vf::Texture::Rect{{1, 1}});
+		texture.overwrite(bitmap.image(), vf::Texture::Rect{{1, 1}, {1, 1}});
 		ret.setTexture(std::move(texture), false);
 		ret.transform().position = area.bottomLeft() + glm::vec2(padding_v.x, padding_v.y);
 		ret.setOutline(5.0f, vf::white_v);
@@ -113,8 +113,8 @@ struct Helper {
 
 	vf::Text makeText(vf::Ttf& ttf) {
 		auto ret = vf::Text(context, "test_text");
-		ttf.setHeight(80);
 		ret.setFont(&ttf);
+		ret.height = 80;
 		ret.text = "vulkify";
 		ret.tint() = vf::Rgba::make(0xec3841ff);
 		ret.transform().position.y = area.extent.y * 0.5f - padding_v.y;

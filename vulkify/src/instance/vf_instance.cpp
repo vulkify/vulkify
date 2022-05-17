@@ -13,6 +13,7 @@
 
 #include <detail/descriptor_set.hpp>
 #include <detail/pipeline_factory.hpp>
+#include <detail/render_pass.hpp>
 #include <detail/renderer.hpp>
 #include <detail/rotator.hpp>
 #include <detail/shared_impl.hpp>
@@ -487,9 +488,9 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 	std::byte imageBytes[4]{};
 	Bitmap::rgbaToByte(white_v, imageBytes);
 	auto cb = GfxCommandBuffer(vram);
-	cb.writer.write(ret.white.image.get(), imageBytes, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	cb.writer.write(ret.white.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 	Bitmap::rgbaToByte(magenta_v, imageBytes);
-	cb.writer.write(ret.magenta.image.get(), imageBytes, {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	cb.writer.write(ret.magenta.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	return ret;
 }
@@ -518,6 +519,7 @@ struct VulkifyInstance::Impl {
 	DescriptorPool descriptorPool{};
 	ShaderInput::Textures shaderTextures{};
 	RenderView view{};
+	std::thread::id renderThread{};
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
@@ -570,7 +572,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	auto const srr = createInfo.instanceFlags.test(InstanceFlag::eSuperSampling);
 	auto sl = makeSetLayouts(impl->setLayouts);
 	auto const csamples = impl->vram.vram->colourSamples;
-	impl->pipelineFactory = PipelineFactory::make(impl->surface.device, impl->vertexInput(), std::move(sl), csamples, srr);
+	impl->pipelineFactory = PipelineFactory::make(impl->vram.vram->device, impl->vertexInput(), std::move(sl), csamples, srr);
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
 	impl->vram.vram->buffering = impl->renderer.frameSync.storage.size();
@@ -582,6 +584,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 
 	impl->freetype = freetype;
 	impl->gpu = makeGPU(*vulkan);
+	impl->renderThread = std::this_thread::get_id();
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
@@ -751,8 +754,8 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
 	auto const view = RenderPassView{extent, &m_impl->view};
-	auto const lwl = m_impl->vram.vram->lineWidthLimit;
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view, lwl};
+	auto const lwl = std::pair(m_impl->vram.vram->deviceLimits.lineWidthRange[0], m_impl->vram.vram->deviceLimits.lineWidthRange[1]);
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view, lwl, m_impl->renderThread};
 }
 
 bool VulkifyInstance::endPass() {

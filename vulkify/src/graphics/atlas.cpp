@@ -1,4 +1,5 @@
 #include <detail/shared_impl.hpp>
+#include <vulkify/context/context.hpp>
 #include <vulkify/graphics/atlas.hpp>
 
 namespace vf {
@@ -11,7 +12,11 @@ constexpr std::uint32_t pot(std::uint32_t const in) {
 }
 } // namespace
 
-Atlas::Atlas(Context const& context, std::string name, Extent const initial) : m_texture(context, std::move(name), Bitmap({}, initial).image()) {}
+Atlas::Atlas(Context const& context, std::string name, Extent const initial) : Atlas(context.vram(), std::move(name), initial) {}
+
+Atlas::Atlas(Vram const& vram, std::string name, Extent const initial) : m_texture(vram, std::move(name), {}) {
+	if (m_texture.m_allocation) { m_texture.create(Bitmap({}, initial).image()); }
+}
 
 Atlas::Id Atlas::add(Image::View const image) {
 	if (!m_texture) { return {}; }

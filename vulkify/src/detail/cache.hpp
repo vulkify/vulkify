@@ -118,7 +118,7 @@ struct BufferCache {
 			vram->device.defer(std::move(buffer));
 			buffer = vram->makeBuffer(info, true, name.c_str());
 		}
-		buffer->write(data.data(), data.size());
+		buffer->write(std::span<std::byte const>(data));
 		if (next) { buffers.next(); }
 		return buffer;
 	}

@@ -52,6 +52,12 @@ class PerThread {
 		lock->clear();
 	}
 
+	template <typename F>
+	void forEach(F&& f) {
+		auto lock = ktl::klock(m_map);
+		for (auto& [_, t] : *lock) { f(t); }
+	}
+
 	Factory& factory() { return m_factory; }
 	Factory const& factory() const { return m_factory; }
 

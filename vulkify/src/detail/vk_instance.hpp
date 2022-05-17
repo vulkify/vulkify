@@ -2,6 +2,7 @@
 #include <detail/vk_device.hpp>
 #include <ktl/async/kfunction.hpp>
 #include <ktl/kunique_ptr.hpp>
+#include <vulkify/core/defines.hpp>
 #include <vulkify/core/result.hpp>
 #include <mutex>
 
@@ -34,6 +35,6 @@ struct VKInstance {
 	VKQueue queue{};
 	ktl::kunique_ptr<Util> util{};
 
-	static Result<VKInstance> make(MakeSurface makeSurface, bool validation = true);
+	static Result<VKInstance> make(MakeSurface makeSurface, bool validation = debug_v);
 };
 } // namespace vf
