@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkify/core/rect.hpp>
+#include <glm/vec2.hpp>
 
 namespace vf {
 using Codepoint = std::uint32_t;
@@ -15,7 +15,6 @@ struct Glyph {
 	};
 
 	Metrics metrics{};
-	UVRect uv{};
 	Codepoint codepoint{};
 
 	explicit constexpr operator bool() const { return metrics.extent.x > 0; }

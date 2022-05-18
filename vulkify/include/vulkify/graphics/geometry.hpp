@@ -7,7 +7,7 @@
 
 namespace vf {
 ///
-/// \brief Data structure specifying a single vertex
+/// \brief A single vertex
 ///
 /// Note: Vertex objects are uploaded directly to vertex buffers
 ///
@@ -27,17 +27,17 @@ struct Vertex {
 };
 
 ///
-/// \brief Data structure specifying a quad shape
+/// \brief Spec for quad shape
 ///
 struct QuadCreateInfo {
 	glm::vec2 size{100.0f, 100.0f};
 	glm::vec2 origin{};
-	UVRect uv{};
+	UvRect uv{};
 	Rgba vertex{white_v};
 };
 
 ///
-/// \brief Data structure specifying a regular polygon
+/// \brief Spec for regular polygon
 ///
 struct PolygonCreateInfo {
 	float diameter{100.0f};
@@ -47,7 +47,7 @@ struct PolygonCreateInfo {
 };
 
 ///
-/// \brief Data structure specifying graphics geometry (
+/// \brief Graphics geometry (
 ///
 /// Note: Geometry objects are uploaded directly to vertex/index buffers
 ///

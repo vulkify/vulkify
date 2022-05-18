@@ -14,6 +14,13 @@ class Ttf {
 	using Height = Glyph::Height;
 	static constexpr auto height_v = Glyph::height_v;
 
+	struct Character {
+		Ptr<Glyph const> glyph{};
+		UvRect uv{};
+
+		explicit operator bool() const { return glyph && *glyph; }
+	};
+
 	Ttf() noexcept;
 	Ttf(Ttf&&) noexcept;
 	Ttf& operator=(Ttf&&) noexcept;
@@ -26,7 +33,9 @@ class Ttf {
 	bool load(char const* path);
 
 	bool contains(Codepoint codepoint, Height height = height_v) const;
-	Glyph const& glyph(Codepoint codepoint, Height height = height_v);
+	Character find(Codepoint codepoint, Height height = height_v) const;
+	Character get(Codepoint codepoint, Height height = height_v);
+
 	std::size_t preload(std::span<Codepoint const> codepoints, Height height = height_v);
 
 	std::string_view name() const { return m_name; }
@@ -37,7 +46,7 @@ class Ttf {
 	struct Face;
 	struct Entry {
 		Glyph glyph{};
-		Atlas::Id id{};
+		QuadTexCoords coords{};
 	};
 	struct Font {
 		Atlas atlas{};

@@ -17,6 +17,19 @@ struct TextureCreateInfo {
 };
 
 ///
+/// \brief Texture coordinates for a quad in texture space
+///
+struct QuadTexCoords {
+	glm::ivec2 topLeft{};
+	glm::ivec2 bottomRight{};
+
+	constexpr UvRect uv(glm::uvec2 const extent) const {
+		auto const ext = glm::vec2(extent);
+		return {glm::vec2(topLeft) / ext, glm::vec2(bottomRight) / ext};
+	}
+};
+
+///
 /// \brief GPU Texture (Image and sampler)
 ///
 class Texture : public GfxResource {
@@ -38,6 +51,7 @@ class Texture : public GfxResource {
 	Extent extent() const;
 	AddressMode addressMode() const { return m_addressMode; }
 	Filtering filtering() const { return m_filtering; }
+	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
 
   private:
 	Texture(Vram const& vram, std::string name, CreateInfo const& info);

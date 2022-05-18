@@ -4,7 +4,7 @@
 
 namespace vf {
 ///
-/// \brief Data structure specifying the rendering viewport
+/// \brief Rendering viewport
 ///
 /// origin: top-left, +x: right, +y: down, normalized [0-1]
 ///
@@ -27,7 +27,7 @@ constexpr Viewport operator*(glm::vec2 scale, Viewport const& a);
 constexpr auto viewport_v = Viewport{{1.0f, 1.0f}, {0.0f, 0.0f}};
 
 ///
-/// \brief Data structure describing the render view (camera)
+/// \brief Render view (camera)
 ///
 struct RenderView {
 	glm::vec2 position{};

@@ -15,12 +15,14 @@ struct LineViewer {
 /// \brief Writes codepoints and moves write-head
 ///
 struct Pen {
+	using Character = Ttf::Character;
+
 	Ttf* out_ttf{};
 	Geometry* out_geometry{};
 	glm::vec2 head{};
 	float maxHeight{};
 
-	Glyph const& glyph(Codepoint codepoint) const;
+	Character character(Codepoint codepoint) const;
 	glm::vec2 write(Codepoint codepoint);
 	glm::vec2 write(std::span<Codepoint const> codepoints);
 };
@@ -32,7 +34,7 @@ struct Scribe {
 	using Height = Glyph::Height;
 	using Pivot = glm::vec2;
 	using Block = LineViewer;
-	struct LineSpec {
+	struct Leading {
 		float coefficient{1.5f};
 		Codepoint codepoint{'A'};
 	};
@@ -44,8 +46,8 @@ struct Scribe {
 	Height height{Glyph::height_v};
 	glm::vec2 origin{};
 
-	LineSpec lineSpec{};
 	Geometry geometry{};
+	Leading leading{};
 
 	glm::vec2 extent(std::string_view line) const;
 	float lineHeight() const;
@@ -53,7 +55,7 @@ struct Scribe {
 	Scribe& preload(std::string_view text);
 	Scribe& write(std::string_view text, Pivot pivot = centre_v);
 	Scribe& write(Block text, Pivot pivot = centre_v);
-	Scribe& linebreak();
+	Scribe& lineBreak();
 };
 
 // impl

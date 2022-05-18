@@ -156,20 +156,29 @@ bool Ttf::contains(Codepoint codepoint, Height height) const {
 	return false;
 }
 
-Glyph const& Ttf::glyph(Codepoint codepoint, Height height) {
-	static auto const blank_v = Glyph{};
-	if (!*this) { return blank_v; }
+Ttf::Character Ttf::find(Codepoint codepoint, Height height) const {
+	if (!*this) { return {}; }
+	auto fontIt = m_fonts.find(height);
+	if (fontIt == m_fonts.end()) { return {}; }
+
+	auto& font = fontIt->second;
+	auto entryIt = font.map.find(codepoint);
+	if (entryIt == font.map.end()) { return {}; }
+
+	auto& entry = entryIt->second;
+	return {&entry.glyph, font.atlas.uv(entry.coords)};
+}
+
+Ttf::Character Ttf::get(Codepoint codepoint, Height height) {
+	if (!*this) { return {}; }
 	auto& font = getOrMake(height);
 
-	Entry* ret{};
+	Entry const* ret{};
 	if (auto it = font.map.find(codepoint); it != font.map.end()) { ret = &it->second; }
 	if (!ret) { ret = &insert(font, codepoint, {}); }
 
-	if (ret) {
-		ret->glyph.uv = font.atlas.get(ret->id);
-		return ret->glyph;
-	}
-	return blank_v;
+	if (ret) { return {&ret->glyph, font.atlas.uv(ret->coords)}; }
+	return {};
 }
 
 std::size_t Ttf::preload(std::span<Codepoint const> codepoints, Height const height) {
@@ -223,9 +232,9 @@ Ttf::Entry& Ttf::insert(Font& out_font, Codepoint const codepoint, Atlas::Bulk* 
 	if (slot.hasBitmap()) {
 		auto const image = Image::View{slot.pixmap, slot.metrics.extent};
 		if (bulk) {
-			entry.id = bulk->add(image);
+			entry.coords = bulk->add(image);
 		} else {
-			entry.id = out_font.atlas.add(image);
+			entry.coords = out_font.atlas.add(image);
 		}
 	}
 	entry.glyph.metrics = slot.metrics;
@@ -233,23 +242,21 @@ Ttf::Entry& Ttf::insert(Font& out_font, Codepoint const codepoint, Atlas::Bulk* 
 	return it->second;
 }
 
-Glyph const& Pen::glyph(Codepoint codepoint) const {
-	static auto const blank_v = Glyph{};
-	if (!out_ttf || !*out_ttf) { return blank_v; }
-	if (auto const& glyph = out_ttf->glyph(codepoint)) { return glyph; }
-	return out_ttf->glyph({});
+Pen::Character Pen::character(Codepoint codepoint) const {
+	if (!out_ttf || !*out_ttf) { return {}; }
+	if (auto const ch = out_ttf->get(codepoint)) { return ch; }
+	return out_ttf->get({});
 }
 
 glm::vec2 Pen::write(Codepoint const codepoint) {
 	if (!out_ttf || !*out_ttf) { return head; }
-	auto const& g = glyph(codepoint);
-	if (g) {
-		auto const pen = head + glm::vec2(g.metrics.topLeft);
-		auto const hs = glm::vec2(g.metrics.extent) * 0.5f;
+	if (auto const ch = character(codepoint)) {
+		auto const pen = head + glm::vec2(ch.glyph->metrics.topLeft);
+		auto const hs = glm::vec2(ch.glyph->metrics.extent) * 0.5f;
 		auto const origin = pen + glm::vec2(hs.x, -hs.y);
-		if (out_geometry) { out_geometry->addQuad({g.metrics.extent, origin, g.uv}); }
-		head += g.metrics.advance;
-		maxHeight = std::max(maxHeight, static_cast<float>(g.metrics.extent.y));
+		if (out_geometry) { out_geometry->addQuad({ch.glyph->metrics.extent, origin, ch.uv}); }
+		head += ch.glyph->metrics.advance;
+		maxHeight = std::max(maxHeight, static_cast<float>(ch.glyph->metrics.extent.y));
 	}
 	return head;
 }
@@ -301,13 +308,17 @@ Scribe& Scribe::write(Block block, Pivot pivot) {
 	for (auto line = std::string_view{}; block.getline(line);) { height += lh; }
 	origin.y += height * (0.5f - pivot.y);
 	block.text = text;
-	for (auto line = std::string_view{}; block.getline(line); linebreak()) { write(line, {pivot.x, 0.5f}); }
+	for (auto line = std::string_view{}; block.getline(line); lineBreak()) { write(line, {pivot.x, 0.5f}); }
 	return *this;
 }
 
-float Scribe::lineHeight() const { return static_cast<float>(ttf.glyph(lineSpec.codepoint).metrics.extent.y) * lineSpec.coefficient; }
+float Scribe::lineHeight() const {
+	auto const ch = ttf.get(leading.codepoint, height);
+	if (!ch) { return {}; }
+	return static_cast<float>(ch.glyph->metrics.extent.y) * leading.coefficient;
+}
 
-Scribe& Scribe::linebreak() {
+Scribe& Scribe::lineBreak() {
 	origin.y -= lineHeight();
 	return *this;
 }
