@@ -33,7 +33,10 @@ constexpr vk::PrimitiveTopology topology(Topology topo) {
 } // namespace
 
 void RenderPass::writeView(DescriptorSet& set) const {
-	if (!set) { return; }
+	if (!set) {
+		VF_TRACE("[vf::(internal)] Failed to write view set");
+		return;
+	}
 	// invert transformation
 	auto const transform = Transform{-view.view->position, view.view->orientation.inverted()};
 	auto const dm = DrawModel{{transform.position, transform.orientation.value()}, {glm::vec2(1.0f), glm::vec2()}};
@@ -41,7 +44,10 @@ void RenderPass::writeView(DescriptorSet& set) const {
 }
 
 void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> instances, Tex tex) const {
-	if (!set || instances.empty() || !tex.sampler || !tex.view) { return; }
+	if (!set || instances.empty() || !tex.sampler || !tex.view) {
+		VF_TRACE("[vf::(internal)] Failed to write models set");
+		return;
+	}
 	auto const& sb = shaderInput.one;
 	set.write(sb.bindings.ssbo, instances);
 	set.update(sb.bindings.sampler, tex.sampler, tex.view);
@@ -49,14 +55,21 @@ void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> inst
 }
 
 void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
-	if (!layout || layout == bound || !commandBuffer) { return; }
+	if (layout == bound) { return; }
+	if (!layout || !commandBuffer) {
+		VF_TRACE("[vf::(internal)] Failed to bind pipeline");
+		return;
+	}
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
 	shaderInput.mat_p.bind(commandBuffer, layout);
 	bound = layout;
 }
 
 void RenderPass::setViewport() const {
-	if (!commandBuffer || !view.view) { return; }
+	if (!commandBuffer || !view.view) {
+		VF_TRACE("[vf::(internal)] Failed to set viewport");
+		return;
+	}
 	auto const vp = view.extent * view.view->viewport;
 	commandBuffer.setViewport(0, vk::Viewport(vp.offset.x, vp.offset.y + vp.extent.y, vp.extent.x, -vp.extent.y)); // flip x / negative y
 }
@@ -108,13 +121,14 @@ bool Surface::draw(Drawable const& drawable) const {
 }
 
 bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) const {
+	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
 	if (m_renderPass->renderThread != std::this_thread::get_id()) {
 		VF_TRACE("[vf::Surface] Multi-threaded rendering is not supported!");
 		return false;
 	}
 	bind(drawable.gbo.state);
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
-	if (drawable.texture) { tex = {*drawable.texture->resource().image.sampler, *drawable.texture->resource().image.cache.view}; }
+	if (drawable.texture && *drawable.texture) { tex = {*drawable.texture->resource().image.sampler, *drawable.texture->resource().image.cache.view}; }
 
 	auto set = m_renderPass->descriptorPool->postInc(m_renderPass->shaderInput.one.set, "UBO:M,SSBO:V");
 	if (!set) { return false; }
