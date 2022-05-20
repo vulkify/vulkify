@@ -26,7 +26,7 @@ struct VKDevice {
 	static constexpr auto fence_wait_v = std::numeric_limits<std::uint64_t>::max();
 
 	enum class Flag { eDebugMsgr, eLinearSwp };
-	using Flags = ktl::enum_flags<Flag, std::uint8_t>;
+	using Flags = ktl::enum_flags<Flag>;
 
 	VKQueue queue{};
 	vk::PhysicalDevice gpu{};

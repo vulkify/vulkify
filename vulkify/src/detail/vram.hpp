@@ -18,7 +18,7 @@ class CommandPool;
 struct ShaderCache;
 
 enum class BlitFlag { eSrc, eDst, eLinearFilter };
-using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
+using BlitFlags = ktl::enum_flags<BlitFlag>;
 
 struct BlitCaps {
 	BlitFlags optimal{};

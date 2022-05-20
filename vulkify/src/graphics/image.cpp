@@ -2,6 +2,7 @@
 #include <ktl/either.hpp>
 #include <vulkify/core/unique.hpp>
 #include <vulkify/graphics/image.hpp>
+#include <cstring>
 #include <optional>
 
 namespace vf {

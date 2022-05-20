@@ -198,7 +198,7 @@ Result<std::shared_ptr<UniqueGlfw>> getOrMakeGlfw() {
 		glfwTerminate();
 		return Error::eNoVulkanSupport;
 	}
-	glfwSetErrorCallback([](int code, char const* szDesc) { VF_TRACEF("[vf::Context] GLFW Error [{}]: {}", code, szDesc); });
+	glfwSetErrorCallback([]([[maybe_unused]] int code, [[maybe_unused]] char const* szDesc) { VF_TRACEF("[vf::Context] GLFW Error [{}]: {}", code, szDesc); });
 	auto ret = std::make_shared<UniqueGlfw>(true);
 	s_glfw = ret;
 	return ret;
