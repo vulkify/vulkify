@@ -75,10 +75,8 @@ Result<void> UniformBuffer::reserve(std::size_t const size) {
 
 Result<void> UniformBuffer::write(BufferWrite const data) {
 	if (!m_allocation || !m_allocation->vram) { return Error::eInactiveInstance; }
-	if (!data.data || data.size == 0) { return Error::eInvalidArgument; }
-
 	if (!reserve(data.size)) { return Error::eMemoryError; }
-	if (!m_allocation->buffers[0].buffers.get()->write(data.data, data.size)) { return Error::eMemoryError; }
+	if (!m_allocation->buffers[0].buffers.get()->write(data)) { return Error::eMemoryError; }
 
 	return Result<void>::success();
 }

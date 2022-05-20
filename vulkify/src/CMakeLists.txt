@@ -27,6 +27,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/defer_queue.hpp
   detail/pipeline_factory.cpp
   detail/pipeline_factory.hpp
+  detail/render_pass.hpp
   detail/renderer.cpp
   detail/renderer.hpp
   detail/rotator.hpp

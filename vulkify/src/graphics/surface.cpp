@@ -1,4 +1,5 @@
 #include <detail/pipeline_factory.hpp>
+#include <detail/render_pass.hpp>
 #include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
 #include <ktl/fixed_vector.hpp>
@@ -32,7 +33,10 @@ constexpr vk::PrimitiveTopology topology(Topology topo) {
 } // namespace
 
 void RenderPass::writeView(DescriptorSet& set) const {
-	if (!set) { return; }
+	if (!set) {
+		VF_TRACE("[vf::(internal)] Failed to write view set");
+		return;
+	}
 	// invert transformation
 	auto const transform = Transform{-view.view->position, view.view->orientation.inverted()};
 	auto const dm = DrawModel{{transform.position, transform.orientation.value()}, {glm::vec2(1.0f), glm::vec2()}};
@@ -40,22 +44,32 @@ void RenderPass::writeView(DescriptorSet& set) const {
 }
 
 void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> instances, Tex tex) const {
-	if (!set || instances.empty() || !tex.sampler || !tex.view) { return; }
+	if (!set || instances.empty() || !tex.sampler || !tex.view) {
+		VF_TRACE("[vf::(internal)] Failed to write models set");
+		return;
+	}
 	auto const& sb = shaderInput.one;
-	set.write(sb.bindings.ssbo, instances.data(), instances.size() * sizeof(decltype(instances[0])));
+	set.write(sb.bindings.ssbo, instances);
 	set.update(sb.bindings.sampler, tex.sampler, tex.view);
 	set.bind(commandBuffer, bound);
 }
 
 void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
-	if (!layout || layout == bound || !commandBuffer) { return; }
+	if (layout == bound) { return; }
+	if (!layout || !commandBuffer) {
+		VF_TRACE("[vf::(internal)] Failed to bind pipeline");
+		return;
+	}
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
 	shaderInput.mat_p.bind(commandBuffer, layout);
 	bound = layout;
 }
 
 void RenderPass::setViewport() const {
-	if (!commandBuffer || !view.view) { return; }
+	if (!commandBuffer || !view.view) {
+		VF_TRACE("[vf::(internal)] Failed to set viewport");
+		return;
+	}
 	auto const vp = view.extent * view.view->viewport;
 	commandBuffer.setViewport(0, vk::Viewport(vp.offset.x, vp.offset.y + vp.extent.y, vp.extent.x, -vp.extent.y)); // flip x / negative y
 }
@@ -69,7 +83,7 @@ Surface::~Surface() {
 	if (m_renderPass->instance) { m_renderPass->instance.value->endPass(); }
 }
 
-Surface::operator bool() const { return m_renderPass->commandBuffer; }
+Surface::operator bool() const { return m_renderPass->instance; }
 
 bool Surface::setShader(Shader const& shader) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
@@ -90,6 +104,10 @@ bool Surface::bind(GeometryBuffer::State const& state) const {
 bool Surface::draw(Drawable const& drawable) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
 	if (drawable.instances.empty() || !drawable.gbo || drawable.gbo.resource().buffers[0].data.empty()) { return false; }
+	if (m_renderPass->renderThread != std::this_thread::get_id()) {
+		VF_TRACE("[vf::Context] Multi-threaded rendering is not supported");
+		return false;
+	}
 	if (drawable.instances.size() <= small_buffer_v) {
 		auto buffer = ktl::fixed_vector<DrawModel, small_buffer_v>{};
 		addDrawModels(drawable.instances, std::back_inserter(buffer));
@@ -103,9 +121,14 @@ bool Surface::draw(Drawable const& drawable) const {
 }
 
 bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) const {
+	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
+	if (m_renderPass->renderThread != std::this_thread::get_id()) {
+		VF_TRACE("[vf::Surface] Multi-threaded rendering is not supported!");
+		return false;
+	}
 	bind(drawable.gbo.state);
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
-	if (drawable.texture) { tex = {*drawable.texture->resource().image.sampler, *drawable.texture->resource().image.cache.view}; }
+	if (drawable.texture && *drawable.texture) { tex = {*drawable.texture->resource().image.sampler, *drawable.texture->resource().image.cache.view}; }
 
 	auto set = m_renderPass->descriptorPool->postInc(m_renderPass->shaderInput.one.set, "UBO:M,SSBO:V");
 	if (!set) { return false; }

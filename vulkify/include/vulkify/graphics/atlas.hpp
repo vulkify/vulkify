@@ -1,62 +1,54 @@
 #pragma once
-#include <ktl/hash_table.hpp>
 #include <vulkify/core/rect.hpp>
 #include <vulkify/graphics/texture.hpp>
 
 namespace vf {
-struct GfxCommandBuffer;
-
 ///
 /// \brief Expandable Texture Atlas
 ///
-/// Note: since the Texture extent is dynamic, rect UVs may change on adding images.
-/// Store each Id and query for its updated UV every frame if necessary - it's designed to be fast.
+/// Store each quad's texture coords and obtain its updated UVs every frame via Atlas::uv()
 ///
 class Atlas {
   public:
 	static constexpr Extent initial_v = {1024, 128};
-	using Id = std::uint32_t;
+	static constexpr Rgba clear_v = Rgba{};
 	class Bulk;
 
 	Atlas() = default;
-	Atlas(Context const& context, std::string name, Extent initial = initial_v);
+	Atlas(Context const& context, std::string name, Extent initial = initial_v, Rgba rgba = clear_v);
 
 	///
-	/// \brief Add image to atlas and obtain associated Id
+	/// \brief Add image to atlas and obtain associated texture coordinates
 	///
 	/// Atlas expands texture height by default, unless width of image exceeds texture width,
 	/// in whichh case it expands the width as well. Texture dimensions are always powers of two.
 	///
-	Id add(Image::View image);
-	///
-	/// \brief Obtain
-	///
-	UVRect get(Id id, UVRect const& fallback = {{}, {}}) const;
-
-	bool contains(Id id) const { return m_uvMap.contains(id); }
-	Extent extent() const { return m_texture.extent(); }
-	std::size_t size() const { return m_uvMap.size(); }
-	void clear();
+	QuadTexCoords add(Image::View image);
+	void clear(Rgba rgba = clear_v);
 
 	Texture const& texture() const { return m_texture; }
+	Extent extent() const { return texture().extent(); }
+	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
 
   private:
 	static constexpr glm::uvec2 pad_v = {1, 1};
 
+	Atlas(Vram const& vram, std::string name, Extent initial = initial_v, Rgba rgba = clear_v);
+
 	void nextLine();
-	bool prepare(GfxCommandBuffer& cb, Extent extent);
+	bool prepare(struct GfxCommandBuffer& cb, Extent extent);
 	bool resize(GfxCommandBuffer& cb, Extent extent);
 	bool overwrite(GfxCommandBuffer& cb, Image::View image, Texture::Rect const& region);
-	Id insert(GfxCommandBuffer& cb, Image::View image);
+	QuadTexCoords insert(GfxCommandBuffer& cb, Image::View image);
 
 	Texture m_texture{};
-	ktl::hash_table<Id, UVRect> m_uvMap{};
 
 	struct {
 		glm::uvec2 head{pad_v};
 		std::uint32_t nextY{};
-		Id next{};
 	} m_state{};
+
+	friend class Ttf;
 };
 
 ///
@@ -70,7 +62,7 @@ class Atlas::Bulk {
 	Bulk(Atlas& out_atlas);
 	~Bulk();
 
-	Id add(Image::View image);
+	QuadTexCoords add(Image::View image);
 
   private:
 	ktl::kunique_ptr<GfxCommandBuffer> m_impl;

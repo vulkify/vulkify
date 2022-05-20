@@ -17,7 +17,7 @@ struct TRect {
 };
 
 ///
-/// \brief Data structure specifying world-space 2D rect
+/// \brief World-space 2D rect
 ///
 /// origin: centre, +x: right, +y: up
 ///
@@ -29,11 +29,11 @@ struct Rect : TRect<float> {
 };
 
 ///
-/// \brief Data structure specifying a quad's texture coordinates
+/// \brief Normalized texture coordinates for a quad
 ///
 /// origin: top-left, +x: right, +y: down, normalized [0-1]
 ///
-struct UVRect {
+struct UvRect {
 	glm::vec2 topLeft{0.0f, 0.0f};
 	glm::vec2 bottomRight{1.0f, 1.0f};
 };

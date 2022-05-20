@@ -23,32 +23,28 @@ struct DescriptorSet {
 	};
 
 	Vram* vram{};
-	std::array<UniqueBuffer, max_bindings_v>* buffers{};
+	std::span<UniqueBuffer> buffers{};
 	vk::DescriptorSet set{};
 	char const* name = "";
 	std::uint32_t number{};
 
-	explicit operator bool() const { return vram && *vram && buffers && set; }
+	explicit operator bool() const { return vram && *vram && !buffers.empty() && set; }
 
 	void refresh(UniqueBuffer& out, std::size_t const size, vk::BufferUsageFlagBits const usage) const {
 		if (!out->resource || out->size != size) { out = vram->makeBuffer({{}, size, usage}, true, name); }
 	}
 
-	bool write(std::uint32_t binding, void const* data, std::size_t size) {
+	bool write(std::uint32_t binding, BufferWrite const data) {
 		assert(binding < max_buffers_v);
 		if (!static_cast<bool>(*this)) { return false; }
-		refresh(buffers->at(binding), size, buffer_layouts_v[binding].usage);
-		auto buf = buffers->at(binding).get();
-		bool const ret = buf.write(data, size);
-		auto dbi = vk::DescriptorBufferInfo(buf.resource, {}, size);
+		refresh(buffers[binding], data.size, buffer_layouts_v[binding].usage);
+		auto buf = buffers[binding].get();
+		bool const ret = buf.write(data);
+		auto dbi = vk::DescriptorBufferInfo(buf.resource, {}, data.size);
 		auto wds = vk::WriteDescriptorSet(set, binding, 0, 1, buffer_layouts_v[binding].type, {}, &dbi);
 		vram->device.device.updateDescriptorSets(1, &wds, 0, {});
 		return ret;
 	}
-
-	template <typename T>
-		requires(std::is_standard_layout_v<T>)
-	bool write(std::uint32_t binding, T const& t) { return write(binding, &t, sizeof(T)); }
 
 	bool update(std::uint32_t binding, vk::Sampler sampler, vk::ImageView view) {
 		assert(binding < max_bindings_v);
@@ -96,7 +92,7 @@ struct DescriptorPool {
 		DescriptorSet get(char const* name) {
 			reserve(index + 1);
 			auto& set = sets[index];
-			return {&vram, &set.buffers, set.set, name, number};
+			return {&vram, set.buffers, set.set, name, number};
 		}
 	};
 	using Storage = ktl::fixed_vector<Pool, max_sets_v>;
@@ -109,7 +105,7 @@ struct DescriptorPool {
 		{vk::DescriptorType::eCombinedImageSampler, 4},
 	};
 
-	static DescriptorPool make(Vram vram, std::vector<vk::DescriptorSetLayout> layouts) {
+	static DescriptorPool make(Vram const& vram, std::vector<vk::DescriptorSetLayout> layouts) {
 		auto ret = DescriptorPool{};
 		for (std::size_t frame = 0; frame < vram.buffering; ++frame) {
 			auto storage = Storage{};

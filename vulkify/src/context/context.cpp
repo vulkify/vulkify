@@ -12,6 +12,6 @@ auto Context::make(UInstance&& instance) -> Result {
 Frame Context::frame(Rgba clear) {
 	auto poll = m_instance->poll();
 	auto surface = m_instance->beginPass(clear);
-	return Frame{std::move(surface), poll, diffExchg(m_stamp)};
+	return Frame{std::move(surface), *m_instance, poll, diffExchg(m_stamp)};
 }
 } // namespace vf

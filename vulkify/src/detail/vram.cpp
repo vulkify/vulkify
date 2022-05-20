@@ -53,10 +53,9 @@ void ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image) const {
 	cb.pipelineBarrier(stages.first, stages.second, {}, {}, {}, barrier);
 }
 
-bool VmaBuffer::write(void const* data, std::size_t size) {
-	if (size == full_v) { size = this->size; }
+bool VmaBuffer::write(BufferWrite data) {
 	if (!map || size == 0) { return false; }
-	std::memcpy(map, data, size);
+	std::memcpy(map, data.data, data.size);
 	return true;
 }
 
@@ -84,7 +83,7 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples)
 	vkFunc.vkGetInstanceProcAddr = dl.vkGetInstanceProcAddr;
 	vkFunc.vkGetDeviceProcAddr = dl.vkGetDeviceProcAddr;
 	allocatorInfo.pVulkanFunctions = &vkFunc;
-	auto const framebufferSamples = getSamples(device.gpu.getProperties().limits.framebufferColorSampleCounts, samples);
+	auto const limits = device.gpu.getProperties().limits;
 	auto vram = Vram{device};
 	if (vmaCreateAllocator(&allocatorInfo, &vram.allocator) != VK_SUCCESS) {
 		VF_TRACE("[vf::(Internal)] Failed to create Vram!");
@@ -93,10 +92,8 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples)
 	auto factory = ktl::make_unique<CommandFactory>();
 	factory->commandPools.factory().device = device;
 	vram.commandFactory = factory.get();
-	vram.maxAnisotropy = device.gpu.getProperties().limits.maxSamplerAnisotropy;
-	vram.colourSamples = framebufferSamples;
-	auto const lwl = device.gpu.getProperties().limits.lineWidthRange;
-	vram.lineWidthLimit = {lwl[0], lwl[1]};
+	vram.deviceLimits = limits;
+	vram.colourSamples = getSamples(limits.framebufferColorSampleCounts, samples);
 	return {std::move(factory), vram};
 }
 
@@ -118,6 +115,10 @@ void setDebugName(VKDevice const& device, U handle, char const* name) {
 
 UniqueImage Vram::makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear) const {
 	if (!allocator || !commandFactory) { return {}; }
+	if (info.extent.width > deviceLimits.maxImageDimension2D || info.extent.height > deviceLimits.maxImageDimension2D) {
+		VF_TRACEF("[vf::(internal)] Invalid image extent: [{}, {}]", info.extent.width, info.extent.height);
+		return {};
+	}
 	info.tiling = linear ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal;
 	if (info.imageType == vk::ImageType()) { info.imageType = vk::ImageType::e2D; }
 	if (info.mipLevels == 0U) { info.mipLevels = 1U; }
@@ -174,10 +175,10 @@ static void copy(Vram const& vram, VmaBuffer dst, vk::CommandBuffer cmd, Span co
 
 bool ImageWriter::canBlit(VmaImage const& src, VmaImage const& dst) { return src.blitFlags().test(BlitFlag::eSrc) && dst.blitFlags().test(BlitFlag::eDst); }
 
-bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, Rect rect, vk::ImageLayout il) {
-	auto bci = vk::BufferCreateInfo({}, data.size(), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
+bool ImageWriter::write(VmaImage& out, BufferWrite const data, Rect rect, vk::ImageLayout il) {
+	auto bci = vk::BufferCreateInfo({}, data.size, vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
 	auto buffer = vram->makeBuffer(bci, true, "image_copy_staging");
-	if (!buffer || !buffer->write(data.data())) { return false; }
+	if (!buffer || !buffer->write(data)) { return false; }
 
 	if (rect.extent.x == 0 && rect.extent.x == 0) {
 		if (rect.offset.x != 0 || rect.offset.y != 0) { return false; }

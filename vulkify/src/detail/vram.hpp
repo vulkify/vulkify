@@ -8,6 +8,7 @@
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/core/unique.hpp>
+#include <vulkify/graphics/buffer_write.hpp>
 
 struct FT_LibraryRec_;
 using FT_Library = FT_LibraryRec_*;
@@ -72,7 +73,7 @@ struct VmaBuffer : VmaResource<vk::Buffer> {
 	std::size_t size{};
 	void* map{};
 
-	bool write(void const* data, std::size_t size = full_v);
+	bool write(BufferWrite data);
 
 	struct Deleter {
 		void operator()(VmaBuffer const&) const;
@@ -115,9 +116,8 @@ struct Vram {
 	CommandFactory* commandFactory{};
 	ShaderCache* shaderCache{};
 
-	float maxAnisotropy{};
+	vk::PhysicalDeviceLimits deviceLimits{};
 	vk::SampleCountFlagBits colourSamples{};
-	TPair<float> lineWidthLimit{};
 	vk::Format textureFormat = vk::Format::eR8G8B8A8Srgb;
 
 	bool operator==(Vram const& rhs) const { return commandFactory == rhs.commandFactory && allocator == rhs.allocator; }
@@ -144,7 +144,7 @@ struct ImageWriter {
 
 	static bool canBlit(VmaImage const& src, VmaImage const& dst);
 
-	bool write(VmaImage& out, std::span<std::byte const> data, Rect rect = {}, vk::ImageLayout il = {});
+	bool write(VmaImage& out, BufferWrite data, Rect rect = {}, vk::ImageLayout il = {});
 	bool blit(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
 	bool copy(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, TPair<vk::ImageLayout> il = {}) const;
 	void clear(VmaImage& in, Rgba rgba) const;

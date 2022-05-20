@@ -1,4 +1,5 @@
 #include <detail/shared_impl.hpp>
+#include <vulkify/context/context.hpp>
 #include <vulkify/graphics/atlas.hpp>
 
 namespace vf {
@@ -11,9 +12,13 @@ constexpr std::uint32_t pot(std::uint32_t const in) {
 }
 } // namespace
 
-Atlas::Atlas(Context const& context, std::string name, Extent const initial) : m_texture(context, std::move(name), Bitmap({}, initial).image()) {}
+Atlas::Atlas(Context const& context, std::string name, Extent const initial, Rgba const rgba) : Atlas(context.vram(), std::move(name), initial, rgba) {}
 
-Atlas::Id Atlas::add(Image::View const image) {
+Atlas::Atlas(Vram const& vram, std::string name, Extent const initial, Rgba const rgba) : m_texture(vram, std::move(name), {}) {
+	if (m_texture.m_allocation) { m_texture.create(Bitmap(rgba, initial).image()); }
+}
+
+QuadTexCoords Atlas::add(Image::View const image) {
 	if (!m_texture) { return {}; }
 	if (image.extent.x == 0 || image.extent.y == 0 || image.data.empty()) { return {}; }
 
@@ -24,19 +29,10 @@ Atlas::Id Atlas::add(Image::View const image) {
 	return ret;
 }
 
-UVRect Atlas::get(Id const id, UVRect const& fallback) const {
-	if (!m_texture || m_texture.extent().x == 0 || m_texture.extent().y == 0) { return fallback; }
-	auto const it = m_uvMap.find(id);
-	if (it == m_uvMap.end()) { return fallback; }
-	auto const extent = glm::vec2(m_texture.extent());
-	return {it->second.topLeft / extent, it->second.bottomRight / extent};
-}
-
-void Atlas::clear() {
+void Atlas::clear(Rgba const rgba) {
 	if (!m_texture) { return; }
 	auto cb = GfxCommandBuffer(m_texture.vram());
-	cb.writer.clear(m_texture.m_allocation->image.cache.image, {});
-	m_uvMap.clear();
+	cb.writer.clear(m_texture.m_allocation->image.cache.image, rgba);
 	m_state = {};
 }
 
@@ -78,23 +74,21 @@ bool Atlas::overwrite(GfxCommandBuffer& cb, Image::View image, Texture::Rect con
 	return cb.writer.write(m_texture.m_allocation->image.cache.image, image.data, region, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
-Atlas::Id Atlas::insert(GfxCommandBuffer& cb, Image::View image) {
+QuadTexCoords Atlas::insert(GfxCommandBuffer& cb, Image::View image) {
 	auto const rect = Texture::Rect{image.extent, m_state.head};
 	auto res = overwrite(cb, image, rect);
 	if (!res) { return {}; }
 
-	auto const uv = UVRect{glm::vec2(m_state.head), glm::vec2(m_state.head + image.extent)};
+	auto const ret = QuadTexCoords{glm::vec2(m_state.head), glm::vec2(m_state.head + image.extent)};
 	m_state.head.x += image.extent.x + pad_v.x;
 	m_state.nextY = std::max(m_state.nextY, image.extent.y + pad_v.y);
-	auto const id = ++m_state.next;
-	m_uvMap.insert_or_assign(id, uv);
-	return id;
+	return ret;
 }
 
 Atlas::Bulk::Bulk(Atlas& atlas) : m_impl(ktl::make_unique<GfxCommandBuffer>(atlas.texture().vram())), m_atlas(atlas) {}
 Atlas::Bulk::~Bulk() = default;
 
-Atlas::Id Atlas::Bulk::add(Image::View image) {
+QuadTexCoords Atlas::Bulk::add(Image::View image) {
 	if (!m_atlas.m_texture) { return {}; }
 	if (image.extent.x == 0 || image.extent.y == 0 || image.data.empty()) { return {}; }
 	if (!m_atlas.prepare(*m_impl, image.extent)) { return {}; }

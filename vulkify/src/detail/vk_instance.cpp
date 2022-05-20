@@ -7,8 +7,8 @@ Result<VKInstance> VKInstance::make(MakeSurface const makeSurface, bool const va
 	auto dl = vk::DynamicLoader{};
 	VULKAN_HPP_DEFAULT_DISPATCHER.init(dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr"));
 	auto vib = vkb::InstanceBuilder{};
-	if (validation) { vib.request_validation_layers(); }
-	vib.set_app_name("vulkify").use_default_debug_messenger();
+	if (validation) { vib.request_validation_layers().use_default_debug_messenger(); }
+	vib.set_app_name("vulkify");
 #if defined(VULKIFY_REQUIRE_VULKAN_1_1_0)
 	vib.require_api_version(1, 1, 0);
 #endif
@@ -28,7 +28,7 @@ Result<VKInstance> VKInstance::make(MakeSurface const makeSurface, bool const va
 	features.wideLines = true;
 	features.sampleRateShading = true;
 	vpds.set_required_features(static_cast<VkPhysicalDeviceFeatures>(features));
-	auto vpd = vpds.require_present().prefer_gpu_device_type(vkb::PreferredDeviceType::discrete).set_surface(surface).select();
+	auto vpd = vpds.require_present().prefer_gpu_device_type(vkb::PreferredDeviceType::discrete).allow_any_gpu_device_type(false).set_surface(surface).select();
 	if (!vpd) { return Error::eVulkanInitFailure; }
 	ret.gpu.properties = vk::PhysicalDeviceProperties(vpd->properties);
 	ret.gpu.device = vk::PhysicalDevice(vpd->physical_device);

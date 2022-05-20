@@ -3,9 +3,11 @@ cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 enable_language(CXX)
 
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # don't let OPTION erase non-cache variables
-set(CMAKE_CXX_EXTENSIONS OFF CACHE INTERNAL "" FORCE) # disable compiler extensions
 set(CMAKE_POSITION_INDEPENDENT_CODE ON) # enable PIC
 set(CMAKE_DEBUG_POSTFIX "-d")
+set(CMAKE_CXX_EXTENSIONS OFF) # disable compiler extensions
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
   set(CMAKE_BUILD_TYPE Debug) # ensure CMAKE_BUILD_TYPE is not empty

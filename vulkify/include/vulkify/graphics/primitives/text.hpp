@@ -8,6 +8,8 @@ class Ttf;
 
 class Text : public Primitive {
   public:
+	using Height = std::uint32_t;
+
 	enum class Horz { eLeft, eCentre, eRight };
 	enum class Vert { eDown, eMid, eUp };
 	struct Align {
@@ -31,6 +33,7 @@ class Text : public Primitive {
 
 	std::string text{};
 	Align align{};
+	Height height{60};
 
   protected:
 	///
