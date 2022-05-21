@@ -5,17 +5,6 @@ execute_process(COMMAND
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
-# ktl
-if(VULKIFY_INSTALL)
-  set(KTL_INSTALL ON)
-
-  if(NOT KTL_INSTALL)
-    message(WARNING "Invalid INSTALL flags")
-  endif()
-endif()
-
-add_subdirectory(src/ktl)
-
 # glfw
 set(GLFW_VULKAN_STATIC OFF)
 set(GLFW_INSTALL ${VULKIFY_INSTALL})

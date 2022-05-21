@@ -59,7 +59,7 @@ class Ttf {
 
 	std::string m_name{};
 	ktl::hash_table<Height, Font> m_fonts{};
-	ktl::kunique_ptr<Face> m_face;
+	ktl::fixed_pimpl<Face, 64> m_face;
 
 	friend struct Scribe;
 };

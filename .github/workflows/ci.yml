@@ -13,11 +13,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: init
-        run: sudo apt install -yqq ninja-build xorg-dev
-      - name: configure
+        run: sudo apt install -yqq ninja-build xorg-dev g++-11
+      - name: configure clang
         run: cp cmake/CMakePresets.json . && cmake -S . --preset=nc-release -B build
-      - name: build
+      - name: configure gcc
+        run: cmake -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-11 -B plain_build
+      - name: build clang
         run: cmake --build build
+      - name: build gcc
+        run: cmake --build plain_build
       - name: test
         run: cd build && ctest
   build-windows:

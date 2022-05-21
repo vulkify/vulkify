@@ -10,8 +10,7 @@ Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
 
 ## Features
 
-- [x] No binary dependencies: builds **everything** from source
-  - [x] Self contained deps (no downloads in build scripts)
+- [x] No binary dependencies: builds everything from source
 - [x] Dedicated fullscreen, borderless, and decorated windows
 - [x] sRGB / linear framebuffers
 - [x] Stall-less swapchain recreation

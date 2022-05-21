@@ -120,20 +120,20 @@ struct Ttf::Face {
 
 static constexpr auto initial_extent_v = glm::uvec2(512, 128);
 
-Ttf::Ttf() noexcept {}
+Ttf::Ttf() noexcept = default;
 Ttf::Ttf(Ttf&&) noexcept = default;
 Ttf& Ttf::operator=(Ttf&&) noexcept = default;
 Ttf::~Ttf() noexcept = default;
 
-Ttf::Ttf(Context const& context, std::string name) : m_name(std::move(name)), m_face(ktl::make_unique<Face>()) {
+Ttf::Ttf(Context const& context, std::string name) : m_name(std::move(name)) {
 	if (!context.vram().ftlib) { return; }
 	m_face->vram = &context.vram();
 }
 
-Ttf::operator bool() const { return m_face && m_face->vram && m_face->face; }
+Ttf::operator bool() const { return m_face->vram && m_face->face; }
 
 bool Ttf::load(std::span<std::byte const> bytes) {
-	if (!m_face || !m_face->vram) { return false; }
+	if (!m_face->vram) { return false; }
 	if (auto face = FtFace::make(m_face->vram->ftlib, bytes)) {
 		m_face->face = face;
 		onLoaded();
@@ -143,7 +143,7 @@ bool Ttf::load(std::span<std::byte const> bytes) {
 }
 
 bool Ttf::load(char const* path) {
-	if (!m_face || !m_face->vram) { return false; }
+	if (!m_face->vram) { return false; }
 	if (auto face = FtFace::make(m_face->vram->ftlib, path)) {
 		m_face->face = face;
 		onLoaded();
@@ -183,7 +183,7 @@ Ttf::Character Ttf::get(Codepoint codepoint, Height height) {
 }
 
 std::size_t Ttf::preload(std::span<Codepoint const> codepoints, Height const height) {
-	if (m_face || !m_face->face) { return {}; }
+	if (!m_face->face) { return {}; }
 	auto ret = std::size_t{};
 	auto& font = getOrMake(height);
 	auto bulk = Atlas::Bulk{font.atlas};
@@ -206,7 +206,7 @@ Ptr<Texture const> Ttf::texture(Height height) const {
 }
 
 void Ttf::onLoaded() {
-	assert(m_face && m_face->vram);
+	assert(m_face->vram);
 	m_fonts.clear();
 	getOrMake(height_v);
 }

@@ -42,7 +42,29 @@ option(VULKIFY_REQUIRE_VULKAN_1_1_0 "Require Vulkan 1.1 (needed for negative vie
 include(CheckPIESupported)
 check_pie_supported()
 include(cmake/platform.cmake) # set up helper cache variables
-include(cmake/utils.cmake)
+
+# ktl
+if(VULKIFY_INSTALL)
+  set(KTL_INSTALL ON)
+
+  if(NOT KTL_INSTALL)
+    message(WARNING "Invalid INSTALL flags")
+  endif()
+endif()
+
+include(FetchContent)
+FetchContent_Declare(ktl
+  GIT_REPOSITORY https://github.com/karnkaul/ktl
+  GIT_TAG v1.2
+  GIT_SHALLOW TRUE
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext/src/ktl"
+)
+FetchContent_MakeAvailable(ktl)
+FetchContent_GetProperties(ktl)
+
+if(NOT ktl_POPULATED)
+  mesasge(FATAL_ERROR "Failed to populate ktl")
+endif()
 
 # git operations
 find_package(Git QUIET)
