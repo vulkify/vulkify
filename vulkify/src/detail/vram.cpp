@@ -2,6 +2,7 @@
 #include <detail/trace.hpp>
 #include <detail/vram.hpp>
 #include <ktl/fixed_vector.hpp>
+#include <ktl/str_format.hpp>
 #include <atomic>
 
 namespace vf {

@@ -3,6 +3,7 @@
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/core/transform.hpp>
 #include <vulkify/graphics/draw_model.hpp>
+#include <cstring>
 
 namespace vf {
 class GeometryBuffer;
@@ -30,7 +31,9 @@ inline DrawModel DrawInstance::drawModel() const {
 	auto ret = DrawModel{};
 	ret.pos_orn = {transform.position, transform.orientation.value()};
 	auto const utint = tint.toU32();
-	ret.scl_tint = {transform.scale, *reinterpret_cast<float const*>(&utint), 0.0f};
+	float ftint;
+	std::memcpy(&ftint, &utint, sizeof(float));
+	ret.scl_tint = {transform.scale, ftint, 0.0f};
 	return ret;
 }
 } // namespace vf

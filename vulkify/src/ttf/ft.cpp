@@ -5,6 +5,7 @@
 #include <vulkify/ttf/scribe.hpp>
 #include <vulkify/ttf/ttf.hpp>
 #include <exception>
+#include <sstream>
 
 namespace vf {
 FtLib FtLib::make() noexcept {

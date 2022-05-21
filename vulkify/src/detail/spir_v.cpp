@@ -1,5 +1,6 @@
 #include <detail/spir_v.hpp>
 #include <detail/trace.hpp>
+#include <ktl/str_format.hpp>
 #include <filesystem>
 #include <fstream>
 
