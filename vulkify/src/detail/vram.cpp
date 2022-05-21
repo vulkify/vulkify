@@ -37,7 +37,8 @@ BlitCaps BlitCaps::make(vk::PhysicalDevice device, vk::Format format) {
 	return ret;
 }
 
-void ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image) const {
+vk::ImageLayout ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image, TPair<vk::ImageLayout> layouts) const {
+	if (layouts.second == layouts.first || layouts.second == vk::ImageLayout::eUndefined) { return layouts.first; }
 	vk::ImageMemoryBarrier barrier;
 	barrier.oldLayout = layouts.first;
 	barrier.newLayout = layouts.second;
@@ -52,6 +53,11 @@ void ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image) const {
 	barrier.srcAccessMask = access.first;
 	barrier.dstAccessMask = access.second;
 	cb.pipelineBarrier(stages.first, stages.second, {}, {}, {}, barrier);
+	return layouts.second;
+}
+
+vk::ImageLayout ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image, vk::ImageLayout target) const {
+	return operator()(cb, image, {vk::ImageLayout::eUndefined, target});
 }
 
 bool VmaBuffer::write(BufferWrite data) {
@@ -65,12 +71,7 @@ void VmaBuffer::Deleter::operator()(VmaBuffer const& buffer) const {
 	vmaDestroyBuffer(buffer.allocator, buffer.resource, buffer.handle);
 }
 
-void VmaImage::transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier barrier) {
-	if (layout == to || to == vk::ImageLayout::eUndefined) { return; }
-	barrier.layouts = {layout, to};
-	barrier(cb, resource);
-	layout = to;
-}
+void VmaImage::transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier const& barrier) { layout = barrier(cb, resource, {layout, to}); }
 
 void VmaImage::Deleter::operator()(const VmaImage& image) const { vmaDestroyImage(image.allocator, image.resource, image.handle); }
 

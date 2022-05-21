@@ -39,10 +39,10 @@ struct VKSurface {
 
 	explicit operator bool() const { return device.device && surface; }
 
-	vk::SwapchainCreateInfoKHR makeInfo(glm::ivec2 framebuffer) const;
-	vk::Result refresh(glm::ivec2 framebuffer);
-	Acquire acquire(vk::Semaphore signal, glm::ivec2 framebuffer);
+	vk::SwapchainCreateInfoKHR makeInfo(glm::uvec2 extent) const;
+	vk::Result refresh(glm::uvec2 extent);
+	Acquire acquire(vk::Semaphore signal, glm::uvec2 extent);
 	void submit(vk::CommandBuffer cb, VKSync const& sync);
-	void present(Acquire const& acquired, vk::Semaphore wait, glm::ivec2 framebuffer);
+	void present(Acquire const& acquired, vk::Semaphore wait, glm::uvec2 extent);
 };
 } // namespace vf

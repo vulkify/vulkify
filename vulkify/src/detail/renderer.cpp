@@ -52,44 +52,49 @@ vk::UniqueRenderPass makeRenderPass(vk::Device device, vk::Format format, vk::Sa
 
 Renderer Renderer::make(vk::Device device, vk::Format format, vk::SampleCountFlagBits samples) {
 	if (!device) { return {}; }
-	return {device, makeRenderPass(device, format, samples)};
+	return {makeRenderPass(device, format, samples), device};
 }
 
-vk::UniqueFramebuffer Renderer::makeFramebuffer(RenderImage const& image) const {
-	if (!image.colour.view) { return {}; }
-	auto attachments = ktl::fixed_vector<vk::ImageView, 2>{image.colour.view};
-	if (image.resolve.view) { attachments.push_back(image.resolve.view); }
-	auto const extent = image.colour.extent;
+vk::UniqueFramebuffer Renderer::makeFramebuffer(RenderTarget const& target) const {
+	if (!target.colour.view) { return {}; }
+	auto attachments = ktl::fixed_vector<vk::ImageView, 2>{target.colour.view};
+	if (target.resolve.view) { attachments.push_back(target.resolve.view); }
+	auto const extent = target.extent;
 	auto fci = vk::FramebufferCreateInfo({}, *renderPass, static_cast<std::uint32_t>(attachments.size()), attachments.data(), extent.width, extent.height, 1U);
 	return device.createFramebufferUnique(fci);
 }
 
-void Renderer::toColourOptimal(vk::CommandBuffer primary, std::span<vk::Image const> images) const {
+void Renderer::undefToColour(vk::CommandBuffer primary, std::span<VKImage const> images) const {
 	auto barrier = ImageBarrier{};
 	barrier.access = {{}, vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead};
 	barrier.stages = {vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eColorAttachmentOutput};
-	barrier.layouts = {vk::ImageLayout::eUndefined, vk::ImageLayout::eColorAttachmentOptimal};
-	for (auto const image : images) { barrier(primary, image); }
+	for (auto const image : images) { barrier(primary, image.image, vk::ImageLayout::eColorAttachmentOptimal); }
 }
 
-void Renderer::render(RenderTarget const& renderTarget, Rgba clear, vk::CommandBuffer primary, std::span<vk::CommandBuffer const> recorded) const {
-	if (!renderTarget.framebuffer) { return; }
+void Renderer::render(Framebuffer const& framebuffer, Rgba clear, vk::CommandBuffer primary, std::span<vk::CommandBuffer const> recorded) const {
+	if (!framebuffer) { return; }
 
-	auto const extent = renderTarget.colour.extent;
+	auto const extent = framebuffer.extent;
 	auto const renderArea = vk::Rect2D({}, extent);
 	auto const c = clear.normalize();
 	vk::ClearValue const cvs[] = {vk::ClearColorValue(std::array{c.x, c.y, c.z, c.w})};
 	auto const cvsize = static_cast<std::uint32_t>(std::size(cvs));
-	primary.beginRenderPass({*renderPass, renderTarget.framebuffer, renderArea, cvsize, cvs}, vk::SubpassContents::eSecondaryCommandBuffers);
+	primary.beginRenderPass({*renderPass, framebuffer, renderArea, cvsize, cvs}, vk::SubpassContents::eSecondaryCommandBuffers);
 	primary.executeCommands(static_cast<std::uint32_t>(recorded.size()), recorded.data());
 	primary.endRenderPass();
 }
 
-void Renderer::toPresentSrc(vk::CommandBuffer primary, vk::Image present) const {
+void Renderer::colourToPresent(vk::CommandBuffer primary, VKImage const& image) const {
 	auto barrier = ImageBarrier{};
 	barrier.access = {vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite, {}};
 	barrier.stages = {vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eBottomOfPipe};
-	barrier.layouts = {vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR};
-	barrier(primary, present);
+	barrier(primary, image.image, {vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR});
+}
+
+void Renderer::tfrToPresent(vk::CommandBuffer primary, VKImage const& image) const {
+	auto barrier = ImageBarrier{};
+	barrier.access = {vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eTransferWrite, {}};
+	barrier.stages = {vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe};
+	barrier(primary, image.image, {vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::ePresentSrcKHR});
 }
 } // namespace vf

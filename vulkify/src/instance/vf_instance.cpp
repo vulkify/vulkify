@@ -3,6 +3,7 @@
 
 #include <detail/vk_instance.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <ktl/debug_trap.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/core/unique.hpp>
 
@@ -386,7 +387,7 @@ struct SwapchainRenderer {
 	ImageCache image{};
 	vk::UniqueCommandPool commandPool{};
 
-	RenderTarget target{};
+	Framebuffer framebuffer{};
 	Rgba clear{};
 	bool offScreen{};
 
@@ -407,6 +408,8 @@ struct SwapchainRenderer {
 			ret.image.setColour();
 			ret.image.info.info.format = surface;
 			ret.image.info.info.samples = vram.colourSamples;
+			ret.image.info.flags |= ImageCache::eTrace;
+			ret.image.info.flags &= ~ImageCache::eExactExtent;
 		}
 
 		return ret;
@@ -430,22 +433,23 @@ struct SwapchainRenderer {
 		}
 	}
 
-	vk::CommandBuffer beginRender(VKImage acquired) {
+	vk::CommandBuffer beginRender(VKImage acquired, Extent extent) {
 		if (!renderer.renderPass) { return {}; }
 
 		auto& sync = frameSync.get();
 		vram.device.reset(*sync.drawn);
-		target.colour = acquired;
+		framebuffer.colour = acquired;
+		framebuffer.extent = vk::Extent2D(extent.x, extent.y);
 		if (offScreen) {
-			target.colour = image.refresh(vk::Extent3D(acquired.extent, 1));
-			target.resolve = acquired;
+			framebuffer.colour = image.refresh(vk::Extent3D(framebuffer.extent, 1), 1.0f);
+			framebuffer.resolve = acquired;
 		}
-		sync.framebuffer = renderer.makeFramebuffer(target);
+		sync.framebuffer = renderer.makeFramebuffer(framebuffer);
 		if (!sync.framebuffer) { return {}; }
-		target.framebuffer = *sync.framebuffer;
+		framebuffer.framebuffer = *sync.framebuffer;
 
 		auto cmd = sync.cmd.secondary;
-		auto const cbii = vk::CommandBufferInheritanceInfo(*renderer.renderPass, 0U, *sync.framebuffer);
+		auto const cbii = vk::CommandBufferInheritanceInfo(*renderer.renderPass, 0U, framebuffer);
 		cmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue, &cbii});
 		cmd.setScissor(0, vk::Rect2D({}, acquired.extent));
 
@@ -453,19 +457,19 @@ struct SwapchainRenderer {
 	}
 
 	vk::CommandBuffer endRender() {
-		if (!renderer.renderPass || !target.framebuffer) { return {}; }
+		if (!renderer.renderPass || !framebuffer) { return {}; }
 
 		auto& sync = frameSync.get();
 		sync.cmd.secondary.end();
 		sync.cmd.primary.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-		auto images = ktl::fixed_vector<vk::Image, 2>{target.colour.image};
-		if (offScreen) { images.push_back(target.resolve.image); }
-		renderer.toColourOptimal(sync.cmd.primary, images);
-		renderer.render(target, clear, sync.cmd.primary, {&sync.cmd.secondary, 1});
-		renderer.toPresentSrc(sync.cmd.primary, images.back());
+		auto images = ktl::fixed_vector<VKImage, 2>{framebuffer.colour};
+		if (offScreen) { images.push_back(framebuffer.resolve); }
+		renderer.undefToColour(sync.cmd.primary, images);
+		renderer.render(framebuffer, clear, sync.cmd.primary, {&sync.cmd.secondary, 1});
+		renderer.colourToPresent(sync.cmd.primary, images.back());
 		sync.cmd.primary.end();
-		target = {};
+		framebuffer = {};
 
 		return sync.cmd.primary;
 	}
@@ -743,12 +747,12 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
 	if (!m_impl->acquired) { return {}; }
 	auto& sr = m_impl->renderer;
-	auto cmd = sr.beginRender(m_impl->acquired.image);
+	auto const extent = Extent(m_impl->acquired.image.extent.width, m_impl->acquired.image.extent.height);
+	auto cmd = sr.beginRender(m_impl->acquired.image, extent);
 	m_impl->vulkan.util->defer.decrement();
 	m_impl->renderer.clear = clear;
 
 	auto proj = m_impl->descriptorPool.get(0, 0, "UBO:P");
-	auto const extent = glm::uvec2(m_impl->acquired.image.extent.width, m_impl->acquired.image.extent.height);
 	auto const mat_p = projection(extent);
 	proj.write(0, mat_p);
 

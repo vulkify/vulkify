@@ -46,13 +46,13 @@ struct ImageBarrier {
 	static constexpr auto access_flags_v = vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite;
 	static constexpr vk::PipelineStageFlags stage_flags_v = vk::PipelineStageFlagBits::eAllCommands;
 
-	TPair<vk::ImageLayout> layouts{};
 	TPair<vk::AccessFlags> access{access_flags_v, access_flags_v};
 	TPair<vk::PipelineStageFlags> stages{stage_flags_v, stage_flags_v};
 	vk::ImageAspectFlags aspects{vk::ImageAspectFlagBits::eColor};
 	LayerMip layerMip{};
 
-	void operator()(vk::CommandBuffer cb, vk::Image image) const;
+	vk::ImageLayout operator()(vk::CommandBuffer cb, vk::Image image, TPair<vk::ImageLayout> layouts) const;
+	vk::ImageLayout operator()(vk::CommandBuffer cb, vk::Image image, vk::ImageLayout target) const;
 };
 
 template <typename T>
@@ -86,7 +86,7 @@ struct VmaImage : VmaResource<vk::Image> {
 	vk::ImageTiling tiling{};
 	BlitCaps caps{};
 
-	void transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier barrier = {});
+	void transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier const& barrier = {});
 	VKImage image(vk::ImageView view = {}) const { return {resource, view, {extent.width, extent.height}}; }
 	BlitFlags blitFlags() const { return tiling == vk::ImageTiling::eLinear ? caps.linear : caps.optimal; }
 
