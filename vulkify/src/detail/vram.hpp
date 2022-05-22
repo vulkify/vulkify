@@ -126,14 +126,16 @@ struct Vram {
 	UniqueImage makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear = false) const;
 	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, bool host, char const* name) const;
 
+	static void blit(vk::CommandBuffer cmd, vk::Image in, vk::Image out, TRect<std::int32_t> inr, TRect<std::int32_t> outr, vk::Filter filter);
+
 	struct Deleter {
 		void operator()(Vram const& vram) const;
 	};
 };
 
 struct ImageWriter {
-	using Rect = vf::TRect<std::uint32_t>;
-	using Offset = vf::TRect<std::int32_t>;
+	using URegion = TRect<std::uint32_t>;
+	using IRegion = TRect<std::int32_t>;
 
 	Vram const* vram{};
 	vk::CommandBuffer cb;
@@ -144,9 +146,9 @@ struct ImageWriter {
 
 	static bool canBlit(VmaImage const& src, VmaImage const& dst);
 
-	bool write(VmaImage& out, BufferWrite data, Rect rect = {}, vk::ImageLayout il = {});
-	bool blit(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
-	bool copy(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, TPair<vk::ImageLayout> il = {}) const;
+	bool write(VmaImage& out, BufferWrite data, URegion region = {}, vk::ImageLayout il = {});
+	bool blit(VmaImage& in, VmaImage& out, IRegion inr, IRegion outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
+	bool copy(VmaImage& in, VmaImage& out, IRegion inr, IRegion outr, TPair<vk::ImageLayout> il = {}) const;
 	void clear(VmaImage& in, Rgba rgba) const;
 };
 

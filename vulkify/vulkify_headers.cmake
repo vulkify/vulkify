@@ -43,6 +43,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/primitives/shape.hpp
   include/vulkify/graphics/primitives/text.hpp
 
+  include/vulkify/instance/event_queue.hpp
   include/vulkify/instance/event_type.hpp
   include/vulkify/instance/event.hpp
   include/vulkify/instance/gamepad.hpp

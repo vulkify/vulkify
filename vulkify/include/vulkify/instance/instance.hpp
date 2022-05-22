@@ -5,6 +5,7 @@
 #include <vulkify/graphics/render_view.hpp>
 #include <vulkify/graphics/surface.hpp>
 #include <vulkify/instance/event.hpp>
+#include <vulkify/instance/event_queue.hpp>
 #include <vulkify/instance/gpu.hpp>
 #include <vulkify/instance/instance_enums.hpp>
 #include <vulkify/instance/monitor.hpp>
@@ -33,19 +34,13 @@ class Instance {
 		TopLeft hotspot{};
 	};
 
-	struct Poll {
-		std::span<Event const> events{};
-		std::span<std::uint32_t const> scancodes{};
-		std::span<std::string const> fileDrops{};
-	};
-
 	virtual ~Instance() = default;
 
 	virtual Vram const& vram() const = 0;
 	virtual Gpu const& gpu() const = 0;
 	virtual bool closing() const = 0;
-	virtual glm::uvec2 framebufferSize() const = 0;
-	virtual glm::uvec2 windowSize() const = 0;
+	virtual glm::uvec2 framebufferExtent() const = 0;
+	virtual glm::uvec2 windowExtent() const = 0;
 	virtual glm::ivec2 position() const = 0;
 	virtual glm::vec2 contentScale() const = 0;
 	virtual CursorMode cursorMode() const = 0;
@@ -54,12 +49,13 @@ class Instance {
 	virtual WindowFlags windowFlags() const = 0;
 	virtual RenderView& view() const = 0;
 	virtual AntiAliasing antiAliasing() const = 0;
+	virtual float renderScale() const = 0;
 
 	virtual void show() = 0;
 	virtual void hide() = 0;
 	virtual void close() = 0;
 	virtual void setPosition(glm::ivec2 xy) = 0;
-	virtual void setSize(glm::uvec2 size) = 0;
+	virtual void setExtent(glm::uvec2 extent) = 0;
 	virtual void setIcons(std::span<Icon const> icons) = 0;
 	virtual void setCursorMode(CursorMode mode) = 0;
 	virtual Cursor makeCursor(Icon icon) = 0;
@@ -68,8 +64,9 @@ class Instance {
 	virtual void setWindowed(glm::uvec2 extent) = 0;
 	virtual void setFullscreen(Monitor const& monitor, glm::uvec2 resolution = {}) = 0;
 	virtual void updateWindowFlags(WindowFlags set, WindowFlags unset = {}) = 0;
+	virtual void setRenderScale(float scale) = 0;
 
-	virtual Poll poll() = 0;
+	virtual EventQueue poll() = 0;
 	virtual Surface beginPass(Rgba clear) = 0;
 	virtual bool endPass() = 0;
 };

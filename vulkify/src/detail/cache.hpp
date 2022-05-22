@@ -5,14 +5,14 @@
 
 namespace vf {
 struct ImageCache {
-	enum Flag { eExactExtent = 1 << 0, ePreferHost = 1 << 1, eTrace = 1 << 2 };
+	using Extent = glm::uvec2;
 
 	struct Info {
 		Vram vram{};
 		std::string name{};
 		vk::ImageCreateInfo info{};
 		vk::ImageAspectFlags aspect{};
-		std::uint32_t flags = eExactExtent | ePreferHost;
+		bool preferHost{false};
 	};
 
 	Info info{};
@@ -20,14 +20,7 @@ struct ImageCache {
 	UniqueImage image{};
 	vk::UniqueImageView view{};
 
-	static constexpr bool sufficient(vk::Extent3D const avail, vk::Extent3D const target) {
-		return avail.width >= target.width && avail.height >= target.height && avail.depth >= target.depth;
-	}
-
-	static constexpr vk::Extent3D scale2D(vk::Extent3D extent, float value) {
-		auto ret = glm::uvec2(glm::vec2(extent.width, extent.height) * value);
-		return {ret.x, ret.y, extent.depth};
-	}
+	static constexpr Extent scale2D(Extent extent, float value) { return glm::vec2(extent) * value; }
 
 	explicit operator bool() const { return info.vram.device.device; }
 	bool operator==(ImageCache const& rhs) const { return !image && !view && !rhs.image && !rhs.view; }
@@ -59,30 +52,24 @@ struct ImageCache {
 		return info.info;
 	}
 
-	bool ready(vk::Extent3D const extent, vk::Format const format) const noexcept {
+	Extent current() const { return {info.info.extent.width, info.info.extent.height}; }
+
+	bool ready(Extent const extent, vk::Format const format) const noexcept {
 		if (!image || info.info.format != format) { return false; }
-		if ((info.flags & eExactExtent) == eExactExtent) {
-			return info.info.extent == extent;
-		} else {
-			return sufficient(info.info.extent, extent);
-		}
+		return current() == extent;
 	}
 
-	bool make(vk::Extent3D const extent, vk::Format const format) {
-		info.info.extent = extent;
+	bool make(Extent const extent, vk::Format const format) {
+		info.info.extent = vk::Extent3D(extent.x, extent.y, 1);
 		info.info.format = format;
 		info.vram.device.defer(std::move(image), std::move(view));
-		image = info.vram.makeImage(info.info, (info.flags & ePreferHost) == ePreferHost, info.name.c_str());
+		image = info.vram.makeImage(info.info, info.preferHost, info.name.c_str());
 		if (!image) { return false; }
 		view = info.vram.device.makeImageView(image->resource, format, info.aspect);
-		if ((info.flags & eTrace) == eTrace) {
-			VF_TRACEF("[vf::(internal)] [{}] refreshed to [{}x{}]", info.name, info.info.extent.width, info.info.extent.height);
-		}
 		return *view;
 	}
 
-	VKImage refresh(vk::Extent3D extent, float const scale = 1.0f, vk::Format format = {}) {
-		extent = scale2D(extent, scale);
+	VKImage refresh(Extent const extent, vk::Format format = {}) {
 		if (format == vk::Format()) { format = info.info.format; }
 		if (!ready(extent, format)) { make(extent, format); }
 		return peek();

@@ -68,7 +68,7 @@ Result<void> Texture::rescale(float scale) {
 	if (ext.x == 0 || ext.y == 0) { return Error::eInvalidArgument; }
 
 	auto image = ImageCache{m_allocation->image.cache.info};
-	image.refresh({ext.x, ext.y, 1});
+	image.refresh(ext);
 	if (!image.image) { return Error::eMemoryError; }
 
 	blit(m_allocation->image.cache, image, m_filtering);
@@ -109,11 +109,10 @@ Texture Texture::cloneImage(std::string name) const {
 }
 
 void Texture::refresh(Extent extent) {
-	auto const ext = vk::Extent3D(extent.x, extent.y, 1);
 	auto const format = m_allocation->image.cache.info.info.format;
-	if (!m_allocation->image.cache.ready(ext, format)) {
+	if (!m_allocation->image.cache.ready(extent, format)) {
 		auto cache = ImageCache{m_allocation->image.cache.info};
-		cache.refresh(ext);
+		cache.refresh(extent);
 		m_allocation->replace(std::move(cache));
 	}
 }
@@ -126,7 +125,7 @@ void Texture::write(Image::View const image, Rect const& region) {
 void Texture::setInvalid() {
 	VF_TRACEF("[vf::Texture:{}] Invalid bitmap", m_allocation->name);
 	static constexpr auto magenta_bytes_v = rgbaBytes(magenta_v);
-	m_allocation->image.cache.refresh({1, 1, 1});
+	m_allocation->image.cache.refresh({1, 1});
 	write({magenta_bytes_v, {1, 1}}, {{1, 1}});
 }
 } // namespace vf

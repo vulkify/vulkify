@@ -18,6 +18,8 @@ struct Framebuffer : RenderTarget {
 };
 
 struct Renderer {
+	struct Frame;
+
 	vk::UniqueRenderPass renderPass{};
 	vk::Device device{};
 
@@ -29,10 +31,19 @@ struct Renderer {
 	static Renderer make(vk::Device device, vk::Format colour, vk::SampleCountFlagBits samples);
 
 	vk::UniqueFramebuffer makeFramebuffer(RenderTarget const& target) const;
-	void undefToColour(vk::CommandBuffer primary, std::span<VKImage const> images) const;
-	void render(Framebuffer const& framebuffer, Rgba clear, vk::CommandBuffer primary, std::span<vk::CommandBuffer const> recorded) const;
-	void blit(vk::CommandBuffer primary, VKImage const& from, VKImage const& to) const;
-	void colourToPresent(vk::CommandBuffer primary, VKImage const& image) const;
-	void tfrToPresent(vk::CommandBuffer primary, VKImage const& image) const;
+};
+
+struct Renderer::Frame {
+	Renderer& renderer;
+	Framebuffer const& framebuffer;
+	vk::CommandBuffer cmd;
+
+	void render(Rgba clear, std::span<vk::CommandBuffer const> recorded) const;
+	void blit(VKImage const& src, VKImage const& dst) const;
+
+	void undefToColour(std::span<VKImage const> images) const;
+	void colourToTfr(VKImage const& src, VKImage const& dst) const;
+	void colourToPresent(VKImage const& image) const;
+	void tfrToPresent(VKImage const& image) const;
 };
 } // namespace vf

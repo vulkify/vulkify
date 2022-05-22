@@ -15,8 +15,8 @@ class HeadlessInstance : public Instance {
 	Vram const& vram() const override;
 	Gpu const& gpu() const override { return m_gpu; }
 	bool closing() const override { return Clock::now() - m_start > m_autoclose; }
-	glm::uvec2 framebufferSize() const override { return m_framebufferSize; }
-	glm::uvec2 windowSize() const override { return m_windowSize; }
+	glm::uvec2 framebufferExtent() const override { return m_framebufferExtent; }
+	glm::uvec2 windowExtent() const override { return m_windowExtent; }
 	glm::ivec2 position() const override { return {}; }
 	glm::vec2 contentScale() const override { return glm::vec2(1.0f); }
 	CursorMode cursorMode() const override { return {}; }
@@ -25,12 +25,13 @@ class HeadlessInstance : public Instance {
 	WindowFlags windowFlags() const override { return m_windowFlags; }
 	RenderView& view() const override { return m_view; }
 	AntiAliasing antiAliasing() const override { return AntiAliasing::eNone; }
+	float renderScale() const override { return 1.0f; }
 
 	void show() override {}
 	void hide() override {}
 	void close() override {}
 	void setPosition(glm::ivec2) override {}
-	void setSize(glm::uvec2) override {}
+	void setExtent(glm::uvec2) override {}
 	void setCursorMode(CursorMode) override {}
 	Cursor makeCursor(Icon) override { return {}; }
 	void destroyCursor(Cursor) override {}
@@ -39,14 +40,15 @@ class HeadlessInstance : public Instance {
 	void setWindowed(glm::uvec2) override {}
 	void setFullscreen(Monitor const&, glm::uvec2) override {}
 	void updateWindowFlags(WindowFlags, WindowFlags) override {}
+	void setRenderScale(float) override {}
 
-	Poll poll() override { return std::move(m_poll); }
+	EventQueue poll() override { return std::move(m_eventQueue); }
 	Surface beginPass(Rgba) override { return {}; }
 	bool endPass() override { return true; }
 
-	Poll m_poll{};
-	glm::uvec2 m_framebufferSize{};
-	glm::uvec2 m_windowSize{};
+	EventQueue m_eventQueue{};
+	glm::uvec2 m_framebufferExtent{};
+	glm::uvec2 m_windowExtent{};
 	WindowFlags m_windowFlags{};
 	mutable RenderView m_view{};
 
