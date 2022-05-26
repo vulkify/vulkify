@@ -101,8 +101,9 @@ struct DescriptorPool {
 	std::vector<vk::DescriptorSetLayout> layouts{};
 
 	static constexpr vk::DescriptorPoolSize const pool_sizes_v[] = {
-		{vk::DescriptorType::eUniformBuffer, 4},
-		{vk::DescriptorType::eCombinedImageSampler, 4},
+		{vk::DescriptorType::eUniformBuffer, 4096},
+		{vk::DescriptorType::eStorageBuffer, 4096},
+		{vk::DescriptorType::eCombinedImageSampler, 4096},
 	};
 
 	static DescriptorPool make(Vram const& vram, std::vector<vk::DescriptorSetLayout> layouts) {
@@ -110,7 +111,7 @@ struct DescriptorPool {
 		for (std::size_t frame = 0; frame < vram.buffering; ++frame) {
 			auto storage = Storage{};
 			for (auto const& [layout, number] : ktl::enumerate<std::uint32_t>(layouts)) {
-				auto info = vk::DescriptorPoolCreateInfo({}, 1024, static_cast<std::uint32_t>(std::size(pool_sizes_v)), pool_sizes_v);
+				auto info = vk::DescriptorPoolCreateInfo({}, 4096, static_cast<std::uint32_t>(std::size(pool_sizes_v)), pool_sizes_v);
 				storage.push_back({vram, layout, vram.device.device.createDescriptorPoolUnique(info), number});
 			}
 			ret.pools.push(std::move(storage));
