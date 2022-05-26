@@ -16,8 +16,8 @@ Frame Context::frame(Rgba clear) {
 }
 
 glm::mat3 Context::unprojection() const {
-	auto const& view = m_instance->view();
-	glm::vec2 const scale = {m_instance->renderScale(), m_instance->renderScale()};
-	return Transform::scaling(scale) * Transform::rotation(view.orientation) * Transform::translation(view.position);
+	auto const& camera = m_instance->camera();
+	auto const scale = glm::vec2(m_instance->renderScale() * 1.0f / camera.view.getScale(framebufferExtent()));
+	return Transform::scaling(scale) * Transform::rotation(camera.orientation) * Transform::translation(camera.position);
 }
 } // namespace vf

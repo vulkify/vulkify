@@ -23,7 +23,6 @@ class HeadlessInstance : public Instance {
 	glm::vec2 cursorPosition() const override { return {}; }
 	MonitorList monitors() const override { return {}; }
 	WindowFlags windowFlags() const override { return m_windowFlags; }
-	RenderView& view() const override { return m_view; }
 	AntiAliasing antiAliasing() const override { return AntiAliasing::eNone; }
 	float renderScale() const override { return 1.0f; }
 
@@ -40,6 +39,7 @@ class HeadlessInstance : public Instance {
 	void setWindowed(glm::uvec2) override {}
 	void setFullscreen(Monitor const&, glm::uvec2) override {}
 	void updateWindowFlags(WindowFlags, WindowFlags) override {}
+	Camera& camera() override { return m_camera; }
 	void setRenderScale(float) override {}
 
 	EventQueue poll() override { return std::move(m_eventQueue); }
@@ -50,7 +50,7 @@ class HeadlessInstance : public Instance {
 	glm::uvec2 m_framebufferExtent{};
 	glm::uvec2 m_windowExtent{};
 	WindowFlags m_windowFlags{};
-	mutable RenderView m_view{};
+	Camera m_camera{};
 
   private:
 	Gpu m_gpu = {"vulkify (headless)", {}, Gpu::Type::eOther};

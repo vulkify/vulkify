@@ -37,9 +37,9 @@ void RenderPass::writeView(DescriptorSet& set) const {
 		VF_TRACE("[vf::(internal)] Failed to write view set");
 		return;
 	}
+	auto const scale = cam.camera->view.getScale(cam.extent);
 	// invert transformation
-	auto const transform = Transform{-view.view->position, view.view->orientation.inverted()};
-	auto const dm = DrawModel{{transform.position, transform.orientation.value()}, {glm::vec2(1.0f), glm::vec2()}};
+	auto const dm = DrawModel{{-cam.camera->position, cam.camera->orientation.inverted().value()}, {scale, glm::vec2()}};
 	set.write(shaderInput.one.bindings.ubo, dm);
 }
 
@@ -66,11 +66,11 @@ void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
 }
 
 void RenderPass::setViewport() const {
-	if (!commandBuffer || !view.view) {
+	if (!commandBuffer || !cam.camera) {
 		VF_TRACE("[vf::(internal)] Failed to set viewport");
 		return;
 	}
-	auto const vp = view.extent * view.view->viewport;
+	auto const vp = Rect{{cam.extent * cam.camera->viewport.extent, cam.extent * cam.camera->viewport.offset}};
 	commandBuffer.setViewport(0, vk::Viewport(vp.offset.x, vp.offset.y + vp.extent.y, vp.extent.x, -vp.extent.y)); // flip x / negative y
 }
 

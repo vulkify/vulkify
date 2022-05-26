@@ -2,7 +2,7 @@
 #include <ktl/kunique_ptr.hpp>
 #include <vulkify/core/rect.hpp>
 #include <vulkify/graphics/bitmap.hpp>
-#include <vulkify/graphics/render_view.hpp>
+#include <vulkify/graphics/camera.hpp>
 #include <vulkify/graphics/surface.hpp>
 #include <vulkify/instance/event.hpp>
 #include <vulkify/instance/event_queue.hpp>
@@ -47,7 +47,6 @@ class Instance {
 	virtual glm::vec2 cursorPosition() const = 0;
 	virtual MonitorList monitors() const = 0;
 	virtual WindowFlags windowFlags() const = 0;
-	virtual RenderView& view() const = 0;
 	virtual AntiAliasing antiAliasing() const = 0;
 	virtual float renderScale() const = 0;
 
@@ -64,6 +63,7 @@ class Instance {
 	virtual void setWindowed(glm::uvec2 extent) = 0;
 	virtual void setFullscreen(Monitor const& monitor, glm::uvec2 resolution = {}) = 0;
 	virtual void updateWindowFlags(WindowFlags set, WindowFlags unset = {}) = 0;
+	virtual Camera& camera() = 0;
 	virtual void setRenderScale(float scale) = 0;
 
 	virtual EventQueue poll() = 0;

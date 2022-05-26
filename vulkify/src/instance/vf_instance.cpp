@@ -25,6 +25,7 @@
 
 #include <glm/mat4x4.hpp>
 #include <vulkify/graphics/bitmap.hpp>
+#include <vulkify/graphics/camera.hpp>
 #include <vulkify/graphics/geometry.hpp>
 #include <iostream>
 
@@ -544,13 +545,14 @@ struct VulkifyInstance::Impl {
 	PipelineFactory pipelineFactory{};
 	DescriptorPool descriptorPool{};
 	ShaderInput::Textures shaderTextures{};
-	RenderView view{};
+	Camera camera{};
 	std::thread::id renderThread{};
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
 	g_glfw = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->fileDrops};
 }
+
 VulkifyInstance::~VulkifyInstance() {
 	m_impl->vulkan.device->waitIdle();
 	g_glfw = {};
@@ -661,8 +663,6 @@ WindowFlags VulkifyInstance::windowFlags() const {
 	return ret;
 }
 
-RenderView& VulkifyInstance::view() const { return m_impl->view; }
-
 AntiAliasing VulkifyInstance::antiAliasing() const {
 	switch (m_impl->vram.vram->colourSamples) {
 	case vk::SampleCountFlagBits::e16: return AntiAliasing::e16x;
@@ -725,6 +725,8 @@ void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
 		if (set.test(WindowFlag::eMaximized)) { glfwMaximizeWindow(m_impl->window->win); }
 	}
 }
+
+Camera& VulkifyInstance::camera() { return m_impl->camera; }
 
 void VulkifyInstance::setRenderScale(float scale) { m_impl->renderer.renderScale = scale; }
 
@@ -789,9 +791,9 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 	proj.write(0, mat_p);
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
-	auto const view = RenderPassView{extent, &m_impl->view};
+	auto const cam = RenderCam{extent, &m_impl->camera};
 	auto const lwl = std::pair(m_impl->vram.vram->deviceLimits.lineWidthRange[0], m_impl->vram.vram->deviceLimits.lineWidthRange[1]);
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view, lwl, m_impl->renderThread};
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, cam, lwl, m_impl->renderThread};
 }
 
 bool VulkifyInstance::endPass() {

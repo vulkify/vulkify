@@ -30,7 +30,7 @@ class Context {
 	CursorMode cursorMode() const { return m_instance->cursorMode(); }
 	MonitorList monitors() const { return m_instance->monitors(); }
 	WindowFlags windowFlags() const { return m_instance->windowFlags(); }
-	RenderView& view() const { return m_instance->view(); }
+	Camera& camera() const { return m_instance->camera(); }
 	Rect area() const { return Rect{{m_instance->framebufferExtent()}}; }
 	AntiAliasing antiAliasing() const { return m_instance->antiAliasing(); }
 	float renderScale() const { return m_instance->renderScale(); }
