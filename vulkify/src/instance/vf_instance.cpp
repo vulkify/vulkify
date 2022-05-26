@@ -168,6 +168,14 @@ struct Glfw {
 	operator bool() const { return active; }
 	bool operator==(Glfw const& rhs) const { return active == rhs.active; }
 
+	static std::vector<char const*> instanceExtensions() {
+		auto ret = std::vector<char const*>{};
+		auto count = std::uint32_t{};
+		auto exts = glfwGetRequiredInstanceExtensions(&count);
+		for (std::uint32_t i = 0; i < count; ++i) { ret.push_back(exts[i]); }
+		return ret;
+	}
+
 	struct Deleter {
 		void operator()(Glfw const&) const { glfwTerminate(); }
 	};
@@ -572,12 +580,15 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	auto freetype = FtLib::make();
 	if (!freetype) { return Error::eFreetypeInitFailure; }
 
-	auto vulkan = VKInstance::make([&window](vk::Instance inst) {
+	auto vkinfo = VKInstance::Info{};
+	vkinfo.makeSurface = [&window](vk::Instance inst) {
 		auto surface = VkSurfaceKHR{};
 		[[maybe_unused]] auto const res = glfwCreateWindowSurface(static_cast<VkInstance>(inst), window->win, {}, &surface);
 		assert(res == VK_SUCCESS);
 		return vk::SurfaceKHR(surface);
-	});
+	};
+	vkinfo.instanceExtensions = glfw->get()->get().instanceExtensions();
+	auto vulkan = VKInstance::make(std::move(vkinfo));
 	if (!vulkan) { return vulkan.error(); }
 	auto device = makeDevice(*vulkan);
 	auto vram = UniqueVram::make(*vulkan->instance, device, getSamples(createInfo.desiredAA));

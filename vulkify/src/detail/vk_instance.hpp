@@ -27,6 +27,11 @@ struct VKInstance {
 		std::mutex mutex{};
 	};
 
+	struct Info {
+		std::vector<char const*> instanceExtensions{};
+		MakeSurface makeSurface{};
+	};
+
 	vk::UniqueInstance instance{};
 	vk::UniqueDebugUtilsMessengerEXT messenger{};
 	VKGpu gpu{};
@@ -35,6 +40,6 @@ struct VKInstance {
 	VKQueue queue{};
 	ktl::kunique_ptr<Util> util{};
 
-	static Result<VKInstance> make(MakeSurface makeSurface, bool validation = debug_v);
+	static Result<VKInstance> make(Info info, bool validation = debug_v);
 };
 } // namespace vf
