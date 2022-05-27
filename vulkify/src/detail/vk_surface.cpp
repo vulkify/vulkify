@@ -117,7 +117,7 @@ void VKSurface::submit(vk::CommandBuffer const cb, VKSync const& sync) {
 	submitInfo.pWaitSemaphores = &sync.draw;
 	submitInfo.signalSemaphoreCount = 1U;
 	submitInfo.pSignalSemaphores = &sync.present;
-	auto lock = std::scoped_lock(*device.mutex);
+	auto lock = std::scoped_lock(*device.queueMutex);
 	device.queue.queue.submit(1U, &submitInfo, sync.drawn);
 }
 

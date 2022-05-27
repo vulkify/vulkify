@@ -284,7 +284,7 @@ constexpr vk::Format textureFormat(vk::Format surface) { return Renderer::isSrgb
 
 VKDevice makeDevice(VKInstance const& instance) {
 	auto const flags = instance.messenger ? VKDevice::Flag::eDebugMsgr : VKDevice::Flags{};
-	return {instance.queue, instance.gpu.device, *instance.device, {&instance.util->defer}, &instance.util->mutex, flags};
+	return {instance.queue, instance.gpu.device, *instance.device, {&instance.util->defer}, &instance.util->mutex.queue, flags};
 }
 
 vk::UniqueDescriptorSetLayout makeSetLayout(vk::Device device, std::span<vk::DescriptorSetLayoutBinding const> bindings) {
@@ -540,7 +540,6 @@ struct VulkifyInstance::Impl {
 	DescriptorSetFactory setFactory{};
 	ShaderInput::Textures shaderTextures{};
 	Camera camera{};
-	std::thread::id renderThread{};
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
@@ -625,7 +624,6 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
 
 	impl->freetype = freetype;
-	impl->renderThread = std::this_thread::get_id();
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
@@ -807,7 +805,8 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
 	auto const cam = RenderCam{extent, &m_impl->camera};
 	auto const lwl = std::pair(m_impl->vram.vram->deviceLimits.lineWidthRange[0], m_impl->vram.vram->deviceLimits.lineWidthRange[1]);
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->setFactory, *sr.renderer.renderPass, std::move(cmd), input, cam, lwl, m_impl->renderThread};
+	auto* mutex = &m_impl->vulkan.util->mutex.render;
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->setFactory, *sr.renderer.renderPass, std::move(cmd), input, cam, lwl, mutex};
 }
 
 bool VulkifyInstance::endPass() {

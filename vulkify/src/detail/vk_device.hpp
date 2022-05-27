@@ -32,7 +32,7 @@ struct VKDevice {
 	vk::PhysicalDevice gpu{};
 	vk::Device device{};
 	Defer defer{};
-	std::mutex* mutex{};
+	std::mutex* queueMutex{};
 	Flags flags{};
 
 	explicit operator bool() const { return device; }

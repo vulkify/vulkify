@@ -4,6 +4,7 @@
 #include <glm/vec2.hpp>
 #include <ktl/unique_val.hpp>
 #include <vulkify/graphics/camera.hpp>
+#include <mutex>
 
 namespace vf {
 class Instance;
@@ -54,7 +55,7 @@ struct RenderPass {
 	ShaderInput shaderInput{};
 	RenderCam cam{};
 	TPair<float> lineWidthLimit{};
-	std::thread::id renderThread{};
+	std::mutex* renderMutex;
 
 	mutable vk::ShaderModule fragShader{};
 	mutable vk::PipelineLayout bound{};
