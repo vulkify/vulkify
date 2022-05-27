@@ -9,6 +9,7 @@ namespace vf {
 class Instance;
 struct DrawModel;
 struct PipelineFactory;
+struct DescriptorSetFactory;
 
 struct SetBind {
 	std::uint32_t set{};
@@ -47,7 +48,7 @@ struct RenderPass {
 
 	ktl::unique_val<Instance*> instance{};
 	PipelineFactory* pipelineFactory{};
-	DescriptorPool* descriptorPool{};
+	DescriptorSetFactory* setFactory{};
 	vk::RenderPass renderPass{};
 	vk::CommandBuffer commandBuffer{};
 	ShaderInput shaderInput{};

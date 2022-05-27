@@ -12,7 +12,7 @@
 #include <memory>
 #include <vector>
 
-#include <detail/descriptor_set.hpp>
+#include <detail/descriptor_set_factory.hpp>
 #include <detail/pipeline_factory.hpp>
 #include <detail/render_pass.hpp>
 #include <detail/renderer.hpp>
@@ -537,7 +537,7 @@ struct VulkifyInstance::Impl {
 	std::vector<vk::UniqueDescriptorSetLayout> setLayouts{};
 	VIStorage vertexInput{};
 	PipelineFactory pipelineFactory{};
-	DescriptorPool descriptorPool{};
+	DescriptorSetFactory setFactory{};
 	ShaderInput::Textures shaderTextures{};
 	Camera camera{};
 	std::thread::id renderThread{};
@@ -618,8 +618,8 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
 	impl->vram.vram->buffering = impl->renderer.frameSync.storage.size();
-	impl->descriptorPool = DescriptorPool::make(impl->vram.vram, impl->pipelineFactory.setLayouts);
-	if (!impl->descriptorPool) { return Error::eVulkanInitFailure; }
+	impl->setFactory = DescriptorSetFactory::make(impl->vram.vram, impl->pipelineFactory.setLayouts);
+	if (!impl->setFactory) { return Error::eVulkanInitFailure; }
 
 	impl->shaderTextures = makeShaderTextures(impl->vram.vram);
 	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
@@ -800,14 +800,14 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 	m_impl->renderer.clear = clear;
 
 	auto const extent = sr.colourExtent();
-	auto proj = m_impl->descriptorPool.get(0, 0, "UBO:P");
+	auto proj = m_impl->setFactory.postInc(0, "UBO:P");
 	auto const mat_p = projection(extent);
 	proj.write(0, mat_p);
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
 	auto const cam = RenderCam{extent, &m_impl->camera};
 	auto const lwl = std::pair(m_impl->vram.vram->deviceLimits.lineWidthRange[0], m_impl->vram.vram->deviceLimits.lineWidthRange[1]);
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, cam, lwl, m_impl->renderThread};
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->setFactory, *sr.renderer.renderPass, std::move(cmd), input, cam, lwl, m_impl->renderThread};
 }
 
 bool VulkifyInstance::endPass() {
@@ -819,7 +819,7 @@ bool VulkifyInstance::endPass() {
 	m_impl->surface.present(m_impl->acquired, sync.present, getFramebufferSize(m_impl->window->win));
 	m_impl->acquired = {};
 	m_impl->renderer.next();
-	m_impl->descriptorPool.next();
+	m_impl->setFactory.next();
 	m_impl->acquired = {};
 	return true;
 }

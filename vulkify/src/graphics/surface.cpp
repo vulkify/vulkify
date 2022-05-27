@@ -1,3 +1,4 @@
+#include <detail/descriptor_set_factory.hpp>
 #include <detail/pipeline_factory.hpp>
 #include <detail/render_pass.hpp>
 #include <detail/shared_impl.hpp>
@@ -130,7 +131,7 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) 
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
 	if (drawable.texture && *drawable.texture) { tex = {*drawable.texture->resource().image.sampler, *drawable.texture->resource().image.cache.view}; }
 
-	auto set = m_renderPass->descriptorPool->postInc(m_renderPass->shaderInput.one.set, "UBO:M,SSBO:V");
+	auto set = m_renderPass->setFactory->postInc(m_renderPass->shaderInput.one.set, "UBO:V,SSBO:M");
 	if (!set) { return false; }
 	m_renderPass->writeView(set);
 	m_renderPass->writeModels(set, models, tex);
