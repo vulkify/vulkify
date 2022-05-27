@@ -27,6 +27,7 @@ class VulkifyInstance : public Instance {
 	WindowFlags windowFlags() const override;
 	AntiAliasing antiAliasing() const override;
 	float renderScale() const override;
+	std::vector<Gpu> gpuList() const override;
 
 	void show() override;
 	void hide() override;

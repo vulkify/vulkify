@@ -49,6 +49,7 @@ class Instance {
 	virtual WindowFlags windowFlags() const = 0;
 	virtual AntiAliasing antiAliasing() const = 0;
 	virtual float renderScale() const = 0;
+	virtual std::vector<Gpu> gpuList() const = 0;
 
 	virtual void show() = 0;
 	virtual void hide() = 0;

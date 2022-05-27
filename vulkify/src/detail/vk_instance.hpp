@@ -4,6 +4,7 @@
 #include <ktl/kunique_ptr.hpp>
 #include <vulkify/core/defines.hpp>
 #include <vulkify/core/result.hpp>
+#include <vulkify/instance/gpu.hpp>
 #include <mutex>
 
 namespace vf {
@@ -13,6 +14,16 @@ struct VKGpu {
 	vk::PhysicalDeviceProperties properties{};
 	std::vector<vk::SurfaceFormatKHR> formats{};
 	vk::PhysicalDevice device{};
+	Gpu gpu{};
+};
+
+struct PhysicalDevice {
+	Gpu gpu{};
+	vk::PhysicalDevice device{};
+	std::uint32_t queueFamily{};
+	int score{};
+
+	auto operator<=>(PhysicalDevice const& rhs) const { return score <=> rhs.score; }
 };
 
 struct VKSync {
@@ -32,6 +43,8 @@ struct VKInstance {
 		MakeSurface makeSurface{};
 	};
 
+	struct Builder;
+
 	vk::UniqueInstance instance{};
 	vk::UniqueDebugUtilsMessengerEXT messenger{};
 	VKGpu gpu{};
@@ -40,6 +53,16 @@ struct VKInstance {
 	VKQueue queue{};
 	ktl::kunique_ptr<Util> util{};
 
-	static Result<VKInstance> make(Info info, bool validation = debug_v);
+	std::vector<Gpu> availableDevices() const;
+};
+
+struct VKInstance::Builder {
+	VKInstance instance{};
+	std::vector<PhysicalDevice> devices{};
+	bool validation{};
+
+	static Result<Builder> make(Info info, bool validation = debug_v);
+
+	Result<VKInstance> operator()(PhysicalDevice&& selected);
 };
 } // namespace vf

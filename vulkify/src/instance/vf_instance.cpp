@@ -169,10 +169,12 @@ struct Glfw {
 	bool operator==(Glfw const& rhs) const { return active == rhs.active; }
 
 	static std::vector<char const*> instanceExtensions() {
-		auto ret = std::vector<char const*>{};
-		auto count = std::uint32_t{};
-		auto exts = glfwGetRequiredInstanceExtensions(&count);
-		for (std::uint32_t i = 0; i < count; ++i) { ret.push_back(exts[i]); }
+		static auto ret = std::vector<char const*>{};
+		if (ret.empty()) {
+			auto count = std::uint32_t{};
+			auto exts = glfwGetRequiredInstanceExtensions(&count);
+			for (std::uint32_t i = 0; i < count; ++i) { ret.push_back(exts[i]); }
+		}
 		return ret;
 	}
 
@@ -221,7 +223,7 @@ UniqueWindow makeWindow(InstanceCreateInfo const& info) {
 	glfwWindowHint(GLFW_VISIBLE, info.instanceFlags.test(InstanceFlag::eAutoShow) ? GLFW_TRUE : GLFW_FALSE);
 	glfwWindowHint(GLFW_MAXIMIZED, info.windowFlags.test(WindowFlag::eMaximized) ? GLFW_TRUE : GLFW_FALSE);
 	glfwWindowHint(GLFW_RESIZABLE, info.windowFlags.test(WindowFlag::eResizable) ? GLFW_TRUE : GLFW_FALSE);
-	auto ret = glfwCreateWindow(int(info.extent.x), int(info.extent.y), info.title, nullptr, nullptr);
+	auto ret = glfwCreateWindow(static_cast<int>(info.extent.x), static_cast<int>(info.extent.y), info.title, nullptr, nullptr);
 	attachCallbacks(ret);
 	return Window{ret};
 }
@@ -279,21 +281,6 @@ Monitor makeMonitor(GLFWmonitor* monitor) {
 
 namespace {
 constexpr vk::Format textureFormat(vk::Format surface) { return Renderer::isSrgb(surface) ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm; }
-
-Gpu makeGPU(VKInstance const& vulkan) {
-	auto ret = Gpu{};
-	ret.name = vulkan.gpu.properties.deviceName.data();
-	switch (vulkan.gpu.properties.deviceType) {
-	case vk::PhysicalDeviceType::eCpu: ret.type = Gpu::Type::eCpu; break;
-	case vk::PhysicalDeviceType::eDiscreteGpu: ret.type = Gpu::Type::eDiscrete; break;
-	case vk::PhysicalDeviceType::eIntegratedGpu: ret.type = Gpu::Type::eIntegrated; break;
-	case vk::PhysicalDeviceType::eVirtualGpu: ret.type = Gpu::Type::eVirtual; break;
-	case vk::PhysicalDeviceType::eOther: ret.type = Gpu::Type::eOther; break;
-	default: break;
-	}
-	ret.maxLineWidth = vulkan.gpu.properties.limits.lineWidthRange[1];
-	return ret;
-}
 
 VKDevice makeDevice(VKInstance const& instance) {
 	auto const flags = instance.messenger ? VKDevice::Flag::eDebugMsgr : VKDevice::Flags{};
@@ -545,7 +532,6 @@ struct VulkifyInstance::Impl {
 	VKSurface surface{};
 	SwapchainRenderer renderer{};
 	FtUnique<FtLib> freetype{};
-	Gpu gpu{};
 
 	VKSurface::Acquire acquired{};
 	std::vector<vk::UniqueDescriptorSetLayout> setLayouts{};
@@ -565,6 +551,17 @@ VulkifyInstance::~VulkifyInstance() {
 	m_impl->vulkan.device->waitIdle();
 	g_glfw = {};
 	g_gamepads = {};
+}
+
+PhysicalDevice selectDevice(std::span<PhysicalDevice> devices, GpuSelector const* gpuSelector) {
+	std::size_t index{0};
+	if (gpuSelector) {
+		auto gpus = std::vector<Gpu>{};
+		gpus.reserve(devices.size());
+		for (auto const& device : devices) { gpus.push_back(device.gpu); }
+		if (auto i = (*gpuSelector)(gpus); i < devices.size()) { index = i; }
+	}
+	return std::move(devices[index]);
 }
 
 VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
@@ -588,14 +585,20 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 		return vk::SurfaceKHR(surface);
 	};
 	vkinfo.instanceExtensions = glfw->get()->get().instanceExtensions();
-	auto vulkan = VKInstance::make(std::move(vkinfo));
-	if (!vulkan) { return vulkan.error(); }
-	auto device = makeDevice(*vulkan);
-	auto vram = UniqueVram::make(*vulkan->instance, device, getSamples(createInfo.desiredAA));
+	auto builder = VKInstance::Builder::make(std::move(vkinfo));
+	if (!builder) { return builder.error(); }
+	if (builder->devices.empty()) { return Error::eNoVulkanSupport; }
+	auto selected = selectDevice(builder->devices, createInfo.gpuSelector);
+	auto instance = builder.value()(std::move(selected));
+	if (!instance) { return instance.error(); }
+
+	auto vulkan = std::move(instance.value());
+	auto device = makeDevice(vulkan);
+	auto vram = UniqueVram::make(*vulkan.instance, device, getSamples(createInfo.desiredAA));
 	if (!vram) { return Error::eVulkanInitFailure; }
 	vram.vram->ftlib = freetype.lib;
 
-	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
+	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(vulkan), std::move(vram));
 	bool const linear = createInfo.instanceFlags.test(InstanceFlag::eLinearSwapchain);
 	impl->surface = VKSurface::make(device, impl->vulkan.gpu, *impl->vulkan.surface, getFramebufferSize(impl->window->win), linear);
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
@@ -622,13 +625,12 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
 
 	impl->freetype = freetype;
-	impl->gpu = makeGPU(*vulkan);
 	impl->renderThread = std::this_thread::get_id();
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
 
-Gpu const& VulkifyInstance::gpu() const { return m_impl->gpu; }
+Gpu const& VulkifyInstance::gpu() const { return m_impl->vulkan.gpu.gpu; }
 
 bool VulkifyInstance::closing() const {
 	auto const ret = glfwWindowShouldClose(m_impl->window->win);
@@ -686,6 +688,7 @@ AntiAliasing VulkifyInstance::antiAliasing() const {
 }
 
 float VulkifyInstance::renderScale() const { return m_impl->renderer.renderScale; }
+std::vector<Gpu> VulkifyInstance::gpuList() const { return m_impl->vulkan.availableDevices(); }
 
 void VulkifyInstance::setPosition(glm::ivec2 xy) { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
 void VulkifyInstance::setExtent(Extent size) { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }

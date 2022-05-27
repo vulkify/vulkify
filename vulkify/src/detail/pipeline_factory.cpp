@@ -85,7 +85,6 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Spec
 	gpci.pInputAssemblyState = &piasci;
 
 	auto prsci = vk::PipelineRasterizationStateCreateInfo();
-	// prsci.lineWidth = std::clamp(spec.lineWidth, lineWidthLimit.first, lineWidthLimit.second);
 	prsci.polygonMode = spec.mode;
 	prsci.cullMode = vk::CullModeFlagBits::eNone;
 	gpci.pRasterizationState = &prsci;

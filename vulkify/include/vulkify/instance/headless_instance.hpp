@@ -25,6 +25,7 @@ class HeadlessInstance : public Instance {
 	WindowFlags windowFlags() const override { return m_windowFlags; }
 	AntiAliasing antiAliasing() const override { return AntiAliasing::eNone; }
 	float renderScale() const override { return 1.0f; }
+	std::vector<Gpu> gpuList() const override { return {m_gpu}; }
 
 	void show() override {}
 	void hide() override {}
@@ -53,7 +54,7 @@ class HeadlessInstance : public Instance {
 	Camera m_camera{};
 
   private:
-	Gpu m_gpu = {"vulkify (headless)", {}, Gpu::Type::eOther};
+	Gpu m_gpu = {"vulkify (headless)", {}, {}, Gpu::Type::eOther};
 	Clock::time_point m_start = Clock::now();
 	Time m_autoclose{};
 };
