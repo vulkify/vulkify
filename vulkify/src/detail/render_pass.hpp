@@ -3,12 +3,13 @@
 #include <detail/descriptor_set.hpp>
 #include <glm/vec2.hpp>
 #include <ktl/unique_val.hpp>
-#include <vulkify/graphics/render_view.hpp>
+#include <vulkify/graphics/camera.hpp>
 
 namespace vf {
 class Instance;
 struct DrawModel;
 struct PipelineFactory;
+struct DescriptorSetFactory;
 
 struct SetBind {
 	std::uint32_t set{};
@@ -34,9 +35,9 @@ struct ShaderInput {
 	SetBind two{2};
 };
 
-struct RenderPassView {
-	glm::uvec2 extent{};
-	RenderView const* view{};
+struct RenderCam {
+	glm::vec2 extent{};
+	Camera const* camera{};
 };
 
 struct RenderPass {
@@ -47,11 +48,11 @@ struct RenderPass {
 
 	ktl::unique_val<Instance*> instance{};
 	PipelineFactory* pipelineFactory{};
-	DescriptorPool* descriptorPool{};
+	DescriptorSetFactory* setFactory{};
 	vk::RenderPass renderPass{};
 	vk::CommandBuffer commandBuffer{};
 	ShaderInput shaderInput{};
-	RenderPassView view{};
+	RenderCam cam{};
 	TPair<float> lineWidthLimit{};
 	std::thread::id renderThread{};
 

@@ -1,21 +1,26 @@
 #pragma once
 #include <detail/rotator.hpp>
+#include <detail/trace.hpp>
 #include <detail/vram.hpp>
 
 namespace vf {
 struct ImageCache {
+	using Extent = glm::uvec2;
+
 	struct Info {
 		Vram vram{};
 		std::string name{};
 		vk::ImageCreateInfo info{};
 		vk::ImageAspectFlags aspect{};
-		bool preferHost{true};
+		bool preferHost{false};
 	};
 
 	Info info{};
 
 	UniqueImage image{};
 	vk::UniqueImageView view{};
+
+	static constexpr Extent scale2D(Extent extent, float value) { return glm::vec2(extent) * value; }
 
 	explicit operator bool() const { return info.vram.device.device; }
 	bool operator==(ImageCache const& rhs) const { return !image && !view && !rhs.image && !rhs.view; }
@@ -36,7 +41,7 @@ struct ImageCache {
 		return info.info;
 	}
 
-	vk::ImageCreateInfo& setTexture(bool transferSrc) {
+	vk::ImageCreateInfo& setTexture(bool const transferSrc) {
 		static constexpr auto flags = vk::ImageUsageFlagBits::eSampled;
 		info.info = vk::ImageCreateInfo();
 		info.info.usage = flags;
@@ -47,10 +52,15 @@ struct ImageCache {
 		return info.info;
 	}
 
-	bool ready(vk::Extent3D extent, vk::Format format) const noexcept { return image && extent == info.info.extent && info.info.format == format; }
+	Extent current() const { return {info.info.extent.width, info.info.extent.height}; }
 
-	bool make(vk::Extent3D extent, vk::Format format) {
-		info.info.extent = extent;
+	bool ready(Extent const extent, vk::Format const format) const noexcept {
+		if (!image || info.info.format != format) { return false; }
+		return current() == extent;
+	}
+
+	bool make(Extent const extent, vk::Format const format) {
+		info.info.extent = vk::Extent3D(extent.x, extent.y, 1);
 		info.info.format = format;
 		info.vram.device.defer(std::move(image), std::move(view));
 		image = info.vram.makeImage(info.info, info.preferHost, info.name.c_str());
@@ -59,7 +69,7 @@ struct ImageCache {
 		return *view;
 	}
 
-	VKImage refresh(vk::Extent3D extent, vk::Format format = {}) {
+	VKImage refresh(Extent const extent, vk::Format format = {}) {
 		if (format == vk::Format()) { format = info.info.format; }
 		if (!ready(extent, format)) { make(extent, format); }
 		return peek();

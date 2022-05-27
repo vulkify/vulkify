@@ -21,6 +21,7 @@ class Builder {
 	Builder& setFlag(WindowFlag flag, bool set = true);
 	Builder& setFlag(InstanceFlag flag, bool set = true);
 	Builder& setAntiAliasing(AntiAliasing aa);
+	Builder& setGpuSelector(Ptr<GpuSelector const> selector);
 
 	Context::Result build();
 
@@ -63,6 +64,11 @@ inline Builder& Builder::setFlag(InstanceFlag flag, bool set) {
 
 inline Builder& Builder::setAntiAliasing(AntiAliasing aa) {
 	m_createInfo.desiredAA = aa;
+	return *this;
+}
+
+inline Builder& Builder::setGpuSelector(Ptr<GpuSelector const> selector) {
+	m_createInfo.gpuSelector = selector;
 	return *this;
 }
 } // namespace vf

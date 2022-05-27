@@ -29,7 +29,6 @@ target_link_libraries(${PROJECT_NAME}
   PRIVATE
   glfw
   dyvk::dyvk
-  vk-bootstrap::vk-bootstrap
   vma
   stb-image
   freetype
@@ -38,8 +37,12 @@ target_link_libraries(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME} PUBLIC
   $<$<BOOL:${VULKIFY_DEBUG}>:VULKIFY_DEBUG>
   $<$<BOOL:${VULKIFY_DEBUG_TRACE}>:VULKIFY_DEBUG_TRACE>
-  $<$<BOOL:${VULKIFY_REQUIRE_VULKAN_1_1_0}>:VULKIFY_REQUIRE_VULKAN_1_1_0>
 )
+
+if(APPLE)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE VULKIFY_VK_PORTABILITY)
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PUBLIC GLM_FORCE_XYZW_ONLY GLM_FORCE_RADIANS GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_SILENT_WARNINGS GLM_ENABLE_EXPERIMENTAL GLM_EXT_INCLUDED)
 
 include(vulkify_headers.cmake)

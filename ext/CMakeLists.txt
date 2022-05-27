@@ -20,24 +20,7 @@ endif()
 # dyvk
 set(DYVK_INSTALL ${VULKIFY_INSTALL})
 add_subdirectory(src/dyvk)
-
-# vk-bootstrap
-set(VK_BOOTSTRAP_VULKAN_HEADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/dyvk/include" CACHE STRING "" FORCE)
-
-if(NOT EXISTS "${VK_BOOTSTRAP_VULKAN_HEADER_DIR}/vulkan/vulkan.h")
-  message(FATAL_ERROR "Missing vulkan headers")
-endif()
-
-add_subdirectory(src/vk-bootstrap)
-
-if(VULKIFY_INSTALL)
-  install(EXPORT vk-bootstrap-targets
-    FILE vk-bootstrap-targets.cmake
-    NAMESPACE vk-bootstrap::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
-  )
-  export(EXPORT vk-bootstrap-targets)
-endif()
+target_compile_definitions(dyvk PUBLIC VK_ENABLE_BETA_EXTENSIONS)
 
 # glm
 set(GLM_INSTALL ${VULKIFY_INSTALL})

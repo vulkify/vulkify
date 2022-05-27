@@ -36,6 +36,9 @@ class OutlinedShape : public Shape {
 	OutlinedShape() = default;
 	OutlinedShape(Context const& context, std::string name);
 
+	float maxLineWidth() const { return m_maxLineWidth; }
+	bool outlineAvailable() const { return m_maxLineWidth > 0.0f; }
+
 	float outlineWidth() const { return m_outline.state.lineWidth; }
 	Rgba outlineRgba() const { return m_outlineRgba; }
 	void setOutline(float lineWidth, Rgba rgba);
@@ -48,5 +51,6 @@ class OutlinedShape : public Shape {
 
 	GeometryBuffer m_outline{};
 	Rgba m_outlineRgba{};
+	float m_maxLineWidth{1.0f};
 };
 } // namespace vf

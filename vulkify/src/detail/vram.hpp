@@ -46,13 +46,13 @@ struct ImageBarrier {
 	static constexpr auto access_flags_v = vk::AccessFlagBits::eMemoryRead | vk::AccessFlagBits::eMemoryWrite;
 	static constexpr vk::PipelineStageFlags stage_flags_v = vk::PipelineStageFlagBits::eAllCommands;
 
-	TPair<vk::ImageLayout> layouts{};
 	TPair<vk::AccessFlags> access{access_flags_v, access_flags_v};
 	TPair<vk::PipelineStageFlags> stages{stage_flags_v, stage_flags_v};
 	vk::ImageAspectFlags aspects{vk::ImageAspectFlagBits::eColor};
 	LayerMip layerMip{};
 
-	void operator()(vk::CommandBuffer cb, vk::Image image) const;
+	vk::ImageLayout operator()(vk::CommandBuffer cb, vk::Image image, TPair<vk::ImageLayout> layouts) const;
+	vk::ImageLayout operator()(vk::CommandBuffer cb, vk::Image image, vk::ImageLayout target) const;
 };
 
 template <typename T>
@@ -86,7 +86,7 @@ struct VmaImage : VmaResource<vk::Image> {
 	vk::ImageTiling tiling{};
 	BlitCaps caps{};
 
-	void transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier barrier = {});
+	void transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier const& barrier = {});
 	VKImage image(vk::ImageView view = {}) const { return {resource, view, {extent.width, extent.height}}; }
 	BlitFlags blitFlags() const { return tiling == vk::ImageTiling::eLinear ? caps.linear : caps.optimal; }
 
@@ -126,14 +126,16 @@ struct Vram {
 	UniqueImage makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear = false) const;
 	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, bool host, char const* name) const;
 
+	static void blit(vk::CommandBuffer cmd, vk::Image in, vk::Image out, TRect<std::int32_t> inr, TRect<std::int32_t> outr, vk::Filter filter);
+
 	struct Deleter {
 		void operator()(Vram const& vram) const;
 	};
 };
 
 struct ImageWriter {
-	using Rect = vf::TRect<std::uint32_t>;
-	using Offset = vf::TRect<std::int32_t>;
+	using URegion = TRect<std::uint32_t>;
+	using IRegion = TRect<std::int32_t>;
 
 	Vram const* vram{};
 	vk::CommandBuffer cb;
@@ -144,9 +146,9 @@ struct ImageWriter {
 
 	static bool canBlit(VmaImage const& src, VmaImage const& dst);
 
-	bool write(VmaImage& out, BufferWrite data, Rect rect = {}, vk::ImageLayout il = {});
-	bool blit(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
-	bool copy(VmaImage& in, VmaImage& out, Offset const& inr, Offset const& outr, TPair<vk::ImageLayout> il = {}) const;
+	bool write(VmaImage& out, BufferWrite data, URegion region = {}, vk::ImageLayout il = {});
+	bool blit(VmaImage& in, VmaImage& out, IRegion inr, IRegion outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
+	bool copy(VmaImage& in, VmaImage& out, IRegion inr, IRegion outr, TPair<vk::ImageLayout> il = {}) const;
 	void clear(VmaImage& in, Rgba rgba) const;
 };
 

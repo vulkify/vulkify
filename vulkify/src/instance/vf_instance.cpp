@@ -3,6 +3,7 @@
 
 #include <detail/vk_instance.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <ktl/debug_trap.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/core/unique.hpp>
 
@@ -11,7 +12,7 @@
 #include <memory>
 #include <vector>
 
-#include <detail/descriptor_set.hpp>
+#include <detail/descriptor_set_factory.hpp>
 #include <detail/pipeline_factory.hpp>
 #include <detail/render_pass.hpp>
 #include <detail/renderer.hpp>
@@ -20,9 +21,11 @@
 #include <detail/trace.hpp>
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
+#include <functional>
 
 #include <glm/mat4x4.hpp>
 #include <vulkify/graphics/bitmap.hpp>
+#include <vulkify/graphics/camera.hpp>
 #include <vulkify/graphics/geometry.hpp>
 #include <iostream>
 
@@ -165,6 +168,16 @@ struct Glfw {
 	operator bool() const { return active; }
 	bool operator==(Glfw const& rhs) const { return active == rhs.active; }
 
+	static std::vector<char const*> instanceExtensions() {
+		static auto ret = std::vector<char const*>{};
+		if (ret.empty()) {
+			auto count = std::uint32_t{};
+			auto exts = glfwGetRequiredInstanceExtensions(&count);
+			for (std::uint32_t i = 0; i < count; ++i) { ret.push_back(exts[i]); }
+		}
+		return ret;
+	}
+
 	struct Deleter {
 		void operator()(Glfw const&) const { glfwTerminate(); }
 	};
@@ -210,7 +223,7 @@ UniqueWindow makeWindow(InstanceCreateInfo const& info) {
 	glfwWindowHint(GLFW_VISIBLE, info.instanceFlags.test(InstanceFlag::eAutoShow) ? GLFW_TRUE : GLFW_FALSE);
 	glfwWindowHint(GLFW_MAXIMIZED, info.windowFlags.test(WindowFlag::eMaximized) ? GLFW_TRUE : GLFW_FALSE);
 	glfwWindowHint(GLFW_RESIZABLE, info.windowFlags.test(WindowFlag::eResizable) ? GLFW_TRUE : GLFW_FALSE);
-	auto ret = glfwCreateWindow(int(info.extent.x), int(info.extent.y), info.title, nullptr, nullptr);
+	auto ret = glfwCreateWindow(static_cast<int>(info.extent.x), static_cast<int>(info.extent.y), info.title, nullptr, nullptr);
 	attachCallbacks(ret);
 	return Window{ret};
 }
@@ -268,21 +281,6 @@ Monitor makeMonitor(GLFWmonitor* monitor) {
 
 namespace {
 constexpr vk::Format textureFormat(vk::Format surface) { return Renderer::isSrgb(surface) ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm; }
-
-Gpu makeGPU(VKInstance const& vulkan) {
-	auto ret = Gpu{};
-	ret.name = vulkan.gpu.properties.deviceName.data();
-	switch (vulkan.gpu.properties.deviceType) {
-	case vk::PhysicalDeviceType::eCpu: ret.type = Gpu::Type::eCpu; break;
-	case vk::PhysicalDeviceType::eDiscreteGpu: ret.type = Gpu::Type::eDiscrete; break;
-	case vk::PhysicalDeviceType::eIntegratedGpu: ret.type = Gpu::Type::eIntegrated; break;
-	case vk::PhysicalDeviceType::eVirtualGpu: ret.type = Gpu::Type::eVirtual; break;
-	case vk::PhysicalDeviceType::eOther: ret.type = Gpu::Type::eOther; break;
-	default: break;
-	}
-	ret.maxLineWidth = vulkan.gpu.properties.limits.lineWidthRange[1];
-	return ret;
-}
 
 VKDevice makeDevice(VKInstance const& instance) {
 	auto const flags = instance.messenger ? VKDevice::Flag::eDebugMsgr : VKDevice::Flags{};
@@ -379,20 +377,25 @@ struct FrameSync {
 };
 
 struct SwapchainRenderer {
+	enum ImageType { eColour, eResolve };
+
 	Vram vram{};
 
 	Renderer renderer{};
 	Rotator<FrameSync> frameSync{};
-	ImageCache image{};
+	ImageCache images[2]{};
 	vk::UniqueCommandPool commandPool{};
+	float renderScale{1.0f};
 
-	RenderTarget target{};
+	Framebuffer framebuffer{};
+	VKImage present{};
 	Rgba clear{};
-	bool offScreen{};
+	bool msaa{};
 
-	static SwapchainRenderer make(Vram const& vram, vk::Format surface, std::size_t buffering = 2) {
+	static SwapchainRenderer make(Vram const& vram, std::size_t buffering = 2) {
 		auto ret = SwapchainRenderer{vram};
-		auto renderer = Renderer::make(vram.device.device, surface, vram.colourSamples);
+		auto const format = vram.device.flags.test(VKDevice::Flag::eLinearSwp) ? vk::Format::eR8G8B8A8Unorm : vk::Format::eR8G8B8A8Srgb;
+		auto renderer = Renderer::make(vram.device.device, format, vram.colourSamples);
 		if (!renderer.renderPass) { return {}; }
 		ret.renderer = std::move(renderer);
 
@@ -401,12 +404,18 @@ struct SwapchainRenderer {
 		ret.commandPool = vram.device.device.createCommandPoolUnique(cpci);
 		ret.resync(buffering);
 
-		ret.offScreen = vram.colourSamples > vk::SampleCountFlagBits::e1;
-		if (ret.offScreen) {
-			ret.image = {{vram, "render_pass_colour_image"}};
-			ret.image.setColour();
-			ret.image.info.info.format = surface;
-			ret.image.info.info.samples = vram.colourSamples;
+		auto& image = ret.images[eColour];
+		image = {{vram, "render_pass_colour_image"}};
+		image.setColour();
+		image.info.info.format = format;
+		image.info.info.samples = vram.colourSamples;
+
+		if (vram.colourSamples > vk::SampleCountFlagBits::e1) {
+			ret.msaa = true;
+			auto& image = ret.images[eResolve];
+			image.info = ret.images[eColour].info;
+			image.info.name = "render_pass_resolve_image";
+			image.info.info.samples = vk::SampleCountFlagBits::e1;
 		}
 
 		return ret;
@@ -430,42 +439,55 @@ struct SwapchainRenderer {
 		}
 	}
 
-	vk::CommandBuffer beginRender(VKImage acquired) {
+	Extent colourExtent() const { return {images[eColour].info.info.extent.width, images[eColour].info.info.extent.height}; }
+
+	vk::CommandBuffer beginRender(VKImage acquired, Extent extent) {
 		if (!renderer.renderPass) { return {}; }
 
 		auto& sync = frameSync.get();
 		vram.device.reset(*sync.drawn);
-		target.colour = acquired;
-		if (offScreen) {
-			target.colour = image.refresh(vk::Extent3D(acquired.extent, 1));
-			target.resolve = acquired;
-		}
-		sync.framebuffer = renderer.makeFramebuffer(target);
+		auto const scaledExtent = ImageCache::scale2D(extent, renderScale);
+		framebuffer.colour = images[eColour].refresh(scaledExtent);
+		if (msaa) { framebuffer.resolve = images[eResolve].refresh(scaledExtent); }
+		framebuffer.extent = vk::Extent2D(scaledExtent.x, scaledExtent.y);
+		sync.framebuffer = renderer.makeFramebuffer(framebuffer);
 		if (!sync.framebuffer) { return {}; }
-		target.framebuffer = *sync.framebuffer;
 
+		framebuffer.framebuffer = *sync.framebuffer;
+		present = acquired;
 		auto cmd = sync.cmd.secondary;
-		auto const cbii = vk::CommandBufferInheritanceInfo(*renderer.renderPass, 0U, *sync.framebuffer);
+		auto const cbii = vk::CommandBufferInheritanceInfo(*renderer.renderPass, 0U, framebuffer);
 		cmd.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit | vk::CommandBufferUsageFlagBits::eRenderPassContinue, &cbii});
-		cmd.setScissor(0, vk::Rect2D({}, acquired.extent));
+		cmd.setScissor(0, vk::Rect2D({}, framebuffer.colour.extent));
 
 		return sync.cmd.secondary;
 	}
 
 	vk::CommandBuffer endRender() {
-		if (!renderer.renderPass || !target.framebuffer) { return {}; }
+		if (!renderer.renderPass || !framebuffer) { return {}; }
 
 		auto& sync = frameSync.get();
 		sync.cmd.secondary.end();
 		sync.cmd.primary.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-		auto images = ktl::fixed_vector<vk::Image, 2>{target.colour.image};
-		if (offScreen) { images.push_back(target.resolve.image); }
-		renderer.toColourOptimal(sync.cmd.primary, images);
-		renderer.render(target, clear, sync.cmd.primary, {&sync.cmd.secondary, 1});
-		renderer.toPresentSrc(sync.cmd.primary, images.back());
+		auto images = ktl::fixed_vector<VKImage, 2>{framebuffer.colour};
+		auto src = std::ref(framebuffer.colour);
+		auto const& dst = present;
+		if (msaa) {
+			images.push_back(framebuffer.resolve);
+			src = framebuffer.resolve;
+		}
+
+		auto frame = Renderer::Frame{renderer, framebuffer, sync.cmd.primary};
+		frame.undefToColour(images);
+		frame.render(clear, {&sync.cmd.secondary, 1});
+		frame.colourToTfr(src, present);
+		frame.blit(src, dst);
+		frame.tfrToPresent(dst);
+
 		sync.cmd.primary.end();
-		target = {};
+		framebuffer = {};
+		present = {};
 
 		return sync.cmd.primary;
 	}
@@ -482,8 +504,8 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 	ret.white.setTexture(false);
 	ret.magenta.setTexture(false);
 
-	ret.white.refresh(vk::Extent3D(1, 1, 1));
-	ret.magenta.refresh(vk::Extent3D(1, 1, 1));
+	ret.white.refresh({1, 1});
+	ret.magenta.refresh({1, 1});
 	if (!ret.white.view || !ret.magenta.view) { return {}; }
 	std::byte imageBytes[4]{};
 	Bitmap::rgbaToByte(white_v, imageBytes);
@@ -496,7 +518,7 @@ ShaderInput::Textures makeShaderTextures(Vram const& vram) {
 }
 } // namespace
 
-glm::mat4 projection(glm::uvec2 const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
+glm::mat4 projection(Extent const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
 	if (extent.x == 0 || extent.y == 0) { return {}; }
 	auto const half = glm::vec2(static_cast<float>(extent.x), static_cast<float>(extent.y)) * 0.5f;
 	return glm::ortho(-half.x, half.x, -half.y, half.y, nf.x, nf.y);
@@ -510,25 +532,36 @@ struct VulkifyInstance::Impl {
 	VKSurface surface{};
 	SwapchainRenderer renderer{};
 	FtUnique<FtLib> freetype{};
-	Gpu gpu{};
 
 	VKSurface::Acquire acquired{};
 	std::vector<vk::UniqueDescriptorSetLayout> setLayouts{};
 	VIStorage vertexInput{};
 	PipelineFactory pipelineFactory{};
-	DescriptorPool descriptorPool{};
+	DescriptorSetFactory setFactory{};
 	ShaderInput::Textures shaderTextures{};
-	RenderView view{};
+	Camera camera{};
 	std::thread::id renderThread{};
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
 	g_glfw = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->fileDrops};
 }
+
 VulkifyInstance::~VulkifyInstance() {
 	m_impl->vulkan.device->waitIdle();
 	g_glfw = {};
 	g_gamepads = {};
+}
+
+PhysicalDevice selectDevice(std::span<PhysicalDevice> devices, GpuSelector const* gpuSelector) {
+	std::size_t index{0};
+	if (gpuSelector) {
+		auto gpus = std::vector<Gpu>{};
+		gpus.reserve(devices.size());
+		for (auto const& device : devices) { gpus.push_back(device.gpu); }
+		if (auto i = (*gpuSelector)(gpus); i < devices.size()) { index = i; }
+	}
+	return std::move(devices[index]);
 }
 
 VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
@@ -544,25 +577,34 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	auto freetype = FtLib::make();
 	if (!freetype) { return Error::eFreetypeInitFailure; }
 
-	auto vulkan = VKInstance::make([&window](vk::Instance inst) {
+	auto vkinfo = VKInstance::Info{};
+	vkinfo.makeSurface = [&window](vk::Instance inst) {
 		auto surface = VkSurfaceKHR{};
 		[[maybe_unused]] auto const res = glfwCreateWindowSurface(static_cast<VkInstance>(inst), window->win, {}, &surface);
 		assert(res == VK_SUCCESS);
 		return vk::SurfaceKHR(surface);
-	});
-	if (!vulkan) { return vulkan.error(); }
-	auto device = makeDevice(*vulkan);
-	auto vram = UniqueVram::make(*vulkan->instance, device, getSamples(createInfo.desiredAA));
+	};
+	vkinfo.instanceExtensions = glfw->get()->get().instanceExtensions();
+	auto builder = VKInstance::Builder::make(std::move(vkinfo));
+	if (!builder) { return builder.error(); }
+	if (builder->devices.empty()) { return Error::eNoVulkanSupport; }
+	auto selected = selectDevice(builder->devices, createInfo.gpuSelector);
+	auto instance = builder.value()(std::move(selected));
+	if (!instance) { return instance.error(); }
+
+	auto vulkan = std::move(instance.value());
+	auto device = makeDevice(vulkan);
+	auto vram = UniqueVram::make(*vulkan.instance, device, getSamples(createInfo.desiredAA));
 	if (!vram) { return Error::eVulkanInitFailure; }
 	vram.vram->ftlib = freetype.lib;
 
-	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(*vulkan), std::move(vram));
+	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(vulkan), std::move(vram));
 	bool const linear = createInfo.instanceFlags.test(InstanceFlag::eLinearSwapchain);
 	impl->surface = VKSurface::make(device, impl->vulkan.gpu, *impl->vulkan.surface, getFramebufferSize(impl->window->win), linear);
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
 	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
 
-	auto renderer = SwapchainRenderer::make(impl->vram.vram, impl->surface.info.imageFormat);
+	auto renderer = SwapchainRenderer::make(impl->vram.vram);
 	if (!renderer) { return Error::eVulkanInitFailure; }
 	impl->renderer = std::move(renderer);
 	impl->vram.vram->textureFormat = textureFormat(impl->surface.info.imageFormat);
@@ -576,20 +618,19 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!impl->pipelineFactory) { return Error::eVulkanInitFailure; }
 
 	impl->vram.vram->buffering = impl->renderer.frameSync.storage.size();
-	impl->descriptorPool = DescriptorPool::make(impl->vram.vram, impl->pipelineFactory.setLayouts);
-	if (!impl->descriptorPool) { return Error::eVulkanInitFailure; }
+	impl->setFactory = DescriptorSetFactory::make(impl->vram.vram, impl->pipelineFactory.setLayouts);
+	if (!impl->setFactory) { return Error::eVulkanInitFailure; }
 
 	impl->shaderTextures = makeShaderTextures(impl->vram.vram);
 	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
 
 	impl->freetype = freetype;
-	impl->gpu = makeGPU(*vulkan);
 	impl->renderThread = std::this_thread::get_id();
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
 
-Gpu const& VulkifyInstance::gpu() const { return m_impl->gpu; }
+Gpu const& VulkifyInstance::gpu() const { return m_impl->vulkan.gpu.gpu; }
 
 bool VulkifyInstance::closing() const {
 	auto const ret = glfwWindowShouldClose(m_impl->window->win);
@@ -597,15 +638,20 @@ bool VulkifyInstance::closing() const {
 	return ret;
 }
 
-glm::uvec2 VulkifyInstance::framebufferSize() const { return getFramebufferSize(m_impl->window->win); }
-glm::uvec2 VulkifyInstance::windowSize() const { return getWindowSize(m_impl->window->win); }
+Extent VulkifyInstance::framebufferExtent() const {
+	auto const ret = m_impl->renderer.colourExtent();
+	if (ret.x == 0 || ret.y == 0) { return ImageCache::scale2D(getFramebufferSize(m_impl->window->win), m_impl->renderer.renderScale); }
+	return ret;
+}
+
+Extent VulkifyInstance::windowExtent() const { return getWindowSize(m_impl->window->win); }
 glm::ivec2 VulkifyInstance::position() const { return getGlfwVec<int>(m_impl->window->win, &glfwGetWindowPos); }
 glm::vec2 VulkifyInstance::contentScale() const { return getGlfwVec<float>(m_impl->window->win, glfwGetWindowContentScale); }
 CursorMode VulkifyInstance::cursorMode() const { return castCursorMode(glfwGetInputMode(m_impl->window->win, GLFW_CURSOR)); }
 
 glm::vec2 VulkifyInstance::cursorPosition() const {
 	auto const pos = getGlfwVec<double>(m_impl->window->win, &glfwGetCursorPos);
-	auto const hwin = glm::vec2(windowSize()) * 0.5f;
+	auto const hwin = glm::vec2(windowExtent()) * 0.5f;
 	return {pos.x - hwin.x, hwin.y - pos.y};
 }
 
@@ -630,8 +676,6 @@ WindowFlags VulkifyInstance::windowFlags() const {
 	return ret;
 }
 
-RenderView& VulkifyInstance::view() const { return m_impl->view; }
-
 AntiAliasing VulkifyInstance::antiAliasing() const {
 	switch (m_impl->vram.vram->colourSamples) {
 	case vk::SampleCountFlagBits::e16: return AntiAliasing::e16x;
@@ -643,8 +687,11 @@ AntiAliasing VulkifyInstance::antiAliasing() const {
 	}
 }
 
+float VulkifyInstance::renderScale() const { return m_impl->renderer.renderScale; }
+std::vector<Gpu> VulkifyInstance::gpuList() const { return m_impl->vulkan.availableDevices(); }
+
 void VulkifyInstance::setPosition(glm::ivec2 xy) { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
-void VulkifyInstance::setSize(glm::uvec2 size) { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }
+void VulkifyInstance::setExtent(Extent size) { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }
 void VulkifyInstance::setCursorMode(CursorMode mode) { glfwSetInputMode(m_impl->window->win, GLFW_CURSOR, cast(mode)); }
 
 void VulkifyInstance::setIcons(std::span<Icon const> icons) {
@@ -662,12 +709,12 @@ void VulkifyInstance::setIcons(std::span<Icon const> icons) {
 	glfwSetWindowIcon(m_impl->window->win, static_cast<int>(vec.size()), vec.data());
 }
 
-void VulkifyInstance::setWindowed(glm::uvec2 extent) {
+void VulkifyInstance::setWindowed(Extent extent) {
 	auto const ext = glm::ivec2(extent);
 	glfwSetWindowMonitor(m_impl->window->win, nullptr, 0, 0, ext.x, ext.y, 0);
 }
 
-void VulkifyInstance::setFullscreen(Monitor const& monitor, glm::uvec2 resolution) {
+void VulkifyInstance::setFullscreen(Monitor const& monitor, Extent resolution) {
 	auto gmonitor = reinterpret_cast<GLFWmonitor*>(monitor.handle);
 	auto const vmode = glfwGetVideoMode(gmonitor);
 	if (!vmode) { return; }
@@ -692,6 +739,10 @@ void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
 		if (set.test(WindowFlag::eMaximized)) { glfwMaximizeWindow(m_impl->window->win); }
 	}
 }
+
+Camera& VulkifyInstance::camera() { return m_impl->camera; }
+
+void VulkifyInstance::setRenderScale(float scale) { m_impl->renderer.renderScale = scale; }
 
 Cursor VulkifyInstance::makeCursor(Icon icon) {
 	auto const extent = glm::ivec2(icon.bitmap.extent);
@@ -725,7 +776,7 @@ void VulkifyInstance::show() { glfwShowWindow(m_impl->window->win); }
 void VulkifyInstance::hide() { glfwHideWindow(m_impl->window->win); }
 void VulkifyInstance::close() { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
 
-Instance::Poll VulkifyInstance::poll() {
+EventQueue VulkifyInstance::poll() {
 	m_impl->window->events.clear();
 	m_impl->window->scancodes.clear();
 	m_impl->window->fileDrops.clear();
@@ -740,22 +791,23 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 		return {};
 	}
 	auto const sync = m_impl->renderer.sync();
-	m_impl->acquired = m_impl->surface.acquire(sync.draw, framebufferSize());
+	auto const fbSize = getFramebufferSize(m_impl->window->win);
+	m_impl->acquired = m_impl->surface.acquire(sync.draw, fbSize);
 	if (!m_impl->acquired) { return {}; }
 	auto& sr = m_impl->renderer;
-	auto cmd = sr.beginRender(m_impl->acquired.image);
+	auto cmd = sr.beginRender(m_impl->acquired.image, fbSize);
 	m_impl->vulkan.util->defer.decrement();
 	m_impl->renderer.clear = clear;
 
-	auto proj = m_impl->descriptorPool.get(0, 0, "UBO:P");
-	auto const extent = glm::uvec2(m_impl->acquired.image.extent.width, m_impl->acquired.image.extent.height);
+	auto const extent = sr.colourExtent();
+	auto proj = m_impl->setFactory.postInc(0, "UBO:P");
 	auto const mat_p = projection(extent);
 	proj.write(0, mat_p);
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
-	auto const view = RenderPassView{extent, &m_impl->view};
+	auto const cam = RenderCam{extent, &m_impl->camera};
 	auto const lwl = std::pair(m_impl->vram.vram->deviceLimits.lineWidthRange[0], m_impl->vram.vram->deviceLimits.lineWidthRange[1]);
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->descriptorPool, *sr.renderer.renderPass, std::move(cmd), input, view, lwl, m_impl->renderThread};
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->setFactory, *sr.renderer.renderPass, std::move(cmd), input, cam, lwl, m_impl->renderThread};
 }
 
 bool VulkifyInstance::endPass() {
@@ -764,10 +816,10 @@ bool VulkifyInstance::endPass() {
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();
 	m_impl->surface.submit(cb, sync);
-	m_impl->surface.present(m_impl->acquired, sync.present, framebufferSize());
+	m_impl->surface.present(m_impl->acquired, sync.present, getFramebufferSize(m_impl->window->win));
 	m_impl->acquired = {};
 	m_impl->renderer.next();
-	m_impl->descriptorPool.next();
+	m_impl->setFactory.next();
 	m_impl->acquired = {};
 	return true;
 }

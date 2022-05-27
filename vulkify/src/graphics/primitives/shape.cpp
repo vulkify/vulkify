@@ -1,5 +1,6 @@
 #include <vulkify/context/context.hpp>
 #include <vulkify/graphics/primitives/shape.hpp>
+#include <vulkify/instance/gpu.hpp>
 
 namespace vf {
 Shape::Shape(Context const& context, std::string name) : m_geometry(context, std::move(name)) {}
@@ -7,6 +8,11 @@ Shape::Shape(Context const& context, std::string name) : m_geometry(context, std
 void Shape::draw(Surface const& surface) const { surface.draw(Drawable{{&m_instance, 1}, m_geometry, &m_texture}); }
 
 OutlinedShape::OutlinedShape(Context const& context, std::string name) : Shape(context, std::move(name)), m_outline(context, m_geometry.name() + "_outline") {
+	if (!context.gpu().features.test(Gpu::Feature::eWireframe)) {
+		m_maxLineWidth = 0.0f;
+	} else {
+		m_maxLineWidth = context.gpu().maxLineWidth;
+	}
 	m_outline.state.topology = Topology::eLineStrip;
 	m_outline.state.polygonMode = PolygonMode::eLine;
 }
@@ -19,14 +25,16 @@ void OutlinedShape::setOutline(float lineWidth, Rgba rgba) {
 
 void OutlinedShape::draw(Surface const& surface) const {
 	Shape::draw(surface);
-	auto const outlineInstance = DrawInstance{m_instance.transform, m_outlineRgba};
-	surface.draw(Drawable{{&outlineInstance, 1}, m_outline, {}});
+	if (outlineAvailable()) {
+		auto const outlineInstance = DrawInstance{m_instance.transform, m_outlineRgba};
+		surface.draw(Drawable{{&outlineInstance, 1}, m_outline, {}});
+	}
 }
 
 void OutlinedShape::refreshOutline() { writeOutline(m_geometry.geometry()); }
 
 void OutlinedShape::writeOutline(Geometry geometry) {
-	if (geometry.vertices.empty()) { return; }
+	if (geometry.vertices.empty() || !outlineAvailable()) { return; }
 
 	static auto const rgba = white_v.normalize();
 	for (auto& vertex : geometry.vertices) {

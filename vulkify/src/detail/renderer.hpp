@@ -3,18 +3,25 @@
 #include <vulkify/core/rgba.hpp>
 
 namespace vf {
-struct RenderImage {
+struct ImageBarrier;
+
+struct RenderTarget {
 	VKImage colour{};
-	VKImage resolve;
+	VKImage resolve{};
+	vk::Extent2D extent{};
 };
 
-struct RenderTarget : RenderImage {
+struct Framebuffer : RenderTarget {
 	vk::Framebuffer framebuffer{};
+	operator vk::Framebuffer() const { return framebuffer; }
+	explicit operator bool() const { return framebuffer; }
 };
 
 struct Renderer {
-	vk::Device device{};
+	struct Frame;
+
 	vk::UniqueRenderPass renderPass{};
+	vk::Device device{};
 
 	static constexpr bool isSrgb(vk::Format const f) {
 		using F = vk::Format;
@@ -23,9 +30,20 @@ struct Renderer {
 
 	static Renderer make(vk::Device device, vk::Format colour, vk::SampleCountFlagBits samples);
 
-	vk::UniqueFramebuffer makeFramebuffer(RenderImage const& image) const;
-	void toColourOptimal(vk::CommandBuffer primary, std::span<vk::Image const> images) const;
-	void render(RenderTarget const& target, Rgba clear, vk::CommandBuffer primary, std::span<vk::CommandBuffer const> recorded) const;
-	void toPresentSrc(vk::CommandBuffer primary, vk::Image present) const;
+	vk::UniqueFramebuffer makeFramebuffer(RenderTarget const& target) const;
+};
+
+struct Renderer::Frame {
+	Renderer& renderer;
+	Framebuffer const& framebuffer;
+	vk::CommandBuffer cmd;
+
+	void render(Rgba clear, std::span<vk::CommandBuffer const> recorded) const;
+	void blit(VKImage const& src, VKImage const& dst) const;
+
+	void undefToColour(std::span<VKImage const> images) const;
+	void colourToTfr(VKImage const& src, VKImage const& dst) const;
+	void colourToPresent(VKImage const& image) const;
+	void tfrToPresent(VKImage const& image) const;
 };
 } // namespace vf

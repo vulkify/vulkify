@@ -165,7 +165,7 @@ void test(vf::Context context) {
 			switch (event.type) {
 			case vf::EventType::eKey: {
 				auto const& key = event.get<vf::EventType::eKey>();
-				if (key.key == vf::Key::eW && key.action == vf::Action::eRelease && key.mods.test(vf::Mod::eCtrl)) { return; }
+				if (key(vf::Key::eW, vf::Action::eRelease, vf::Mod::eCtrl)) { return; }
 			}
 			default: break;
 			}
@@ -173,7 +173,7 @@ void test(vf::Context context) {
 
 		if (auto pad = vf::Gamepad{0}) {
 			auto const dx = pad(vf::GamepadAxis::eLeftX) * frame.dt().count() * 100.0f;
-			context.view().position.x += dx;
+			context.camera().position.x += dx;
 		}
 
 		for (auto [star, index] : ktl::enumerate(stars.instances)) {

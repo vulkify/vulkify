@@ -17,22 +17,23 @@ class VulkifyInstance : public Instance {
 	Vram const& vram() const override;
 	Gpu const& gpu() const override;
 	bool closing() const override;
-	glm::uvec2 framebufferSize() const override;
-	glm::uvec2 windowSize() const override;
+	glm::uvec2 framebufferExtent() const override;
+	glm::uvec2 windowExtent() const override;
 	glm::ivec2 position() const override;
 	glm::vec2 contentScale() const override;
 	CursorMode cursorMode() const override;
 	glm::vec2 cursorPosition() const override;
 	MonitorList monitors() const override;
 	WindowFlags windowFlags() const override;
-	RenderView& view() const override;
 	AntiAliasing antiAliasing() const override;
+	float renderScale() const override;
+	std::vector<Gpu> gpuList() const override;
 
 	void show() override;
 	void hide() override;
 	void close() override;
 	void setPosition(glm::ivec2 xy) override;
-	void setSize(glm::uvec2 size) override;
+	void setExtent(glm::uvec2 size) override;
 	void setIcons(std::span<Icon const> icons) override;
 	void setCursorMode(CursorMode mode) override;
 	Cursor makeCursor(Icon icon) override;
@@ -41,8 +42,10 @@ class VulkifyInstance : public Instance {
 	void setWindowed(glm::uvec2 extent) override;
 	void setFullscreen(Monitor const& monitor, glm::uvec2 resolution) override;
 	void updateWindowFlags(WindowFlags set, WindowFlags unset) override;
+	Camera& camera() override;
+	void setRenderScale(float scale) override;
 
-	Poll poll() override;
+	EventQueue poll() override;
 	Surface beginPass(Rgba clear) override;
 	bool endPass() override;
 

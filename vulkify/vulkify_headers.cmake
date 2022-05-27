@@ -23,12 +23,12 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/bitmap.hpp
   include/vulkify/graphics/buffer_write.hpp
   include/vulkify/graphics/buffer.hpp
+  include/vulkify/graphics/camera.hpp
   include/vulkify/graphics/draw_model.hpp
   include/vulkify/graphics/drawable.hpp
   include/vulkify/graphics/geometry.hpp
   include/vulkify/graphics/image.hpp
   include/vulkify/graphics/primitive.hpp
-  include/vulkify/graphics/render_view.hpp
   include/vulkify/graphics/resource.hpp
   include/vulkify/graphics/shader.hpp
   include/vulkify/graphics/surface.hpp
@@ -43,6 +43,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/primitives/shape.hpp
   include/vulkify/graphics/primitives/text.hpp
 
+  include/vulkify/instance/event_queue.hpp
   include/vulkify/instance/event_type.hpp
   include/vulkify/instance/event.hpp
   include/vulkify/instance/gamepad.hpp

@@ -34,13 +34,29 @@ Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
 
 ## Requirements
 
+### Runtime
+
+- Vulkan 1.1 loader, conformant / portability-compatible ICD
+- C++ runtime (linked dynamically)
+- Desktop OS
+  - Linux
+  - Windows
+  - MacOS [experimental]
+
+### Build-time
+
 - CMake 3.17+
 - C++20 compiler and standard library
-- Vulkan 1.1+
+- Vulkan 1.1+ SDK
 - Desktop windowing system/manager
-  - Windows 10
-  - X11 / Wayland (untested)
-  - Raspbian (aarch64)
+  - Primary development environments:
+    - Plasma KDE / X11
+    - Windows 10
+    - Raspbian (aarch64)
+  - Other supported environments:
+    - GNOME, Xfce, Wayland, ... [untested]
+    - Windows 11/8/7/... [untested]
+    - MacOS (through MoltenVK / Vulkan SDK) [experimental]
 
 ## Usage
 
