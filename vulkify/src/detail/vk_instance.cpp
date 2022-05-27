@@ -27,14 +27,8 @@ vk::UniqueInstance makeInstance(std::vector<char const*> extensions, bool& out_v
 	}
 
 	auto const version = VK_MAKE_VERSION(version_v.major, version_v.minor, version_v.patch);
-#if defined(VULKIFY_REQUIRE_VULKAN_1_1_0)
-	static constexpr auto apiVersion = VK_API_VERSION_1_1;
-#else
-	static constexpr auto apiVersion = VK_API_VERSION_1_0;
-#endif
-	auto const ai = vk::ApplicationInfo("vulkify", version, "vulkify", version, apiVersion);
+	auto const ai = vk::ApplicationInfo("vulkify", version, "vulkify", version, VK_API_VERSION_1_1);
 	auto ici = vk::InstanceCreateInfo{};
-	// ici.flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
 	ici.pApplicationInfo = &ai;
 	ici.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size());
 	ici.ppEnabledExtensionNames = extensions.data();
