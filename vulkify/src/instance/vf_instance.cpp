@@ -533,12 +533,15 @@ VulkifyInstance::~VulkifyInstance() {
 }
 
 PhysicalDevice selectDevice(std::span<PhysicalDevice> devices, GpuSelector const* gpuSelector) {
-	std::size_t index{0};
+	assert(!devices.empty());
+	std::size_t index{};
 	if (gpuSelector) {
 		auto gpus = std::vector<Gpu>{};
 		gpus.reserve(devices.size());
 		for (auto const& device : devices) { gpus.push_back(device.gpu); }
-		if (auto i = (*gpuSelector)(gpus); i < devices.size()) { index = i; }
+		auto const first = gpus.data();
+		auto const last = first + gpus.size();
+		if (auto gpu = gpuSelector->operator()(first, last); gpu < last) { index = gpu - first; }
 	}
 	return std::move(devices[index]);
 }

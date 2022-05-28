@@ -1,8 +1,11 @@
 #include <vulkify/context/context.hpp>
 #include <vulkify/instance/instance_create_info.hpp>
+#include <functional>
 #include <string>
 
 namespace vf {
+using SelectGpu = std::function<std::size_t(std::span<Gpu const>)>;
+
 ///
 /// \brief Context (and Instance) builder
 ///
@@ -21,11 +24,12 @@ class Builder {
 	Builder& setFlag(WindowFlag flag, bool set = true);
 	Builder& setFlag(InstanceFlag flag, bool set = true);
 	Builder& setAntiAliasing(AntiAliasing aa);
-	Builder& setGpuSelector(Ptr<GpuSelector const> selector);
+	Builder& setSelectGpu(SelectGpu selectGpu);
 
 	Context::Result build();
 
   private:
+	SelectGpu m_selectGpu{};
 	InstanceCreateInfo m_createInfo{};
 	std::string m_title{"(Untitled)"};
 };
@@ -67,8 +71,8 @@ inline Builder& Builder::setAntiAliasing(AntiAliasing aa) {
 	return *this;
 }
 
-inline Builder& Builder::setGpuSelector(Ptr<GpuSelector const> selector) {
-	m_createInfo.gpuSelector = selector;
+inline Builder& Builder::setSelectGpu(SelectGpu selectGpu) {
+	m_selectGpu = std::move(selectGpu);
 	return *this;
 }
 } // namespace vf
