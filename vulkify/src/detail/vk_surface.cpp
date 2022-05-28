@@ -118,7 +118,8 @@ void VKSurface::submit(vk::CommandBuffer const cb, VKSync const& sync) {
 	submitInfo.signalSemaphoreCount = 1U;
 	submitInfo.pSignalSemaphores = &sync.present;
 	auto lock = std::scoped_lock(*device.queueMutex);
-	device.queue.queue.submit(1U, &submitInfo, sync.drawn);
+	auto res = device.queue.queue.submit(1U, &submitInfo, sync.drawn);
+	if (res != vk::Result::eSuccess) { VF_TRACE("[vf::(internal)] Queue submit failure!"); }
 }
 
 void VKSurface::present(Acquire const& acquired, vk::Semaphore const wait, glm::uvec2 const extent) {

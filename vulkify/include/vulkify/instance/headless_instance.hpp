@@ -24,7 +24,6 @@ class HeadlessInstance : public Instance {
 	MonitorList monitors() const override { return {}; }
 	WindowFlags windowFlags() const override { return m_windowFlags; }
 	AntiAliasing antiAliasing() const override { return AntiAliasing::eNone; }
-	float renderScale() const override { return 1.0f; }
 	std::vector<Gpu> gpuList() const override { return {m_gpu}; }
 
 	void show() override {}
@@ -41,7 +40,6 @@ class HeadlessInstance : public Instance {
 	void setFullscreen(Monitor const&, glm::uvec2) override {}
 	void updateWindowFlags(WindowFlags, WindowFlags) override {}
 	Camera& camera() override { return m_camera; }
-	void setRenderScale(float) override {}
 
 	EventQueue poll() override { return std::move(m_eventQueue); }
 	Surface beginPass(Rgba) override { return {}; }

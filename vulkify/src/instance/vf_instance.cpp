@@ -377,24 +377,20 @@ struct FrameSync {
 };
 
 struct SwapchainRenderer {
-	enum ImageType { eColour, eResolve };
-
 	Vram vram{};
 
 	Renderer renderer{};
 	Rotator<FrameSync> frameSync{};
-	ImageCache images[2]{};
+	ImageCache msaaImage{};
 	vk::UniqueCommandPool commandPool{};
-	float renderScale{1.0f};
 
 	Framebuffer framebuffer{};
 	VKImage present{};
 	Rgba clear{};
 	bool msaa{};
 
-	static SwapchainRenderer make(Vram const& vram, std::size_t buffering = 2) {
+	static SwapchainRenderer make(Vram const& vram, vk::Format format, std::size_t buffering = 2) {
 		auto ret = SwapchainRenderer{vram};
-		auto const format = vram.device.flags.test(VKDevice::Flag::eLinearSwp) ? vk::Format::eR8G8B8A8Unorm : vk::Format::eR8G8B8A8Srgb;
 		auto renderer = Renderer::make(vram.device.device, format, vram.colourSamples);
 		if (!renderer.renderPass) { return {}; }
 		ret.renderer = std::move(renderer);
@@ -402,20 +398,26 @@ struct SwapchainRenderer {
 		static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
 		auto cpci = vk::CommandPoolCreateInfo(flags, vram.device.queue.family);
 		ret.commandPool = vram.device.device.createCommandPoolUnique(cpci);
-		ret.resync(buffering);
 
-		auto& image = ret.images[eColour];
-		image = {{vram, "render_pass_colour_image"}};
-		image.setColour();
-		image.info.info.format = format;
-		image.info.info.samples = vram.colourSamples;
+		ret.vram.buffering = buffering;
+		auto const count = static_cast<std::uint32_t>(buffering);
+		auto primaries = vram.device.device.allocateCommandBuffers({*ret.commandPool, vk::CommandBufferLevel::ePrimary, count});
+		auto secondaries = vram.device.device.allocateCommandBuffers({*ret.commandPool, vk::CommandBufferLevel::eSecondary, count});
+		for (std::size_t i = 0; i < buffering; ++i) {
+			auto sync = FrameSync::make(vram.device.device);
+			sync.cmd.primary = std::move(primaries[i]);
+			sync.cmd.secondary = std::move(secondaries[i]);
+			ret.frameSync.push(std::move(sync));
+		}
 
 		if (vram.colourSamples > vk::SampleCountFlagBits::e1) {
 			ret.msaa = true;
-			auto& image = ret.images[eResolve];
-			image.info = ret.images[eColour].info;
-			image.info.name = "render_pass_resolve_image";
-			image.info.info.samples = vk::SampleCountFlagBits::e1;
+			auto& image = ret.msaaImage;
+			image = {{vram, "render_pass_msaa_image"}};
+			image.setColour();
+			image.info.info.samples = vram.colourSamples;
+			image.info.info.format = format;
+			VF_TRACE("[vf::(internal)] Using custom MSAA render target");
 		}
 
 		return ret;
@@ -424,32 +426,17 @@ struct SwapchainRenderer {
 	explicit operator bool() const { return static_cast<bool>(renderer.renderPass); }
 	VKSync sync() const { return frameSync.get().sync(); }
 
-	void resync(std::size_t buffering) {
-		vram.buffering = buffering;
-		for (auto& sync : frameSync.storage) { vram.device.defer(std::move(sync)); }
-		frameSync.storage.clear();
-		auto const count = static_cast<std::uint32_t>(buffering);
-		auto primaries = vram.device.device.allocateCommandBuffers({*commandPool, vk::CommandBufferLevel::ePrimary, count});
-		auto secondaries = vram.device.device.allocateCommandBuffers({*commandPool, vk::CommandBufferLevel::eSecondary, count});
-		for (std::size_t i = 0; i < buffering; ++i) {
-			auto sync = FrameSync::make(vram.device.device);
-			sync.cmd.primary = std::move(primaries[i]);
-			sync.cmd.secondary = std::move(secondaries[i]);
-			frameSync.push(std::move(sync));
-		}
-	}
-
-	Extent colourExtent() const { return {images[eColour].info.info.extent.width, images[eColour].info.info.extent.height}; }
-
 	vk::CommandBuffer beginRender(VKImage acquired, Extent extent) {
 		if (!renderer.renderPass) { return {}; }
 
 		auto& sync = frameSync.get();
 		vram.device.reset(*sync.drawn);
-		auto const scaledExtent = ImageCache::scale2D(extent, renderScale);
-		framebuffer.colour = images[eColour].refresh(scaledExtent);
-		if (msaa) { framebuffer.resolve = images[eResolve].refresh(scaledExtent); }
-		framebuffer.extent = vk::Extent2D(scaledExtent.x, scaledExtent.y);
+		framebuffer.colour = acquired;
+		if (msaa) {
+			framebuffer.colour = msaaImage.refresh(extent);
+			framebuffer.resolve = acquired;
+		}
+		framebuffer.extent = vk::Extent2D(extent.x, extent.y);
 		sync.framebuffer = renderer.makeFramebuffer(framebuffer);
 		if (!sync.framebuffer) { return {}; }
 
@@ -471,19 +458,12 @@ struct SwapchainRenderer {
 		sync.cmd.primary.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 		auto images = ktl::fixed_vector<VKImage, 2>{framebuffer.colour};
-		auto src = std::ref(framebuffer.colour);
-		auto const& dst = present;
-		if (msaa) {
-			images.push_back(framebuffer.resolve);
-			src = framebuffer.resolve;
-		}
+		if (msaa) { images.push_back(framebuffer.resolve); }
 
 		auto frame = Renderer::Frame{renderer, framebuffer, sync.cmd.primary};
 		frame.undefToColour(images);
 		frame.render(clear, {&sync.cmd.secondary, 1});
-		frame.colourToTfr(src, present);
-		frame.blit(src, dst);
-		frame.tfrToPresent(dst);
+		frame.colourToPresent(present);
 
 		sync.cmd.primary.end();
 		framebuffer = {};
@@ -603,7 +583,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
 	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
 
-	auto renderer = SwapchainRenderer::make(impl->vram.vram);
+	auto renderer = SwapchainRenderer::make(impl->vram.vram, impl->surface.info.imageFormat);
 	if (!renderer) { return Error::eVulkanInitFailure; }
 	impl->renderer = std::move(renderer);
 	impl->vram.vram->textureFormat = textureFormat(impl->surface.info.imageFormat);
@@ -636,12 +616,7 @@ bool VulkifyInstance::closing() const {
 	return ret;
 }
 
-Extent VulkifyInstance::framebufferExtent() const {
-	auto const ret = m_impl->renderer.colourExtent();
-	if (ret.x == 0 || ret.y == 0) { return ImageCache::scale2D(getFramebufferSize(m_impl->window->win), m_impl->renderer.renderScale); }
-	return ret;
-}
-
+Extent VulkifyInstance::framebufferExtent() const { return getFramebufferSize(m_impl->window->win); }
 Extent VulkifyInstance::windowExtent() const { return getWindowSize(m_impl->window->win); }
 glm::ivec2 VulkifyInstance::position() const { return getGlfwVec<int>(m_impl->window->win, &glfwGetWindowPos); }
 glm::vec2 VulkifyInstance::contentScale() const { return getGlfwVec<float>(m_impl->window->win, glfwGetWindowContentScale); }
@@ -685,7 +660,6 @@ AntiAliasing VulkifyInstance::antiAliasing() const {
 	}
 }
 
-float VulkifyInstance::renderScale() const { return m_impl->renderer.renderScale; }
 std::vector<Gpu> VulkifyInstance::gpuList() const { return m_impl->vulkan.availableDevices(); }
 
 void VulkifyInstance::setPosition(glm::ivec2 xy) { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
@@ -740,8 +714,6 @@ void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
 
 Camera& VulkifyInstance::camera() { return m_impl->camera; }
 
-void VulkifyInstance::setRenderScale(float scale) { m_impl->renderer.renderScale = scale; }
-
 Cursor VulkifyInstance::makeCursor(Icon icon) {
 	auto const extent = glm::ivec2(icon.bitmap.extent);
 	auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.data.data()));
@@ -789,15 +761,14 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 		return {};
 	}
 	auto const sync = m_impl->renderer.sync();
-	auto const fbSize = getFramebufferSize(m_impl->window->win);
-	m_impl->acquired = m_impl->surface.acquire(sync.draw, fbSize);
+	auto const extent = getFramebufferSize(m_impl->window->win);
+	m_impl->acquired = m_impl->surface.acquire(sync.draw, extent);
 	if (!m_impl->acquired) { return {}; }
 	auto& sr = m_impl->renderer;
-	auto cmd = sr.beginRender(m_impl->acquired.image, fbSize);
+	auto cmd = sr.beginRender(m_impl->acquired.image, extent);
 	m_impl->vulkan.util->defer.decrement();
 	m_impl->renderer.clear = clear;
 
-	auto const extent = sr.colourExtent();
 	auto proj = m_impl->setFactory.postInc(0, "UBO:P");
 	auto const mat_p = projection(extent);
 	proj.write(0, mat_p);
