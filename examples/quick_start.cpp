@@ -192,8 +192,6 @@ void test(vf::Context context) {
 }
 } // namespace
 
-std::ostream& operator<<(std::ostream& o, vf::Version const& v) { return o << 'v' << v.major << '.' << v.minor << '.' << v.patch; }
-
 int main(int argc, char** argv) {
 	bool const headless = argc > 1 && argv[1] == std::string_view("--headless");
 	std::cout << "vulkify " << vf::version_v << '\n';

@@ -33,6 +33,10 @@
 
 #include <ttf/ft.hpp>
 
+#include <ktl/ktl_version.hpp>
+
+static_assert(ktl::version_v >= ktl::kversion{1, 3, 0});
+
 namespace vf {
 namespace {
 using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
