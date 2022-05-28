@@ -2,6 +2,7 @@
 #include <detail/cache.hpp>
 #include <detail/vram.hpp>
 #include <glm/mat4x4.hpp>
+#include <vulkify/instance/instance_enums.hpp>
 
 namespace vf {
 struct PipelineFactory;
@@ -16,6 +17,26 @@ inline vk::SamplerCreateInfo samplerInfo(Vram const& vram, vk::SamplerAddressMod
 	ret.mipmapMode = vk::SamplerMipmapMode::eNearest;
 	ret.addressModeU = ret.addressModeV = ret.addressModeW = mode;
 	return ret;
+}
+
+constexpr vk::PresentModeKHR fromVSync(VSync vsync) {
+	switch (vsync) {
+	default:
+	case VSync::eOn: return vk::PresentModeKHR::eFifo;
+	case VSync::eAdaptive: return vk::PresentModeKHR::eFifoRelaxed;
+	case VSync::eTripleBuffer: return vk::PresentModeKHR::eMailbox;
+	case VSync::eOff: return vk::PresentModeKHR::eImmediate;
+	}
+}
+
+constexpr VSync toVSync(vk::PresentModeKHR mode) {
+	switch (mode) {
+	default:
+	case vk::PresentModeKHR::eFifo: return VSync::eOn;
+	case vk::PresentModeKHR::eFifoRelaxed: return VSync::eAdaptive;
+	case vk::PresentModeKHR::eMailbox: return VSync::eTripleBuffer;
+	case vk::PresentModeKHR::eImmediate: return VSync::eOff;
+	}
 }
 
 struct ImageSampler {

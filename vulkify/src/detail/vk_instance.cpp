@@ -1,3 +1,4 @@
+#include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
 #include <detail/vk_device.hpp>
 #include <detail/vk_instance.hpp>
@@ -69,7 +70,7 @@ vk::UniqueDebugUtilsMessengerEXT makeDebugMessenger(vk::Instance instance) {
 	return instance.createDebugUtilsMessengerEXTUnique(dumci, nullptr);
 }
 
-Gpu makeGpu(vk::PhysicalDevice const& device) {
+Gpu makeGpu(vk::PhysicalDevice const& device, vk::SurfaceKHR surface) {
 	auto ret = Gpu{};
 	auto const properties = device.getProperties();
 	ret.name = properties.deviceName.data();
@@ -87,6 +88,7 @@ Gpu makeGpu(vk::PhysicalDevice const& device) {
 	if (features.samplerAnisotropy) { ret.features.set(Gpu::Feature::eAnisotropicFiltering); }
 	if (features.sampleRateShading) { ret.features.set(Gpu::Feature::eMsaa); }
 	if (features.wideLines) { ret.features.set(Gpu::Feature::eWideLines); }
+	for (auto const mode : device.getSurfacePresentModesKHR(surface)) { ret.presentModes.set(toVSync(mode)); }
 	return ret;
 }
 
@@ -126,7 +128,7 @@ std::vector<PhysicalDevice> validDevices(vk::Instance instance, vk::SurfaceKHR s
 	auto ret = std::vector<PhysicalDevice>{};
 	for (auto const& device : available) {
 		if (!hasAllExtensions(device) || !hasAllFeatures(device)) { continue; }
-		auto pd = PhysicalDevice{makeGpu(device), device};
+		auto pd = PhysicalDevice{makeGpu(device, surface), device};
 		if (!getQueueFamily(device, pd.queueFamily)) { continue; }
 		if (device.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu) { pd.score -= 100; }
 		if (device.getFeatures().wideLines) { pd.score -= 10; }
@@ -162,7 +164,7 @@ std::vector<Gpu> VKInstance::availableDevices() const {
 	if (instance && surface) {
 		auto devices = validDevices(*instance, *surface);
 		ret.reserve(devices.size());
-		for (auto const& device : devices) { ret.push_back(makeGpu(device.device)); }
+		for (auto const& device : devices) { ret.push_back(makeGpu(device.device, *surface)); }
 	}
 	return ret;
 }

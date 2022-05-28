@@ -6,4 +6,5 @@ enum class WindowFlag { eBorderless, eResizable, eFloating, eAutoIconify, eMaxim
 using WindowFlags = ktl::enum_flags<WindowFlag>;
 
 enum class AntiAliasing { eNone, e2x, e4x, e8x, e16x };
+enum class VSync { eOn, eAdaptive, eTripleBuffer, eOff };
 } // namespace vf

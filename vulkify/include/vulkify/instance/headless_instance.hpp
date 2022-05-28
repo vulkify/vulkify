@@ -24,6 +24,7 @@ class HeadlessInstance : public Instance {
 	MonitorList monitors() const override { return {}; }
 	WindowFlags windowFlags() const override { return m_windowFlags; }
 	AntiAliasing antiAliasing() const override { return AntiAliasing::eNone; }
+	VSync vsync() const override { return {}; }
 	std::vector<Gpu> gpuList() const override { return {m_gpu}; }
 
 	void show() override {}
@@ -39,6 +40,7 @@ class HeadlessInstance : public Instance {
 	void setWindowed(glm::uvec2) override {}
 	void setFullscreen(Monitor const&, glm::uvec2) override {}
 	void updateWindowFlags(WindowFlags, WindowFlags) override {}
+	bool setVSync(VSync) override { return false; }
 	Camera& camera() override { return m_camera; }
 
 	EventQueue poll() override { return std::move(m_eventQueue); }
@@ -52,7 +54,7 @@ class HeadlessInstance : public Instance {
 	Camera m_camera{};
 
   private:
-	Gpu m_gpu = {"vulkify (headless)", {}, {}, Gpu::Type::eOther};
+	Gpu m_gpu = {"vulkify (headless)", {}, {}, {}, Gpu::Type::eOther};
 	Clock::time_point m_start = Clock::now();
 	Time m_autoclose{};
 };

@@ -660,6 +660,8 @@ AntiAliasing VulkifyInstance::antiAliasing() const {
 	}
 }
 
+VSync VulkifyInstance::vsync() const { return toVSync(m_impl->surface.info.presentMode); }
+
 std::vector<Gpu> VulkifyInstance::gpuList() const { return m_impl->vulkan.availableDevices(); }
 
 void VulkifyInstance::setPosition(glm::ivec2 xy) { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
@@ -710,6 +712,23 @@ void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
 	} else {
 		if (set.test(WindowFlag::eMaximized)) { glfwMaximizeWindow(m_impl->window->win); }
 	}
+}
+
+bool VulkifyInstance::setVSync(VSync vsync) {
+	static constexpr std::string_view modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
+	if (m_impl->surface.info.presentMode == fromVSync(vsync)) { return true; }
+	if (!m_impl->vulkan.gpu.gpu.presentModes.test(vsync)) {
+		VF_TRACEF("[vf::(internal)] Unsupported VSync mode requested [{}]", modes_v[static_cast<int>(vsync)]);
+		return false;
+	}
+	m_impl->surface.info.presentMode = fromVSync(vsync);
+	auto res = m_impl->surface.refresh(framebufferExtent());
+	if (res != vk::Result::eSuccess) {
+		VF_TRACE("[vf::(internal)] Failed to create swapchain!");
+		return false;
+	}
+	VF_TRACEF("[vf::(internal)] VSync set to [{}]", modes_v[static_cast<int>(vsync)]);
+	return true;
 }
 
 Camera& VulkifyInstance::camera() { return m_impl->camera; }

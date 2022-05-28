@@ -48,6 +48,7 @@ class Instance {
 	virtual MonitorList monitors() const = 0;
 	virtual WindowFlags windowFlags() const = 0;
 	virtual AntiAliasing antiAliasing() const = 0;
+	virtual VSync vsync() const = 0;
 	virtual std::vector<Gpu> gpuList() const = 0;
 
 	virtual void show() = 0;
@@ -63,6 +64,7 @@ class Instance {
 	virtual void setWindowed(glm::uvec2 extent) = 0;
 	virtual void setFullscreen(Monitor const& monitor, glm::uvec2 resolution = {}) = 0;
 	virtual void updateWindowFlags(WindowFlags set, WindowFlags unset = {}) = 0;
+	virtual bool setVSync(VSync vsync) = 0;
 	virtual Camera& camera() = 0;
 
 	virtual EventQueue poll() = 0;
