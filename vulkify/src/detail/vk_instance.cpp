@@ -1,4 +1,5 @@
 #include <detail/trace.hpp>
+#include <detail/vk_device.hpp>
 #include <detail/vk_instance.hpp>
 #include <ktl/enumerate.hpp>
 #include <ktl/fixed_vector.hpp>
@@ -30,6 +31,9 @@ vk::UniqueInstance makeInstance(std::vector<char const*> extensions, bool& out_v
 	auto const ai = vk::ApplicationInfo("vulkify", version, "vulkify", version, VK_API_VERSION_1_1);
 	auto ici = vk::InstanceCreateInfo{};
 	ici.pApplicationInfo = &ai;
+#if defined(VULKIFY_VK_PORTABILITY)
+	ici.flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
+#endif
 	ici.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size());
 	ici.ppEnabledExtensionNames = extensions.data();
 	if (out_validation) {
@@ -194,5 +198,18 @@ Result<VKInstance> VKInstance::Builder::operator()(PhysicalDevice&& selected) {
 	instance.queue = VKQueue{instance.device->getQueue(selected.queueFamily, 0), selected.queueFamily};
 	instance.util = ktl::make_unique<Util>();
 	return std::move(instance);
+}
+
+void VKDevice::wait(vk::Fence fence, std::uint64_t wait) const {
+	if (fence) {
+		auto res = device.waitForFences(1, &fence, true, static_cast<std::uint64_t>(wait));
+		if (res != vk::Result::eSuccess) { VF_TRACE("[vf::(internal)] Fence wait failure!"); }
+	}
+}
+
+void VKDevice::reset(vk::Fence fence, std::uint64_t wait) const {
+	if (wait > 0 && busy(fence)) { this->wait(fence, wait); }
+	auto res = device.resetFences(1, &fence);
+	if (res != vk::Result::eSuccess) { VF_TRACE("[vf::(internal)] Fence reset failure!"); }
 }
 } // namespace vf

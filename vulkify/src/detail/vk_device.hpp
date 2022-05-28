@@ -39,14 +39,8 @@ struct VKDevice {
 
 	bool busy(vk::Fence fence) const { return fence && device.getFenceStatus(fence) == vk::Result::eNotReady; }
 
-	void wait(vk::Fence fence, std::uint64_t wait = fence_wait_v) const {
-		if (fence) { device.waitForFences(1, &fence, true, static_cast<std::uint64_t>(wait)); }
-	}
-
-	void reset(vk::Fence fence, std::uint64_t wait = fence_wait_v) const {
-		if (wait > 0 && busy(fence)) { this->wait(fence, wait); }
-		device.resetFences(1, &fence);
-	}
+	void wait(vk::Fence fence, std::uint64_t wait = fence_wait_v) const;
+	void reset(vk::Fence fence, std::uint64_t wait = fence_wait_v) const;
 
 	vk::UniqueImageView makeImageView(vk::Image const image, vk::Format const format, vk::ImageAspectFlags aspects) const {
 		vk::ImageViewCreateInfo info;

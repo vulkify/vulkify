@@ -75,7 +75,7 @@ Documentation and sample code is available on [the wiki](https://github.com/vulk
 - [VulkanHPP](https://github.com/KhronosGroup/Vulkan-Hpp)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [freetype](https://github.com/freetype/freetype)
-- [ktl](https://github.com/karnkaul/ktl)
+- [ktl](https://github.com/karnkaul/ktl) (public: available to users, via FetchContent)
 
 [Original repository](https://github.com/vulkify/vulkify)
 

@@ -119,7 +119,7 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Spec
 	gpci.pMultisampleState = &pmssci;
 
 	try {
-		return device.createGraphicsPipelineUnique({}, gpci);
+		return device.createGraphicsPipelineUnique({}, gpci).value;
 	} catch ([[maybe_unused]] std::runtime_error const& e) {
 		VF_TRACEF("[vf::(Internal)] Pipeline creation failure! {}", e.what());
 		return {};

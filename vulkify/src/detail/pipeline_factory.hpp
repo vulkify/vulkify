@@ -1,6 +1,7 @@
 #pragma once
 #include <detail/vk_instance.hpp>
 #include <ktl/hash_table.hpp>
+#include <vulkan/vulkan_hash.hpp>
 #include <span>
 
 namespace vf {
