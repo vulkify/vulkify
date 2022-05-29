@@ -12,7 +12,7 @@ struct Selector : GpuSelector {
 		auto const size = static_cast<std::size_t>(last - first);
 		auto ret = select({first, size});
 		if (ret >= size) {
-			VF_TRACEF("[vf::(internal)] Out-of-range Gpu index [{}], max: {}", ret, size - 1);
+			VF_TRACEW("vf::(internal)", "Out-of-range Gpu index [{}], max: {}", ret, size - 1);
 			ret = 0;
 		}
 		return first + ret;

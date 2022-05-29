@@ -20,10 +20,10 @@ vk::UniqueInstance makeInstance(std::vector<char const*> extensions, bool& out_v
 		auto const availLayers = vk::enumerateInstanceLayerProperties();
 		auto layerSearch = [](vk::LayerProperties const& lp) { return lp.layerName == validation_layer_v; };
 		if (std::find_if(availLayers.begin(), availLayers.end(), layerSearch) != availLayers.end()) {
-			VF_TRACE("[vk::(internal)] Requesting Vulkan validation layers");
+			VF_TRACE("vf::(internal)", trace::Type::eInfo, "Requesting Vulkan validation layers");
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		} else {
-			VF_TRACE("[vk::(internal)] VK_LAYER_KHRONOS_validation not found");
+			VF_TRACE("vf::(internal)", trace::Type::eWarn, "VK_LAYER_KHRONOS_validation not found");
 			out_validation = false;
 		}
 	}
@@ -51,11 +51,11 @@ vk::UniqueDebugUtilsMessengerEXT makeDebugMessenger(vk::Instance instance) {
 		std::string_view const msg = pCallbackData && pCallbackData->pMessage ? pCallbackData->pMessage : "UNKNOWN";
 		switch (messageSeverity) {
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-			std::fprintf(stderr, "[E] [vf::Validation] %s\n", msg.data());
+			trace::log({std::string(msg), "vf::Validation", trace::Type::eError});
 			return true;
 		}
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: VF_TRACEF("[W] [vf::Validation] {}", msg); break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: VF_TRACEF("[I] [vf::Validation] {}", msg); break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: VF_TRACEW("vf::Validation", "{}", msg); break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: VF_TRACEI("vf::Validation", "{}", msg); break;
 		default: break;
 		}
 		return false;
@@ -205,13 +205,13 @@ Result<VKInstance> VKInstance::Builder::operator()(PhysicalDevice&& selected) {
 void VKDevice::wait(vk::Fence fence, std::uint64_t wait) const {
 	if (fence) {
 		auto res = device.waitForFences(1, &fence, true, static_cast<std::uint64_t>(wait));
-		if (res != vk::Result::eSuccess) { VF_TRACE("[vf::(internal)] Fence wait failure!"); }
+		if (res != vk::Result::eSuccess) { VF_TRACE("vf::(internal)", trace::Type::eError, "Fence wait failure!"); }
 	}
 }
 
 void VKDevice::reset(vk::Fence fence, std::uint64_t wait) const {
 	if (wait > 0 && busy(fence)) { this->wait(fence, wait); }
 	auto res = device.resetFences(1, &fence);
-	if (res != vk::Result::eSuccess) { VF_TRACE("[vf::(internal)] Fence reset failure!"); }
+	if (res != vk::Result::eSuccess) { VF_TRACE("vf::(internal)", trace::Type::eError, "Fence reset failure!"); }
 }
 } // namespace vf

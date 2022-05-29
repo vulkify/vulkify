@@ -31,11 +31,13 @@ constexpr vk::PrimitiveTopology topology(Topology topo) {
 	default: return vk::PrimitiveTopology::eTriangleStrip;
 	}
 }
+
+constexpr auto name_v = "vf::(internal)";
 } // namespace
 
 void RenderPass::writeView(DescriptorSet& set) const {
 	if (!set) {
-		VF_TRACE("[vf::(internal)] Failed to write view set");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write view set");
 		return;
 	}
 	auto const scale = cam.camera->view.getScale(cam.extent);
@@ -46,7 +48,7 @@ void RenderPass::writeView(DescriptorSet& set) const {
 
 void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> instances, Tex tex) const {
 	if (!set || instances.empty() || !tex.sampler || !tex.view) {
-		VF_TRACE("[vf::(internal)] Failed to write models set");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write models set");
 		return;
 	}
 	auto const& sb = shaderInput.one;
@@ -58,7 +60,7 @@ void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> inst
 void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
 	if (layout == bound) { return; }
 	if (!layout || !commandBuffer) {
-		VF_TRACE("[vf::(internal)] Failed to bind pipeline");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to bind pipeline");
 		return;
 	}
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
@@ -68,7 +70,7 @@ void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
 
 void RenderPass::setViewport() const {
 	if (!commandBuffer || !cam.camera) {
-		VF_TRACE("[vf::(internal)] Failed to set viewport");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to set viewport");
 		return;
 	}
 	auto const vp = Rect{{cam.extent * cam.camera->viewport.extent, cam.extent * cam.camera->viewport.offset}};

@@ -35,7 +35,7 @@
 
 #include <ktl/ktl_version.hpp>
 
-static_assert(ktl::version_v >= ktl::kversion{1, 3, 0});
+static_assert(ktl::version_v >= ktl::kversion{1, 4, 0});
 
 namespace vf {
 namespace {
@@ -215,7 +215,7 @@ Result<std::shared_ptr<UniqueGlfw>> getOrMakeGlfw() {
 		glfwTerminate();
 		return Error::eNoVulkanSupport;
 	}
-	glfwSetErrorCallback([]([[maybe_unused]] int code, [[maybe_unused]] char const* szDesc) { VF_TRACEF("[vf::Context] GLFW Error [{}]: {}", code, szDesc); });
+	glfwSetErrorCallback([]([[maybe_unused]] int code, [[maybe_unused]] char const* szDesc) { VF_TRACEE("vf::Context", "GLFW Error [{}]: {}", code, szDesc); });
 	auto ret = std::make_shared<UniqueGlfw>(true);
 	s_glfw = ret;
 	return ret;
@@ -421,7 +421,7 @@ struct SwapchainRenderer {
 			image.setColour();
 			image.info.info.samples = vram.colourSamples;
 			image.info.info.format = format;
-			VF_TRACE("[vf::(internal)] Using custom MSAA render target");
+			VF_TRACE("vf::(internal)", trace::Type::eInfo, "Using custom MSAA render target");
 		}
 
 		return ret;
@@ -725,16 +725,16 @@ bool VulkifyInstance::setVSync(VSync vsync) {
 	static constexpr std::string_view modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
 	if (m_impl->surface.info.presentMode == fromVSync(vsync)) { return true; }
 	if (!m_impl->vulkan.gpu.gpu.presentModes.test(vsync)) {
-		VF_TRACEF("[vf::(internal)] Unsupported VSync mode requested [{}]", modes_v[static_cast<int>(vsync)]);
+		VF_TRACEW("vf::(internal)", "Unsupported VSync mode requested [{}]", modes_v[static_cast<int>(vsync)]);
 		return false;
 	}
 	m_impl->surface.info.presentMode = fromVSync(vsync);
 	auto res = m_impl->surface.refresh(framebufferExtent());
 	if (res != vk::Result::eSuccess) {
-		VF_TRACE("[vf::(internal)] Failed to create swapchain!");
+		VF_TRACE("vf::(internal)", trace::Type::eError, "Failed to create swapchain!");
 		return false;
 	}
-	VF_TRACEF("[vf::(internal)] VSync set to [{}]", modes_v[static_cast<int>(vsync)]);
+	VF_TRACEI("vf::(internal)", "VSync set to [{}]", modes_v[static_cast<int>(vsync)]);
 	return true;
 }
 
@@ -783,7 +783,7 @@ EventQueue VulkifyInstance::poll() {
 
 Surface VulkifyInstance::beginPass(Rgba clear) {
 	if (m_impl->acquired) {
-		VF_TRACE("[vf::(Internal)] RenderPass already begun");
+		VF_TRACE("vf::(internal)", trace::Type::eWarn, "RenderPass already begun");
 		return {};
 	}
 	auto const sync = m_impl->renderer.sync();

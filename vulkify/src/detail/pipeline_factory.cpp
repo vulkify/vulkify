@@ -18,7 +18,7 @@ PipelineFactory PipelineFactory::make(VKDevice const& device, VertexInput vertex
 	if (!device) { return {}; }
 	auto ret = PipelineFactory{};
 	if (!makeDefaultShaders(device.device, ret.defaultShaders.vert, ret.defaultShaders.frag)) {
-		VF_TRACE("[vf::(Internal)] Failed to create default shader modules");
+		VF_TRACE("vf::(internal)", trace::Type::eError, "Failed to create default shader modules");
 		return {};
 	}
 	ret.device = device.device;
@@ -121,7 +121,7 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Spec
 	try {
 		return device.createGraphicsPipelineUnique({}, gpci).value;
 	} catch ([[maybe_unused]] std::runtime_error const& e) {
-		VF_TRACEF("[vf::(Internal)] Pipeline creation failure! {}", e.what());
+		VF_TRACEW("vf::(internal)", "Pipeline creation failure! {}", e.what());
 		return {};
 	}
 }

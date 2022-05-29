@@ -8,10 +8,12 @@
 #include <sstream>
 
 namespace vf {
+static constexpr auto name_v = "vf::Ttf";
+
 FtLib FtLib::make() noexcept {
 	FtLib ret;
 	if (FT_Init_FreeType(&ret.lib)) {
-		VF_TRACE("[vf::Ttf] Failed to initialize freetype!");
+		VF_TRACE(name_v, trace::Type::eError, "Failed to initialize freetype!");
 		return {};
 	}
 	return ret;
@@ -21,7 +23,7 @@ FtFace FtFace::make(FT_Library lib, std::span<std::byte const> bytes) noexcept {
 	static_assert(sizeof(FT_Byte) == sizeof(std::byte));
 	FtFace ret;
 	if (FT_New_Memory_Face(lib, reinterpret_cast<FT_Byte const*>(bytes.data()), static_cast<FT_Long>(bytes.size()), 0, &ret.face)) {
-		VF_TRACE("[vf::Ttf] Failed to make font face");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to make font face");
 		return {};
 	}
 	return ret;
@@ -30,7 +32,7 @@ FtFace FtFace::make(FT_Library lib, std::span<std::byte const> bytes) noexcept {
 FtFace FtFace::make(FT_Library lib, char const* path) noexcept {
 	FtFace ret;
 	if (FT_New_Face(lib, path, 0, &ret.face)) {
-		VF_TRACE("[vf::Ttf] Failed to make font face");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to make font face");
 		return {};
 	}
 	return ret;
@@ -38,7 +40,7 @@ FtFace FtFace::make(FT_Library lib, char const* path) noexcept {
 
 bool FtFace::setCharSize(glm::uvec2 const size, glm::uvec2 const res) const noexcept {
 	if (FT_Set_Char_Size(face, size.x, size.y, res.x, res.y)) {
-		VF_TRACE("[vf::Ttf] Failed to set font face char size");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to set font face char size");
 		return false;
 	}
 	return true;
@@ -46,7 +48,7 @@ bool FtFace::setCharSize(glm::uvec2 const size, glm::uvec2 const res) const noex
 
 bool FtFace::setPixelSize(glm::uvec2 const size) const noexcept {
 	if (FT_Set_Pixel_Sizes(face, size.x, size.y)) {
-		VF_TRACE("[vf::Ttf] Failed to set font face pixel size");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to set font face pixel size");
 		return false;
 	}
 	return true;
@@ -57,18 +59,18 @@ FtFace::Id FtFace::glyphIndex(std::uint32_t codepoint) const noexcept { return F
 bool FtFace::loadGlyph(Id index, FT_Render_Mode mode) const {
 	try {
 		if (FT_Load_Glyph(face, index, FT_LOAD_DEFAULT)) {
-			VF_TRACEF("[vf::Ttf] Failed to load glyph for index [{}]", index);
+			VF_TRACEW(name_v, "Failed to load glyph for index [{}]", index);
 			return false;
 		}
 		if (FT_Render_Glyph(face->glyph, mode)) {
-			VF_TRACEF("[vf::Ttf] Failed to render glyph for index [{}]", index);
+			VF_TRACEW(name_v, "Failed to render glyph for index [{}]", index);
 			return false;
 		}
 	} catch (std::exception const& e) {
-		VF_TRACEF("[vf::Ttf] Failed to load glyph for index [{}]: {}", index, e.what());
+		VF_TRACEW(name_v, "Failed to load glyph for index [{}]: {}", index, e.what());
 		return false;
 	} catch (...) {
-		VF_TRACEF("[vf::Ttf] Failed to load glyph for index [{}] (Unknown error)", index);
+		VF_TRACEW(name_v, "Failed to load glyph for index [{}] (Unknown error)", index);
 		return false;
 	}
 	return true;

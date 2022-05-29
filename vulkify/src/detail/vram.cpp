@@ -2,14 +2,13 @@
 #include <detail/trace.hpp>
 #include <detail/vram.hpp>
 #include <ktl/fixed_vector.hpp>
-#include <ktl/str_format.hpp>
 #include <atomic>
 
 namespace vf {
 namespace {
 char const* getName(char const* name, std::string& fallback, std::atomic<int>& count) {
 	if (!name) {
-		fallback = ktl::str_format("unnamed_{}", count++);
+		fallback = ktl::kformat("unnamed_{}", count++);
 		name = fallback.c_str();
 	}
 	return name;
@@ -22,6 +21,8 @@ vk::SampleCountFlagBits getSamples(vk::SampleCountFlags supported, int desired) 
 	if (desired >= 2 && (supported & vk::SampleCountFlagBits::e2)) { return vk::SampleCountFlagBits::e2; }
 	return vk::SampleCountFlagBits::e1;
 }
+
+constexpr auto name_v = "vf::(internal)";
 } // namespace
 
 BlitCaps BlitCaps::make(vk::PhysicalDevice device, vk::Format format) {
@@ -88,7 +89,7 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples)
 	auto const limits = device.gpu.getProperties().limits;
 	auto vram = Vram{device};
 	if (vmaCreateAllocator(&allocatorInfo, &vram.allocator) != VK_SUCCESS) {
-		VF_TRACE("[vf::(Internal)] Failed to create Vram!");
+		VF_TRACE(name_v, trace::Type::eError, "Failed to create Vram!");
 		return {};
 	}
 	auto factory = ktl::make_unique<CommandFactory>();
@@ -118,7 +119,7 @@ void setDebugName(VKDevice const& device, U handle, char const* name) {
 UniqueImage Vram::makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear) const {
 	if (!allocator || !commandFactory) { return {}; }
 	if (info.extent.width > deviceLimits.maxImageDimension2D || info.extent.height > deviceLimits.maxImageDimension2D) {
-		VF_TRACEF("[vf::(internal)] Invalid image extent: [{}, {}]", info.extent.width, info.extent.height);
+		VF_TRACEW(name_v, "Invalid image extent: [{}, {}]", info.extent.width, info.extent.height);
 		return {};
 	}
 	info.tiling = linear ? vk::ImageTiling::eLinear : vk::ImageTiling::eOptimal;
@@ -175,7 +176,7 @@ static void copy(Vram const& vram, VmaBuffer dst, vk::CommandBuffer cmd, Span co
 	auto const size = sizeof(decltype(data[0])) * std::size(data);
 	if (!dst.resource || size == 0) { return; }
 	auto bci = vk::BufferCreateInfo({}, static_cast<vk::DeviceSize>(size), vk::BufferUsageFlagBits::eTransferSrc);
-	auto str = ktl::str_format("{}_staging", name);
+	auto str = ktl::kformat("{}_staging", name);
 	auto stage = vram.makeBuffer(bci, true, str.c_str());
 	assert(stage);
 	stage->write(data.data(), data.size());

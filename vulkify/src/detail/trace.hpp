@@ -1,16 +1,30 @@
 #pragma once
 
 #if defined(VULKIFY_DEBUG_TRACE)
-#include <ktl/str_format.hpp>
+#include <ktl/kformat.hpp>
 
-namespace vf {
-void trace(std::string);
-}
+namespace vf::trace {
+enum class Type { eError, eWarn, eInfo };
 
-#define VF_TRACE(msg) ::vf::trace(msg)
-#define VF_TRACEF(fmt, ...) ::vf::trace(::ktl::str_format(fmt, __VA_ARGS__))
+struct Payload {
+	std::string message{};
+	std::string_view prefix{};
+	Type type{};
+};
+
+void log(Payload);
+} // namespace vf::trace
+
+#define VF_TRACE(prefix, type, msg) ::vf::trace::log({msg, prefix, type})
+#define VF_TRACEF(prefix, type, fmt, ...) ::vf::trace::log({::ktl::kformat(fmt, __VA_ARGS__), prefix, type})
+#define VF_TRACEE(prefix, fmt, ...) VF_TRACEF(prefix, ::vf::trace::Type::eError, fmt, __VA_ARGS__)
+#define VF_TRACEW(prefix, fmt, ...) VF_TRACEF(prefix, ::vf::trace::Type::eWarn, fmt, __VA_ARGS__)
+#define VF_TRACEI(prefix, fmt, ...) VF_TRACEF(prefix, ::vf::trace::Type::eInfo, fmt, __VA_ARGS__)
 
 #else
 #define VF_TRACE(unused)
 #define VF_TRACEF(unused, ...)
+#define VF_TRACEE(prefix, fmt, ...)
+#define VF_TRACEW(prefix, fmt, ...)
+#define VF_TRACEI(prefix, fmt, ...)
 #endif
