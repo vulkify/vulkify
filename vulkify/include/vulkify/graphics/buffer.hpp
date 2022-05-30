@@ -7,29 +7,17 @@
 namespace vf {
 class Context;
 
-enum class PolygonMode { eFill, eLine, ePoint };
-enum class Topology { eTriangleList, eTriangleStrip, eLineList, eLineStrip, ePointList };
-
-struct PipelineState {
-	PolygonMode polygonMode{PolygonMode::eFill};
-	Topology topology{Topology::eTriangleList};
-	float lineWidth{1.0f};
-};
-
 ///
 /// \brief GPU Vertex (and index) buffer
 ///
 class GeometryBuffer : public GfxResource {
   public:
-	using State = PipelineState;
-
 	GeometryBuffer() = default;
 	GeometryBuffer(Context const& context, std::string name);
 
 	Result<void> write(Geometry geometry);
 
 	Geometry geometry() const;
-	State state{};
 };
 
 ///

@@ -77,7 +77,7 @@ class CommandPool {
 		Cmd cmd{std::move(defer), cb, m_fencePool.next()};
 		vk::SubmitInfo const si(0U, nullptr, {}, 1U, &cb);
 		{
-			auto lock = std::scoped_lock(*m_device.mutex);
+			auto lock = std::scoped_lock(*m_device.queueMutex);
 			ret = m_device.queue.queue.submit(1, &si, cmd.fence);
 		}
 		if (ret == vk::Result::eSuccess) {

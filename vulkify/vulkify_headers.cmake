@@ -13,7 +13,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/core/time.hpp
   include/vulkify/core/transform.hpp
   include/vulkify/core/unique.hpp
-  include/vulkify/core/version.hpp
 
   include/vulkify/context/builder.hpp
   include/vulkify/context/context.hpp
@@ -28,6 +27,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/drawable.hpp
   include/vulkify/graphics/geometry.hpp
   include/vulkify/graphics/image.hpp
+  include/vulkify/graphics/pipeline.hpp
   include/vulkify/graphics/primitive.hpp
   include/vulkify/graphics/resource.hpp
   include/vulkify/graphics/shader.hpp

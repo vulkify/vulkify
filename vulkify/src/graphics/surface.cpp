@@ -31,11 +31,13 @@ constexpr vk::PrimitiveTopology topology(Topology topo) {
 	default: return vk::PrimitiveTopology::eTriangleStrip;
 	}
 }
+
+constexpr auto name_v = "vf::(internal)";
 } // namespace
 
 void RenderPass::writeView(DescriptorSet& set) const {
 	if (!set) {
-		VF_TRACE("[vf::(internal)] Failed to write view set");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write view set");
 		return;
 	}
 	auto const scale = cam.camera->view.getScale(cam.extent);
@@ -46,7 +48,7 @@ void RenderPass::writeView(DescriptorSet& set) const {
 
 void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> instances, Tex tex) const {
 	if (!set || instances.empty() || !tex.sampler || !tex.view) {
-		VF_TRACE("[vf::(internal)] Failed to write models set");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write models set");
 		return;
 	}
 	auto const& sb = shaderInput.one;
@@ -58,7 +60,7 @@ void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> inst
 void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
 	if (layout == bound) { return; }
 	if (!layout || !commandBuffer) {
-		VF_TRACE("[vf::(internal)] Failed to bind pipeline");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to bind pipeline");
 		return;
 	}
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
@@ -68,7 +70,7 @@ void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {
 
 void RenderPass::setViewport() const {
 	if (!commandBuffer || !cam.camera) {
-		VF_TRACE("[vf::(internal)] Failed to set viewport");
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to set viewport");
 		return;
 	}
 	auto const vp = Rect{{cam.extent * cam.camera->viewport.extent, cam.extent * cam.camera->viewport.offset}};
@@ -86,48 +88,36 @@ Surface::~Surface() {
 
 Surface::operator bool() const { return m_renderPass->instance; }
 
-bool Surface::setShader(Shader const& shader) const {
+bool Surface::draw(Drawable const& drawable, Pipeline const& pipeline) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
-	if (!shader.module().module) { return false; }
-	m_renderPass->fragShader = *shader.module().module;
-	return true;
+	if (drawable.instances.empty() || !drawable.gbo || drawable.gbo.resource().buffers[0].data.empty()) { return false; }
+	if (drawable.instances.size() <= small_buffer_v) {
+		auto buffer = ktl::fixed_vector<DrawModel, small_buffer_v>{};
+		addDrawModels(drawable.instances, std::back_inserter(buffer));
+		return draw(buffer, drawable, pipeline);
+	} else {
+		auto buffer = std::vector<DrawModel>{};
+		buffer.reserve(drawable.instances.size());
+		addDrawModels(drawable.instances, std::back_inserter(buffer));
+		return draw(buffer, drawable, pipeline);
+	}
 }
 
-bool Surface::bind(GeometryBuffer::State const& state) const {
-	auto program = PipelineFactory::Spec::ShaderProgram{{}, m_renderPass->fragShader};
-	auto const spec = PipelineFactory::Spec{program, polygonMode(state.polygonMode), topology(state.topology)};
+bool Surface::bind(Pipeline const& pipeline) const {
+	auto program = PipelineFactory::Spec::ShaderProgram{};
+	if (pipeline.shader && pipeline.shader->module().module) { program.frag = *pipeline.shader->module().module; }
+	auto const spec = PipelineFactory::Spec{program, polygonMode(pipeline.state.polygonMode), topology(pipeline.state.topology)};
 	auto const [pipe, layout] = m_renderPass->pipelineFactory->pipeline(spec, m_renderPass->renderPass);
 	if (!pipe || !layout) { return false; }
 	m_renderPass->bind(layout, pipe);
 	return true;
 }
 
-bool Surface::draw(Drawable const& drawable) const {
-	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
-	if (drawable.instances.empty() || !drawable.gbo || drawable.gbo.resource().buffers[0].data.empty()) { return false; }
-	if (m_renderPass->renderThread != std::this_thread::get_id()) {
-		VF_TRACE("[vf::Context] Multi-threaded rendering is not supported");
-		return false;
-	}
-	if (drawable.instances.size() <= small_buffer_v) {
-		auto buffer = ktl::fixed_vector<DrawModel, small_buffer_v>{};
-		addDrawModels(drawable.instances, std::back_inserter(buffer));
-		return draw(buffer, drawable);
-	} else {
-		auto buffer = std::vector<DrawModel>{};
-		buffer.reserve(drawable.instances.size());
-		addDrawModels(drawable.instances, std::back_inserter(buffer));
-		return draw(buffer, drawable);
-	}
-}
+bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, Pipeline const& pipeline) const {
+	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass || !m_renderPass->renderMutex) { return false; }
+	auto lock = std::scoped_lock(*m_renderPass->renderMutex);
+	if (!bind(pipeline)) { return false; }
 
-bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) const {
-	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
-	if (m_renderPass->renderThread != std::this_thread::get_id()) {
-		VF_TRACE("[vf::Surface] Multi-threaded rendering is not supported!");
-		return false;
-	}
-	bind(drawable.gbo.state);
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
 	if (drawable.texture && *drawable.texture) { tex = {*drawable.texture->resource().image.sampler, *drawable.texture->resource().image.cache.view}; }
 
@@ -136,7 +126,7 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) 
 	m_renderPass->writeView(set);
 	m_renderPass->writeModels(set, models, tex);
 	m_renderPass->setViewport();
-	auto const lineWidth = std::clamp(drawable.gbo.state.lineWidth, m_renderPass->lineWidthLimit.first, m_renderPass->lineWidthLimit.second);
+	auto const lineWidth = std::clamp(pipeline.state.lineWidth, m_renderPass->lineWidthLimit.first, m_renderPass->lineWidthLimit.second);
 	m_renderPass->commandBuffer.setLineWidth(lineWidth);
 
 	auto const& vbo = drawable.gbo.resource().buffers[0].get(true);

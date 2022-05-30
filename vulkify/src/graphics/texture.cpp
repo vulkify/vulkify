@@ -123,7 +123,7 @@ void Texture::write(Image::View const image, Rect const& region) {
 }
 
 void Texture::setInvalid() {
-	VF_TRACEF("[vf::Texture:{}] Invalid bitmap", m_allocation->name);
+	VF_TRACEW("vf::Texture", "[{}] Invalid bitmap", m_allocation->name);
 	static constexpr auto magenta_bytes_v = rgbaBytes(magenta_v);
 	m_allocation->image.cache.refresh({1, 1});
 	write({magenta_bytes_v, {1, 1}}, {{1, 1}});

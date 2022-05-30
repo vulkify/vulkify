@@ -54,15 +54,10 @@ endif()
 include(FetchContent)
 FetchContent_Declare(ktl
   GIT_REPOSITORY https://github.com/karnkaul/ktl
-  GIT_TAG v1.2
+  GIT_TAG v1.4
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext/src/ktl"
 )
 FetchContent_MakeAvailable(ktl)
-FetchContent_GetProperties(ktl)
-
-if(NOT ktl_POPULATED)
-  mesasge(FATAL_ERROR "Failed to populate ktl")
-endif()
 
 # git operations
 find_package(Git QUIET)

@@ -26,7 +26,7 @@ class VulkifyInstance : public Instance {
 	MonitorList monitors() const override;
 	WindowFlags windowFlags() const override;
 	AntiAliasing antiAliasing() const override;
-	float renderScale() const override;
+	VSync vsync() const override;
 	std::vector<Gpu> gpuList() const override;
 
 	void show() override;
@@ -42,8 +42,8 @@ class VulkifyInstance : public Instance {
 	void setWindowed(glm::uvec2 extent) override;
 	void setFullscreen(Monitor const& monitor, glm::uvec2 resolution) override;
 	void updateWindowFlags(WindowFlags set, WindowFlags unset) override;
+	bool setVSync(VSync vsync) override;
 	Camera& camera() override;
-	void setRenderScale(float scale) override;
 
 	EventQueue poll() override;
 	Surface beginPass(Rgba clear) override;

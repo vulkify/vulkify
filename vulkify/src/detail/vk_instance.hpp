@@ -35,7 +35,10 @@ struct VKSync {
 struct VKInstance {
 	struct Util {
 		DeferQueue defer{};
-		std::mutex mutex{};
+		struct {
+			std::mutex queue{};
+			std::mutex render{};
+		} mutex{};
 	};
 
 	struct Info {

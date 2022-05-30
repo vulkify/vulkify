@@ -9,5 +9,5 @@ Mesh Mesh::makeQuad(Context const& context, std::string name, QuadCreateInfo con
 
 Mesh::Mesh(Context const& context, std::string name) : MeshPrimitive(context, std::move(name)) {}
 
-void Mesh::draw(Surface const& surface) const { surface.draw(drawable()); }
+void Mesh::draw(Surface const& surface, Pipeline const& pipeline) const { surface.draw(drawable(), pipeline); }
 } // namespace vf

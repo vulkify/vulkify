@@ -1,4 +1,6 @@
+#include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
+#include <detail/vk_device.hpp>
 #include <detail/vk_instance.hpp>
 #include <ktl/enumerate.hpp>
 #include <ktl/fixed_vector.hpp>
@@ -18,10 +20,10 @@ vk::UniqueInstance makeInstance(std::vector<char const*> extensions, bool& out_v
 		auto const availLayers = vk::enumerateInstanceLayerProperties();
 		auto layerSearch = [](vk::LayerProperties const& lp) { return lp.layerName == validation_layer_v; };
 		if (std::find_if(availLayers.begin(), availLayers.end(), layerSearch) != availLayers.end()) {
-			VF_TRACE("[vk::(internal)] Requesting Vulkan validation layers");
+			VF_TRACE("vf::(internal)", trace::Type::eInfo, "Requesting Vulkan validation layers");
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		} else {
-			VF_TRACE("[vk::(internal)] VK_LAYER_KHRONOS_validation not found");
+			VF_TRACE("vf::(internal)", trace::Type::eWarn, "VK_LAYER_KHRONOS_validation not found");
 			out_validation = false;
 		}
 	}
@@ -30,6 +32,9 @@ vk::UniqueInstance makeInstance(std::vector<char const*> extensions, bool& out_v
 	auto const ai = vk::ApplicationInfo("vulkify", version, "vulkify", version, VK_API_VERSION_1_1);
 	auto ici = vk::InstanceCreateInfo{};
 	ici.pApplicationInfo = &ai;
+#if defined(VULKIFY_VK_PORTABILITY)
+	ici.flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
+#endif
 	ici.enabledExtensionCount = static_cast<std::uint32_t>(extensions.size());
 	ici.ppEnabledExtensionNames = extensions.data();
 	if (out_validation) {
@@ -43,14 +48,20 @@ vk::UniqueInstance makeInstance(std::vector<char const*> extensions, bool& out_v
 vk::UniqueDebugUtilsMessengerEXT makeDebugMessenger(vk::Instance instance) {
 	auto validationCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT,
 								 VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*) -> vk::Bool32 {
+		static constexpr std::string_view ignores[] = {"CoreValidation-Shader-OutputNotConsumed"};
 		std::string_view const msg = pCallbackData && pCallbackData->pMessage ? pCallbackData->pMessage : "UNKNOWN";
+		if (messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+			for (auto const ignore : ignores) {
+				if (msg.find(ignore) != std::string_view::npos) { return false; }
+			}
+		}
 		switch (messageSeverity) {
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-			std::fprintf(stderr, "[E] [vf::Validation] %s\n", msg.data());
+			trace::log({std::string(msg), "vf::Validation", trace::Type::eError});
 			return true;
 		}
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: VF_TRACEF("[W] [vf::Validation] {}", msg); break;
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: VF_TRACEF("[I] [vf::Validation] {}", msg); break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: VF_TRACEW("vf::Validation", "{}", msg); break;
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: VF_TRACEI("vf::Validation", "{}", msg); break;
 		default: break;
 		}
 		return false;
@@ -65,7 +76,7 @@ vk::UniqueDebugUtilsMessengerEXT makeDebugMessenger(vk::Instance instance) {
 	return instance.createDebugUtilsMessengerEXTUnique(dumci, nullptr);
 }
 
-Gpu makeGpu(vk::PhysicalDevice const& device) {
+Gpu makeGpu(vk::PhysicalDevice const& device, vk::SurfaceKHR surface) {
 	auto ret = Gpu{};
 	auto const properties = device.getProperties();
 	ret.name = properties.deviceName.data();
@@ -83,6 +94,7 @@ Gpu makeGpu(vk::PhysicalDevice const& device) {
 	if (features.samplerAnisotropy) { ret.features.set(Gpu::Feature::eAnisotropicFiltering); }
 	if (features.sampleRateShading) { ret.features.set(Gpu::Feature::eMsaa); }
 	if (features.wideLines) { ret.features.set(Gpu::Feature::eWideLines); }
+	for (auto const mode : device.getSurfacePresentModesKHR(surface)) { ret.presentModes.set(toVSync(mode)); }
 	return ret;
 }
 
@@ -122,7 +134,7 @@ std::vector<PhysicalDevice> validDevices(vk::Instance instance, vk::SurfaceKHR s
 	auto ret = std::vector<PhysicalDevice>{};
 	for (auto const& device : available) {
 		if (!hasAllExtensions(device) || !hasAllFeatures(device)) { continue; }
-		auto pd = PhysicalDevice{makeGpu(device), device};
+		auto pd = PhysicalDevice{makeGpu(device, surface), device};
 		if (!getQueueFamily(device, pd.queueFamily)) { continue; }
 		if (device.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu) { pd.score -= 100; }
 		if (device.getFeatures().wideLines) { pd.score -= 10; }
@@ -158,7 +170,7 @@ std::vector<Gpu> VKInstance::availableDevices() const {
 	if (instance && surface) {
 		auto devices = validDevices(*instance, *surface);
 		ret.reserve(devices.size());
-		for (auto const& device : devices) { ret.push_back(makeGpu(device.device)); }
+		for (auto const& device : devices) { ret.push_back(makeGpu(device.device, *surface)); }
 	}
 	return ret;
 }
@@ -194,5 +206,18 @@ Result<VKInstance> VKInstance::Builder::operator()(PhysicalDevice&& selected) {
 	instance.queue = VKQueue{instance.device->getQueue(selected.queueFamily, 0), selected.queueFamily};
 	instance.util = ktl::make_unique<Util>();
 	return std::move(instance);
+}
+
+void VKDevice::wait(vk::Fence fence, std::uint64_t wait) const {
+	if (fence) {
+		auto res = device.waitForFences(1, &fence, true, static_cast<std::uint64_t>(wait));
+		if (res != vk::Result::eSuccess) { VF_TRACE("vf::(internal)", trace::Type::eError, "Fence wait failure!"); }
+	}
+}
+
+void VKDevice::reset(vk::Fence fence, std::uint64_t wait) const {
+	if (wait > 0 && busy(fence)) { this->wait(fence, wait); }
+	auto res = device.resetFences(1, &fence);
+	if (res != vk::Result::eSuccess) { VF_TRACE("vf::(internal)", trace::Type::eError, "Fence reset failure!"); }
 }
 } // namespace vf

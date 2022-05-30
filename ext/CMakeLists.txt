@@ -19,8 +19,8 @@ endif()
 
 # dyvk
 set(DYVK_INSTALL ${VULKIFY_INSTALL})
+set(DYVK_VK_BETA ON)
 add_subdirectory(src/dyvk)
-target_compile_definitions(dyvk PUBLIC VK_ENABLE_BETA_EXTENSIONS)
 
 # glm
 set(GLM_INSTALL ${VULKIFY_INSTALL})

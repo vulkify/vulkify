@@ -69,13 +69,18 @@ Documentation and sample code is available on [the wiki](https://github.com/vulk
 
 ## External Dependencies
 
-- [GLFW](https://github.com/glfw/glfw)
+### Public
+
 - [glm](https://github.com/g-truc/glm)
+- [ktl](https://github.com/karnkaul/ktl)
+
+### Private
+
+- [GLFW](https://github.com/glfw/glfw)
 - [stb](https://github.com/nothings/stb)
 - [VulkanHPP](https://github.com/KhronosGroup/Vulkan-Hpp)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [freetype](https://github.com/freetype/freetype)
-- [ktl](https://github.com/karnkaul/ktl)
 
 [Original repository](https://github.com/vulkify/vulkify)
 

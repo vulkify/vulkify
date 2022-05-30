@@ -1,4 +1,5 @@
 #pragma once
+#include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 #include <vulkify/core/float_eq.hpp>
 #include <vulkify/core/radian.hpp>
@@ -24,13 +25,17 @@ class nvec2 {
 	nvec2() = default;
 	explicit nvec2(glm::vec2 v) : m_value(normalize(v)) {}
 	explicit nvec2(float x, float y) : nvec2(glm::vec2(x, y)) {}
+	explicit nvec2(Radian rad) : m_value(glm::cos(rad), glm::sin(rad)) {}
 
 	static glm::vec2 rotate(glm::vec2 vec, Radian rad);
+	static float dot(nvec2 a, nvec2 b) { return glm::dot(a.m_value, b.m_value); }
 
 	nvec2& rotate(Radian rad);
 	nvec2& invert();
 	nvec2 rotated(Radian rad) const;
 	nvec2 inverted() const;
+
+	Radian radian() const;
 
 	constexpr glm::vec2 const& value() const { return m_value; }
 	constexpr operator glm::vec2 const&() const { return value(); }
@@ -81,5 +86,10 @@ inline nvec2 nvec2::inverted() const {
 	auto ret = *this;
 	ret.invert();
 	return ret;
+}
+
+inline Radian nvec2::radian() const {
+	auto ret = std::acos(m_value.x);
+	return m_value.y < 0.0f ? Radian{-ret} : Radian{ret};
 }
 } // namespace vf

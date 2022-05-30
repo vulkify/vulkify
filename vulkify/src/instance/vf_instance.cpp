@@ -33,6 +33,10 @@
 
 #include <ttf/ft.hpp>
 
+#include <ktl/ktl_version.hpp>
+
+static_assert(ktl::version_v >= ktl::kversion{1, 4, 0});
+
 namespace vf {
 namespace {
 using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
@@ -211,7 +215,7 @@ Result<std::shared_ptr<UniqueGlfw>> getOrMakeGlfw() {
 		glfwTerminate();
 		return Error::eNoVulkanSupport;
 	}
-	glfwSetErrorCallback([]([[maybe_unused]] int code, [[maybe_unused]] char const* szDesc) { VF_TRACEF("[vf::Context] GLFW Error [{}]: {}", code, szDesc); });
+	glfwSetErrorCallback([]([[maybe_unused]] int code, [[maybe_unused]] char const* szDesc) { VF_TRACEE("vf::Context", "GLFW Error [{}]: {}", code, szDesc); });
 	auto ret = std::make_shared<UniqueGlfw>(true);
 	s_glfw = ret;
 	return ret;
@@ -284,7 +288,7 @@ constexpr vk::Format textureFormat(vk::Format surface) { return Renderer::isSrgb
 
 VKDevice makeDevice(VKInstance const& instance) {
 	auto const flags = instance.messenger ? VKDevice::Flag::eDebugMsgr : VKDevice::Flags{};
-	return {instance.queue, instance.gpu.device, *instance.device, {&instance.util->defer}, &instance.util->mutex, flags};
+	return {instance.queue, instance.gpu.device, *instance.device, {&instance.util->defer}, &instance.util->mutex.queue, flags};
 }
 
 vk::UniqueDescriptorSetLayout makeSetLayout(vk::Device device, std::span<vk::DescriptorSetLayoutBinding const> bindings) {
@@ -377,24 +381,20 @@ struct FrameSync {
 };
 
 struct SwapchainRenderer {
-	enum ImageType { eColour, eResolve };
-
 	Vram vram{};
 
 	Renderer renderer{};
 	Rotator<FrameSync> frameSync{};
-	ImageCache images[2]{};
+	ImageCache msaaImage{};
 	vk::UniqueCommandPool commandPool{};
-	float renderScale{1.0f};
 
 	Framebuffer framebuffer{};
 	VKImage present{};
 	Rgba clear{};
 	bool msaa{};
 
-	static SwapchainRenderer make(Vram const& vram, std::size_t buffering = 2) {
+	static SwapchainRenderer make(Vram const& vram, vk::Format format, std::size_t buffering = 2) {
 		auto ret = SwapchainRenderer{vram};
-		auto const format = vram.device.flags.test(VKDevice::Flag::eLinearSwp) ? vk::Format::eR8G8B8A8Unorm : vk::Format::eR8G8B8A8Srgb;
 		auto renderer = Renderer::make(vram.device.device, format, vram.colourSamples);
 		if (!renderer.renderPass) { return {}; }
 		ret.renderer = std::move(renderer);
@@ -402,20 +402,26 @@ struct SwapchainRenderer {
 		static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
 		auto cpci = vk::CommandPoolCreateInfo(flags, vram.device.queue.family);
 		ret.commandPool = vram.device.device.createCommandPoolUnique(cpci);
-		ret.resync(buffering);
 
-		auto& image = ret.images[eColour];
-		image = {{vram, "render_pass_colour_image"}};
-		image.setColour();
-		image.info.info.format = format;
-		image.info.info.samples = vram.colourSamples;
+		ret.vram.buffering = buffering;
+		auto const count = static_cast<std::uint32_t>(buffering);
+		auto primaries = vram.device.device.allocateCommandBuffers({*ret.commandPool, vk::CommandBufferLevel::ePrimary, count});
+		auto secondaries = vram.device.device.allocateCommandBuffers({*ret.commandPool, vk::CommandBufferLevel::eSecondary, count});
+		for (std::size_t i = 0; i < buffering; ++i) {
+			auto sync = FrameSync::make(vram.device.device);
+			sync.cmd.primary = std::move(primaries[i]);
+			sync.cmd.secondary = std::move(secondaries[i]);
+			ret.frameSync.push(std::move(sync));
+		}
 
 		if (vram.colourSamples > vk::SampleCountFlagBits::e1) {
 			ret.msaa = true;
-			auto& image = ret.images[eResolve];
-			image.info = ret.images[eColour].info;
-			image.info.name = "render_pass_resolve_image";
-			image.info.info.samples = vk::SampleCountFlagBits::e1;
+			auto& image = ret.msaaImage;
+			image = {{vram, "render_pass_msaa_image"}};
+			image.setColour();
+			image.info.info.samples = vram.colourSamples;
+			image.info.info.format = format;
+			VF_TRACE("vf::(internal)", trace::Type::eInfo, "Using custom MSAA render target");
 		}
 
 		return ret;
@@ -424,32 +430,17 @@ struct SwapchainRenderer {
 	explicit operator bool() const { return static_cast<bool>(renderer.renderPass); }
 	VKSync sync() const { return frameSync.get().sync(); }
 
-	void resync(std::size_t buffering) {
-		vram.buffering = buffering;
-		for (auto& sync : frameSync.storage) { vram.device.defer(std::move(sync)); }
-		frameSync.storage.clear();
-		auto const count = static_cast<std::uint32_t>(buffering);
-		auto primaries = vram.device.device.allocateCommandBuffers({*commandPool, vk::CommandBufferLevel::ePrimary, count});
-		auto secondaries = vram.device.device.allocateCommandBuffers({*commandPool, vk::CommandBufferLevel::eSecondary, count});
-		for (std::size_t i = 0; i < buffering; ++i) {
-			auto sync = FrameSync::make(vram.device.device);
-			sync.cmd.primary = std::move(primaries[i]);
-			sync.cmd.secondary = std::move(secondaries[i]);
-			frameSync.push(std::move(sync));
-		}
-	}
-
-	Extent colourExtent() const { return {images[eColour].info.info.extent.width, images[eColour].info.info.extent.height}; }
-
 	vk::CommandBuffer beginRender(VKImage acquired, Extent extent) {
 		if (!renderer.renderPass) { return {}; }
 
 		auto& sync = frameSync.get();
 		vram.device.reset(*sync.drawn);
-		auto const scaledExtent = ImageCache::scale2D(extent, renderScale);
-		framebuffer.colour = images[eColour].refresh(scaledExtent);
-		if (msaa) { framebuffer.resolve = images[eResolve].refresh(scaledExtent); }
-		framebuffer.extent = vk::Extent2D(scaledExtent.x, scaledExtent.y);
+		framebuffer.colour = acquired;
+		if (msaa) {
+			framebuffer.colour = msaaImage.refresh(extent);
+			framebuffer.resolve = acquired;
+		}
+		framebuffer.extent = vk::Extent2D(extent.x, extent.y);
 		sync.framebuffer = renderer.makeFramebuffer(framebuffer);
 		if (!sync.framebuffer) { return {}; }
 
@@ -471,19 +462,12 @@ struct SwapchainRenderer {
 		sync.cmd.primary.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
 		auto images = ktl::fixed_vector<VKImage, 2>{framebuffer.colour};
-		auto src = std::ref(framebuffer.colour);
-		auto const& dst = present;
-		if (msaa) {
-			images.push_back(framebuffer.resolve);
-			src = framebuffer.resolve;
-		}
+		if (msaa) { images.push_back(framebuffer.resolve); }
 
 		auto frame = Renderer::Frame{renderer, framebuffer, sync.cmd.primary};
 		frame.undefToColour(images);
 		frame.render(clear, {&sync.cmd.secondary, 1});
-		frame.colourToTfr(src, present);
-		frame.blit(src, dst);
-		frame.tfrToPresent(dst);
+		frame.colourToPresent(present);
 
 		sync.cmd.primary.end();
 		framebuffer = {};
@@ -540,7 +524,6 @@ struct VulkifyInstance::Impl {
 	DescriptorSetFactory setFactory{};
 	ShaderInput::Textures shaderTextures{};
 	Camera camera{};
-	std::thread::id renderThread{};
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
@@ -554,12 +537,15 @@ VulkifyInstance::~VulkifyInstance() {
 }
 
 PhysicalDevice selectDevice(std::span<PhysicalDevice> devices, GpuSelector const* gpuSelector) {
-	std::size_t index{0};
+	assert(!devices.empty());
+	std::size_t index{};
 	if (gpuSelector) {
 		auto gpus = std::vector<Gpu>{};
 		gpus.reserve(devices.size());
 		for (auto const& device : devices) { gpus.push_back(device.gpu); }
-		if (auto i = (*gpuSelector)(gpus); i < devices.size()) { index = i; }
+		auto const first = gpus.data();
+		auto const last = first + gpus.size();
+		if (auto gpu = gpuSelector->operator()(first, last); gpu < last) { index = gpu - first; }
 	}
 	return std::move(devices[index]);
 }
@@ -604,7 +590,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
 	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
 
-	auto renderer = SwapchainRenderer::make(impl->vram.vram);
+	auto renderer = SwapchainRenderer::make(impl->vram.vram, impl->surface.info.imageFormat);
 	if (!renderer) { return Error::eVulkanInitFailure; }
 	impl->renderer = std::move(renderer);
 	impl->vram.vram->textureFormat = textureFormat(impl->surface.info.imageFormat);
@@ -625,7 +611,6 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!impl->shaderTextures) { return Error::eVulkanInitFailure; }
 
 	impl->freetype = freetype;
-	impl->renderThread = std::this_thread::get_id();
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
@@ -638,12 +623,7 @@ bool VulkifyInstance::closing() const {
 	return ret;
 }
 
-Extent VulkifyInstance::framebufferExtent() const {
-	auto const ret = m_impl->renderer.colourExtent();
-	if (ret.x == 0 || ret.y == 0) { return ImageCache::scale2D(getFramebufferSize(m_impl->window->win), m_impl->renderer.renderScale); }
-	return ret;
-}
-
+Extent VulkifyInstance::framebufferExtent() const { return getFramebufferSize(m_impl->window->win); }
 Extent VulkifyInstance::windowExtent() const { return getWindowSize(m_impl->window->win); }
 glm::ivec2 VulkifyInstance::position() const { return getGlfwVec<int>(m_impl->window->win, &glfwGetWindowPos); }
 glm::vec2 VulkifyInstance::contentScale() const { return getGlfwVec<float>(m_impl->window->win, glfwGetWindowContentScale); }
@@ -687,7 +667,8 @@ AntiAliasing VulkifyInstance::antiAliasing() const {
 	}
 }
 
-float VulkifyInstance::renderScale() const { return m_impl->renderer.renderScale; }
+VSync VulkifyInstance::vsync() const { return toVSync(m_impl->surface.info.presentMode); }
+
 std::vector<Gpu> VulkifyInstance::gpuList() const { return m_impl->vulkan.availableDevices(); }
 
 void VulkifyInstance::setPosition(glm::ivec2 xy) { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
@@ -740,9 +721,24 @@ void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
 	}
 }
 
-Camera& VulkifyInstance::camera() { return m_impl->camera; }
+bool VulkifyInstance::setVSync(VSync vsync) {
+	static constexpr std::string_view modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
+	if (m_impl->surface.info.presentMode == fromVSync(vsync)) { return true; }
+	if (!m_impl->vulkan.gpu.gpu.presentModes.test(vsync)) {
+		VF_TRACEW("vf::(internal)", "Unsupported VSync mode requested [{}]", modes_v[static_cast<int>(vsync)]);
+		return false;
+	}
+	m_impl->surface.info.presentMode = fromVSync(vsync);
+	auto res = m_impl->surface.refresh(framebufferExtent());
+	if (res != vk::Result::eSuccess) {
+		VF_TRACE("vf::(internal)", trace::Type::eError, "Failed to create swapchain!");
+		return false;
+	}
+	VF_TRACEI("vf::(internal)", "VSync set to [{}]", modes_v[static_cast<int>(vsync)]);
+	return true;
+}
 
-void VulkifyInstance::setRenderScale(float scale) { m_impl->renderer.renderScale = scale; }
+Camera& VulkifyInstance::camera() { return m_impl->camera; }
 
 Cursor VulkifyInstance::makeCursor(Icon icon) {
 	auto const extent = glm::ivec2(icon.bitmap.extent);
@@ -787,19 +783,18 @@ EventQueue VulkifyInstance::poll() {
 
 Surface VulkifyInstance::beginPass(Rgba clear) {
 	if (m_impl->acquired) {
-		VF_TRACE("[vf::(Internal)] RenderPass already begun");
+		VF_TRACE("vf::(internal)", trace::Type::eWarn, "RenderPass already begun");
 		return {};
 	}
 	auto const sync = m_impl->renderer.sync();
-	auto const fbSize = getFramebufferSize(m_impl->window->win);
-	m_impl->acquired = m_impl->surface.acquire(sync.draw, fbSize);
+	auto const extent = getFramebufferSize(m_impl->window->win);
+	m_impl->acquired = m_impl->surface.acquire(sync.draw, extent);
 	if (!m_impl->acquired) { return {}; }
 	auto& sr = m_impl->renderer;
-	auto cmd = sr.beginRender(m_impl->acquired.image, fbSize);
+	auto cmd = sr.beginRender(m_impl->acquired.image, extent);
 	m_impl->vulkan.util->defer.decrement();
 	m_impl->renderer.clear = clear;
 
-	auto const extent = sr.colourExtent();
 	auto proj = m_impl->setFactory.postInc(0, "UBO:P");
 	auto const mat_p = projection(extent);
 	proj.write(0, mat_p);
@@ -807,7 +802,8 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
 	auto const cam = RenderCam{extent, &m_impl->camera};
 	auto const lwl = std::pair(m_impl->vram.vram->deviceLimits.lineWidthRange[0], m_impl->vram.vram->deviceLimits.lineWidthRange[1]);
-	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->setFactory, *sr.renderer.renderPass, std::move(cmd), input, cam, lwl, m_impl->renderThread};
+	auto* mutex = &m_impl->vulkan.util->mutex.render;
+	return RenderPass{this, &m_impl->pipelineFactory, &m_impl->setFactory, *sr.renderer.renderPass, std::move(cmd), input, cam, lwl, mutex};
 }
 
 bool VulkifyInstance::endPass() {

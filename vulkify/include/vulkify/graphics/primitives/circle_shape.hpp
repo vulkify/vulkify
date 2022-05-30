@@ -5,7 +5,7 @@ namespace vf {
 ///
 /// \brief Primitive that models a circle shape (as a regular polygon)
 ///
-class CircleShape : public OutlinedShape {
+class CircleShape : public Shape {
   public:
 	using State = PolygonCreateInfo;
 
@@ -23,8 +23,6 @@ class CircleShape : public OutlinedShape {
 	CircleShape& setTexture(Texture texture, bool resizeToMatch);
 
   protected:
-	void refreshOutline() override;
-
 	CircleShape& refresh();
 
 	State m_state{};

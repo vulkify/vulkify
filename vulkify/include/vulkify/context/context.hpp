@@ -33,7 +33,7 @@ class Context {
 	Camera& camera() const { return m_instance->camera(); }
 	Rect area() const { return Rect{{m_instance->framebufferExtent()}}; }
 	AntiAliasing antiAliasing() const { return m_instance->antiAliasing(); }
-	float renderScale() const { return m_instance->renderScale(); }
+	VSync vsync() const { return m_instance->vsync(); }
 
 	Frame frame(Rgba clear = {});
 
@@ -47,7 +47,7 @@ class Context {
 	void setWindowed(glm::uvec2 extent) { m_instance->setWindowed(extent); }
 	void setFullscreen(Monitor const& monitor, glm::uvec2 resolution = {}) { m_instance->setFullscreen(monitor, resolution); }
 	void updateWindowFlags(WindowFlags set, WindowFlags unset) { m_instance->updateWindowFlags(set, unset); }
-	void setRenderScale(float scale) { m_instance->setRenderScale(scale); }
+	bool setVSync(VSync vsync) { return m_instance->setVSync(vsync); }
 
 	glm::mat3 unprojection() const;
 	glm::vec2 unproject(glm::vec2 point) const { return unprojection() * glm::vec3(point, 1.0f); }

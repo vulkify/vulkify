@@ -62,17 +62,18 @@ struct Helper {
 		auto ret = vf::QuadShape(context, "rgb_quad", vf::QuadShape::State{glm::vec2(100.0f, 100.0f)});
 		ret.setTexture(texture.clone("rgb_texture_clone"), false);
 		ret.transform().position = area.topRight() + glm::vec2(-padding_v.x, -padding_v.y);
-		ret.setOutline(5.0f, vf::magenta_v);
+		ret.silhouette.tint = vf::magenta_v;
+		ret.silhouette.scale = 1.2f;
 		return ret;
 	}
 
 	vf::CircleShape makeHexagon(vf::Texture texture) {
-		auto ret = vf::CircleShape(context, "hexagon", {100.0f, 6});
+		auto ret = vf::CircleShape(context, "hexagon", vf::CircleShape::State{100.0f, 6});
 		auto bitmap = vf::Bitmap(vf::magenta_v);
 		texture.overwrite(bitmap.image(), vf::Texture::Rect{{1, 1}, {1, 1}});
 		ret.setTexture(std::move(texture), false);
 		ret.transform().position = area.bottomLeft() + glm::vec2(padding_v.x, padding_v.y);
-		ret.setOutline(5.0f, vf::white_v);
+		ret.silhouette.scale = 1.25f;
 		return ret;
 	}
 
@@ -191,8 +192,6 @@ void test(vf::Context context) {
 	}
 }
 } // namespace
-
-std::ostream& operator<<(std::ostream& o, vf::Version const& v) { return o << 'v' << v.major << '.' << v.minor << '.' << v.patch; }
 
 int main(int argc, char** argv) {
 	bool const headless = argc > 1 && argv[1] == std::string_view("--headless");
