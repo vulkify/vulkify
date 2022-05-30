@@ -57,7 +57,6 @@ struct RenderPass {
 	TPair<float> lineWidthLimit{};
 	std::mutex* renderMutex;
 
-	mutable vk::ShaderModule fragShader{};
 	mutable vk::PipelineLayout bound{};
 
 	void writeView(DescriptorSet& set) const;

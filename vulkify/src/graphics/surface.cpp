@@ -88,41 +88,35 @@ Surface::~Surface() {
 
 Surface::operator bool() const { return m_renderPass->instance; }
 
-bool Surface::setShader(Shader const& shader) const {
+bool Surface::draw(Drawable const& drawable, Pipeline const& pipeline) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
-	if (!shader.module().module) { return false; }
-	m_renderPass->fragShader = *shader.module().module;
-	return true;
+	if (drawable.instances.empty() || !drawable.gbo || drawable.gbo.resource().buffers[0].data.empty()) { return false; }
+	if (drawable.instances.size() <= small_buffer_v) {
+		auto buffer = ktl::fixed_vector<DrawModel, small_buffer_v>{};
+		addDrawModels(drawable.instances, std::back_inserter(buffer));
+		return draw(buffer, drawable, pipeline);
+	} else {
+		auto buffer = std::vector<DrawModel>{};
+		buffer.reserve(drawable.instances.size());
+		addDrawModels(drawable.instances, std::back_inserter(buffer));
+		return draw(buffer, drawable, pipeline);
+	}
 }
 
-bool Surface::bind(GeometryBuffer::State const& state) const {
-	auto program = PipelineFactory::Spec::ShaderProgram{{}, m_renderPass->fragShader};
-	auto const spec = PipelineFactory::Spec{program, polygonMode(state.polygonMode), topology(state.topology)};
+bool Surface::bind(Pipeline const& pipeline) const {
+	auto program = PipelineFactory::Spec::ShaderProgram{};
+	if (pipeline.shader && pipeline.shader->module().module) { program.frag = *pipeline.shader->module().module; }
+	auto const spec = PipelineFactory::Spec{program, polygonMode(pipeline.state.polygonMode), topology(pipeline.state.topology)};
 	auto const [pipe, layout] = m_renderPass->pipelineFactory->pipeline(spec, m_renderPass->renderPass);
 	if (!pipe || !layout) { return false; }
 	m_renderPass->bind(layout, pipe);
 	return true;
 }
 
-bool Surface::draw(Drawable const& drawable) const {
-	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass) { return false; }
-	if (drawable.instances.empty() || !drawable.gbo || drawable.gbo.resource().buffers[0].data.empty()) { return false; }
-	if (drawable.instances.size() <= small_buffer_v) {
-		auto buffer = ktl::fixed_vector<DrawModel, small_buffer_v>{};
-		addDrawModels(drawable.instances, std::back_inserter(buffer));
-		return draw(buffer, drawable);
-	} else {
-		auto buffer = std::vector<DrawModel>{};
-		buffer.reserve(drawable.instances.size());
-		addDrawModels(drawable.instances, std::back_inserter(buffer));
-		return draw(buffer, drawable);
-	}
-}
-
-bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) const {
+bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, Pipeline const& pipeline) const {
 	if (!m_renderPass->pipelineFactory || !m_renderPass->renderPass || !m_renderPass->renderMutex) { return false; }
 	auto lock = std::scoped_lock(*m_renderPass->renderMutex);
-	if (!bind(drawable.gbo.state)) { return false; }
+	if (!bind(pipeline)) { return false; }
 
 	auto tex = RenderPass::Tex{*m_renderPass->shaderInput.textures->sampler, *m_renderPass->shaderInput.textures->white.view};
 	if (drawable.texture && *drawable.texture) { tex = {*drawable.texture->resource().image.sampler, *drawable.texture->resource().image.cache.view}; }
@@ -132,7 +126,7 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable) 
 	m_renderPass->writeView(set);
 	m_renderPass->writeModels(set, models, tex);
 	m_renderPass->setViewport();
-	auto const lineWidth = std::clamp(drawable.gbo.state.lineWidth, m_renderPass->lineWidthLimit.first, m_renderPass->lineWidthLimit.second);
+	auto const lineWidth = std::clamp(pipeline.state.lineWidth, m_renderPass->lineWidthLimit.first, m_renderPass->lineWidthLimit.second);
 	m_renderPass->commandBuffer.setLineWidth(lineWidth);
 
 	auto const& vbo = drawable.gbo.resource().buffers[0].get(true);

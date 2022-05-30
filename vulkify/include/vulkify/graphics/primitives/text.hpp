@@ -29,7 +29,7 @@ class Text : public Primitive {
 	Transform& transform() { return m_mesh.instance.transform; }
 	Transform const& transform() const { return m_mesh.instance.transform; }
 
-	void draw(Surface const& surface) const override;
+	void draw(Surface const& surface, Pipeline const& pipeline = {}) const override;
 
 	std::string text{};
 	Align align{};

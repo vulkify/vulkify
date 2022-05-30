@@ -1,6 +1,7 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
 #include <vulkify/graphics/drawable.hpp>
+#include <vulkify/graphics/pipeline.hpp>
 #include <concepts>
 #include <iterator>
 #include <span>
@@ -10,8 +11,6 @@ struct RenderPass;
 struct Pipeline;
 struct Drawable;
 struct Geometry;
-struct PipelineState;
-class Shader;
 
 ///
 /// \brief Surface being rendered to in a pass
@@ -31,12 +30,11 @@ class Surface {
 
 	explicit operator bool() const;
 
-	bool setShader(Shader const& shader) const;
-	bool draw(Drawable const& drawable) const;
+	bool draw(Drawable const& drawable, Pipeline const& pipeline = {}) const;
 
   private:
-	bool bind(PipelineState const& state) const;
-	bool draw(std::span<DrawModel const> models, Drawable const& drawable) const;
+	bool bind(Pipeline const& pipeline) const;
+	bool draw(std::span<DrawModel const> models, Drawable const& drawable, Pipeline const& pipeline) const;
 
 	ktl::fixed_pimpl<RenderPass, 256> m_renderPass;
 };

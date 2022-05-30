@@ -5,7 +5,7 @@ namespace vf {
 ///
 /// \brief Primitive that models a quad / rectangle shape
 ///
-class QuadShape : public OutlinedShape {
+class QuadShape : public Shape {
   public:
 	using State = QuadCreateInfo;
 

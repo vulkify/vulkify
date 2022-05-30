@@ -31,9 +31,9 @@ Text& Text::setFont(ktl::not_null<Ttf*> ttf) {
 	return *this;
 }
 
-void Text::draw(Surface const& surface) const {
+void Text::draw(Surface const& surface, Pipeline const& pipeline) const {
 	update();
-	surface.draw(m_mesh.drawable());
+	surface.draw(m_mesh.drawable(), pipeline);
 }
 
 void Text::update() const {

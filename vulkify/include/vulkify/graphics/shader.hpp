@@ -1,7 +1,6 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
 #include <span>
-#include <string>
 
 namespace vf {
 struct GfxShaderModule;

@@ -48,7 +48,13 @@ vk::UniqueInstance makeInstance(std::vector<char const*> extensions, bool& out_v
 vk::UniqueDebugUtilsMessengerEXT makeDebugMessenger(vk::Instance instance) {
 	auto validationCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT,
 								 VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*) -> vk::Bool32 {
+		static constexpr std::string_view ignores[] = {"CoreValidation-Shader-OutputNotConsumed"};
 		std::string_view const msg = pCallbackData && pCallbackData->pMessage ? pCallbackData->pMessage : "UNKNOWN";
+		if (messageSeverity != VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+			for (auto const ignore : ignores) {
+				if (msg.find(ignore) != std::string_view::npos) { return false; }
+			}
+		}
 		switch (messageSeverity) {
 		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
 			trace::log({std::string(msg), "vf::Validation", trace::Type::eError});

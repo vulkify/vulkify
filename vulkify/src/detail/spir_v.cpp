@@ -56,7 +56,7 @@ SpirV SpirV::load(std::string path) {
 
 	auto const ssize = file.tellg();
 	if (ssize <= 0 || ssize % 4 != 0) {
-		VF_TRACEW(name_v, "Invalid Spir-V size: {}", ssize);
+		VF_TRACEW(name_v, "Invalid Spir-V [{}] size: {}", ret.path, ssize);
 		return {};
 	}
 	file.seekg({});
@@ -64,7 +64,6 @@ SpirV SpirV::load(std::string path) {
 	ret.codesize = static_cast<std::uint32_t>(ssize);
 	ret.code = std::make_unique<std::uint32_t[]>(static_cast<std::size_t>(ssize / 4));
 	file.read(reinterpret_cast<char*>(ret.code.get()), ssize);
-	VF_TRACEI(name_v, "[{}] loaded successfully (codesize: {})", ret.path, ret.codesize);
 
 	return ret;
 }
@@ -76,6 +75,10 @@ SpirV SpirV::compile(char const* glsl, std::string path) {
 	}
 	if (!glsl || !*glsl || path.empty()) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Empty path");
+		return {};
+	}
+	if (!stdfs::is_regular_file(glsl)) {
+		VF_TRACEW(name_v, "Failed to open glsl file: [{}]", glsl);
 		return {};
 	}
 	auto file = std::ofstream(path);

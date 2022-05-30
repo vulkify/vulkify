@@ -10,11 +10,18 @@ class Context;
 ///
 /// \brief Base Primitive with protected GeometryBufer, Texture, and DrawInstance
 ///
-/// Note: The Texture member is not exposed to the public interface, but is referenecd in the returned Drawable.
+/// Note: The Texture member is not exposed to the public interface, but is referenecd in draw().
 /// Derived types may use it as desired.
 ///
 class Shape : public Primitive {
   public:
+	struct Silhouette {
+		float scale{};
+		Rgba tint{white_v};
+
+		void draw(Shape const& shape, Surface const& surface, Pipeline const& pipeline) const;
+	};
+
 	Shape() = default;
 	Shape(Context const& context, std::string name);
 
@@ -22,35 +29,15 @@ class Shape : public Primitive {
 	Transform& transform() { return m_instance.transform; }
 	Rgba const& tint() const { return m_instance.tint; }
 	Rgba& tint() { return m_instance.tint; }
+	GeometryBuffer const& geometry() const { return m_geometry; }
 
-	void draw(Surface const& surface) const override;
+	void draw(Surface const& surface, Pipeline const& pipeline = {}) const override;
+
+	Silhouette silhouette{};
 
   protected:
 	GeometryBuffer m_geometry{};
 	Texture m_texture{};
 	DrawInstance m_instance{};
-};
-
-class OutlinedShape : public Shape {
-  public:
-	OutlinedShape() = default;
-	OutlinedShape(Context const& context, std::string name);
-
-	float maxLineWidth() const { return m_maxLineWidth; }
-	bool outlineAvailable() const { return m_maxLineWidth > 0.0f; }
-
-	float outlineWidth() const { return m_outline.state.lineWidth; }
-	Rgba outlineRgba() const { return m_outlineRgba; }
-	void setOutline(float lineWidth, Rgba rgba);
-
-	void draw(Surface const& surface) const override;
-
-  protected:
-	virtual void refreshOutline();
-	void writeOutline(Geometry geometry);
-
-	GeometryBuffer m_outline{};
-	Rgba m_outlineRgba{};
-	float m_maxLineWidth{1.0f};
 };
 } // namespace vf
