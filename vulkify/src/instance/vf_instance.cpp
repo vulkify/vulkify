@@ -722,7 +722,7 @@ void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
 }
 
 bool VulkifyInstance::setVSync(VSync vsync) {
-	static constexpr std::string_view modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
+	[[maybe_unused]] static constexpr std::string_view modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
 	if (m_impl->surface.info.presentMode == fromVSync(vsync)) { return true; }
 	if (!m_impl->vulkan.gpu.gpu.presentModes.test(vsync)) {
 		VF_TRACEW("vf::(internal)", "Unsupported VSync mode requested [{}]", modes_v[static_cast<int>(vsync)]);

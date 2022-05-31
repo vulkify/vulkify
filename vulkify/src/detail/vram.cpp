@@ -2,6 +2,7 @@
 #include <detail/trace.hpp>
 #include <detail/vram.hpp>
 #include <ktl/fixed_vector.hpp>
+#include <ktl/kformat.hpp>
 #include <atomic>
 
 namespace vf {
@@ -22,7 +23,7 @@ vk::SampleCountFlagBits getSamples(vk::SampleCountFlags supported, int desired) 
 	return vk::SampleCountFlagBits::e1;
 }
 
-constexpr auto name_v = "vf::(internal)";
+[[maybe_unused]] constexpr auto name_v = "vf::(internal)";
 } // namespace
 
 BlitCaps BlitCaps::make(vk::PhysicalDevice device, vk::Format format) {

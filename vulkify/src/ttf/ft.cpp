@@ -8,7 +8,7 @@
 #include <sstream>
 
 namespace vf {
-static constexpr auto name_v = "vf::Ttf";
+[[maybe_unused]] static constexpr auto name_v = "vf::Ttf";
 
 FtLib FtLib::make() noexcept {
 	FtLib ret;

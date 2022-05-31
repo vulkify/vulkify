@@ -1,1 +1,1 @@
-set(build_version 0.5.0)
+set(build_version 0.5.1)

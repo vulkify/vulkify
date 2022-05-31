@@ -32,7 +32,7 @@ constexpr vk::PrimitiveTopology topology(Topology topo) {
 	}
 }
 
-constexpr auto name_v = "vf::(internal)";
+[[maybe_unused]] constexpr auto name_v = "vf::(internal)";
 } // namespace
 
 void RenderPass::writeView(DescriptorSet& set) const {

@@ -7,7 +7,7 @@
 namespace vf {
 namespace stdfs = std::filesystem;
 
-static constexpr auto name_v = "vf::SpirV";
+[[maybe_unused]] static constexpr auto name_v = "vf::SpirV";
 
 namespace {
 constexpr std::string_view redirect_null_v =
