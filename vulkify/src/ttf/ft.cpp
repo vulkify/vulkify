@@ -247,7 +247,7 @@ Ttf::Entry& Ttf::insert(Font& out_font, Codepoint const codepoint, Atlas::Bulk* 
 
 Pen::Character Pen::character(Codepoint codepoint) const {
 	if (!out_ttf || !*out_ttf) { return {}; }
-	if (auto const ch = out_ttf->get(codepoint)) { return ch; }
+	if (auto const ch = out_ttf->get(codepoint, height)) { return ch; }
 	return out_ttf->get({});
 }
 
@@ -298,7 +298,7 @@ Scribe& Scribe::write(std::string_view const text, Pivot pivot) {
 		start -= ext * pivot;
 	}
 	geometry.reserve(text.size() * 4, text.size() * 6);
-	auto pen = Pen{&ttf, &geometry, start};
+	auto pen = Pen{&ttf, &geometry, start, height};
 	for (auto const ch : text) { pen.write(static_cast<Codepoint>(ch)); }
 	return *this;
 }

@@ -1,9 +1,9 @@
 #pragma once
 #include <vulkify/core/time.hpp>
+#include <vulkify/graphics/handles.hpp>
 #include <vulkify/graphics/primitive.hpp>
 #include <vulkify/graphics/surface.hpp>
 #include <vulkify/instance/event_queue.hpp>
-#include <cassert>
 
 namespace vf {
 ///
@@ -17,7 +17,7 @@ class Frame {
 	EventQueue const& poll() const { return m_poll; }
 
 	void draw(Primitive const& primitive, Pipeline const& pipeline = {}) const { primitive.draw(m_surface, pipeline); }
-	void draw(Primitive const& primitive, Shader const& shader) const { draw(primitive, {.shader = &shader}); }
+	void draw(Primitive const& primitive, ShaderHandle shader) const { draw(primitive, {.shader = shader}); }
 
 	Surface const& surface() const { return m_surface; }
 

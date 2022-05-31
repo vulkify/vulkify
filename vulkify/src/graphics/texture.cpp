@@ -89,6 +89,11 @@ Extent Texture::extent() const {
 	return {m_allocation->image.cache.info.info.extent.width, m_allocation->image.cache.info.info.extent.height};
 }
 
+TextureHandle Texture::handle() const {
+	if (!m_allocation || !m_allocation->image.cache || !m_allocation->image.sampler) { return {}; }
+	return TextureHandle{HTexture{*m_allocation->image.cache.view, *m_allocation->image.sampler}};
+}
+
 Texture::Texture(Vram const& vram, std::string name, CreateInfo const& createInfo)
 	: GfxResource(vram, std::move(name)), m_addressMode(createInfo.addressMode), m_filtering(createInfo.filtering) {
 	if (!m_allocation || !m_allocation->vram) { return; }

@@ -27,7 +27,6 @@ Text::operator bool() const { return m_ttf && *m_ttf && m_mesh; }
 
 Text& Text::setFont(ktl::not_null<Ttf*> ttf) {
 	m_ttf = ttf;
-	m_mesh.texture = m_ttf->texture();
 	return *this;
 }
 
@@ -40,6 +39,9 @@ void Text::update() const {
 	assert(m_ttf);
 	auto scribe = Scribe{*m_ttf, height};
 	scribe.write(Scribe::Block{text}, pivot(align));
-	m_mesh.gbo.write(std::move(scribe.geometry));
+	if (auto const* texture = m_ttf->texture(height)) {
+		m_mesh.texture = texture->handle();
+		m_mesh.gbo.write(std::move(scribe.geometry));
+	}
 }
 } // namespace vf

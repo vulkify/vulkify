@@ -1,9 +1,8 @@
 #pragma once
 #include <vulkify/core/ptr.hpp>
+#include <vulkify/graphics/handles.hpp>
 
 namespace vf {
-class Shader;
-
 enum class PolygonMode { eFill, eLine, ePoint };
 enum class Topology { eTriangleList, eTriangleStrip, eLineList, eLineStrip, ePointList };
 
@@ -15,6 +14,6 @@ struct Pipeline {
 	};
 
 	State state{};
-	Ptr<Shader const> shader{};
+	ShaderHandle shader{};
 };
 } // namespace vf

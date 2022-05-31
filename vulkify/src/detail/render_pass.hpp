@@ -11,6 +11,7 @@ class Instance;
 struct DrawModel;
 struct PipelineFactory;
 struct DescriptorSetFactory;
+struct HTexture;
 
 struct SetBind {
 	std::uint32_t set{};
@@ -42,11 +43,6 @@ struct RenderCam {
 };
 
 struct RenderPass {
-	struct Tex {
-		vk::Sampler sampler{};
-		vk::ImageView view{};
-	};
-
 	ktl::unique_val<Instance*> instance{};
 	PipelineFactory* pipelineFactory{};
 	DescriptorSetFactory* setFactory{};
@@ -60,7 +56,7 @@ struct RenderPass {
 	mutable vk::PipelineLayout bound{};
 
 	void writeView(DescriptorSet& set) const;
-	void writeModels(DescriptorSet& set, std::span<DrawModel const> instances, Tex tex) const;
+	void writeModels(DescriptorSet& set, std::span<DrawModel const> instances, HTexture tex) const;
 	void bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const;
 	void setViewport() const;
 };

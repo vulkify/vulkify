@@ -1,13 +1,15 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
+#include <vulkify/graphics/handles.hpp>
 #include <span>
 
 namespace vf {
-struct GfxShaderModule;
 class Context;
 
 class Shader {
   public:
+	using Handle = ShaderHandle;
+
 	Shader() noexcept;
 	Shader(Shader&&) noexcept;
 	Shader& operator=(Shader&&) noexcept;
@@ -20,9 +22,10 @@ class Shader {
 	bool load(std::span<std::byte const> spirv);
 	bool load(char const* path, bool tryCompile);
 
-	GfxShaderModule const& module() const;
+	Handle handle() const;
 
   private:
-	ktl::fixed_pimpl<GfxShaderModule, 64> m_impl;
+	struct Impl;
+	ktl::fixed_pimpl<Impl, 64> m_impl;
 };
 } // namespace vf

@@ -3,6 +3,7 @@
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/result.hpp>
 #include <vulkify/graphics/bitmap.hpp>
+#include <vulkify/graphics/handles.hpp>
 #include <vulkify/graphics/resource.hpp>
 
 namespace vf {
@@ -37,6 +38,7 @@ class Texture : public GfxResource {
 	using CreateInfo = TextureCreateInfo;
 	using TopLeft = Bitmap::TopLeft;
 	using Rect = TRect<std::uint32_t>;
+	using Handle = TextureHandle;
 
 	Texture() = default;
 	Texture(Context const& context, std::string name, Image::View image, CreateInfo const& createInfo = {});
@@ -52,6 +54,7 @@ class Texture : public GfxResource {
 	AddressMode addressMode() const { return m_addressMode; }
 	Filtering filtering() const { return m_filtering; }
 	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
+	Handle handle() const;
 
   private:
 	Texture(Vram const& vram, std::string name, CreateInfo const& info);

@@ -14,6 +14,6 @@ void Shape::Silhouette::draw(Shape const& shape, Surface const& surface, Pipelin
 
 void Shape::draw(Surface const& surface, Pipeline const& pipeline) const {
 	if (silhouette.scale > 0.0f) { silhouette.draw(*this, surface, pipeline); }
-	surface.draw(Drawable{{&m_instance, 1}, m_geometry, &m_texture}, pipeline);
+	surface.draw(Drawable{{&m_instance, 1}, m_geometry, m_texture.handle()}, pipeline);
 }
 } // namespace vf

@@ -47,6 +47,8 @@ Result<void> GeometryBuffer::write(Geometry geometry) {
 	if (geometry.vertices.empty()) { return Error::eInvalidArgument; }
 
 	writeGeometry(m_allocation->buffers[0], m_allocation->buffers[1], geometry);
+	m_counts.vertices = static_cast<std::uint32_t>(geometry.vertices.size());
+	m_counts.indices = static_cast<std::uint32_t>(geometry.indices.size());
 
 	return Result<void>::success();
 }

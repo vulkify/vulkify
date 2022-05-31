@@ -3,7 +3,7 @@
 #include <vulkify/graphics/primitives/mesh.hpp>
 
 namespace vf {
-Mesh Mesh::makeQuad(Context const& context, std::string name, QuadCreateInfo const& info, Ptr<Texture const> texture) {
+Mesh Mesh::makeQuad(Context const& context, std::string name, QuadCreateInfo const& info, TextureHandle texture) {
 	return makeQuadMesh<Mesh>(context, std::move(name), info, texture);
 }
 
