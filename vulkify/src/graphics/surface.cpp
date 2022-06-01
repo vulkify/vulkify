@@ -43,7 +43,7 @@ void RenderPass::writeView(DescriptorSet& set) const {
 	auto const scale = cam.camera->view.getScale(cam.extent);
 	// invert transformation
 	auto const dm = DrawModel{{-cam.camera->position, cam.camera->orientation.inverted().value()}, {scale, glm::vec2()}};
-	set.write(shaderInput.one.bindings.ubo, dm);
+	set.write(shaderInput.one.bindings.ubo, &dm, sizeof(dm));
 }
 
 void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> instances, HTexture tex) const {
@@ -52,7 +52,7 @@ void RenderPass::writeModels(DescriptorSet& set, std::span<DrawModel const> inst
 		return;
 	}
 	auto const& sb = shaderInput.one;
-	set.write(sb.bindings.ssbo, instances);
+	set.write(sb.bindings.ssbo, instances.data(), instances.size_bytes());
 	set.update(sb.bindings.sampler, tex.sampler, tex.view);
 	set.bind(commandBuffer, bound);
 }

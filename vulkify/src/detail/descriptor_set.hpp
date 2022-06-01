@@ -17,6 +17,7 @@ struct DescriptorSet {
 	};
 
 	Vram* vram{};
+
 	std::span<UniqueBuffer> buffers{};
 	vk::DescriptorSet set{};
 	char const* name = "";
@@ -28,13 +29,13 @@ struct DescriptorSet {
 		if (!out->resource || out->size != size) { out = vram->makeBuffer({{}, size, usage}, true, name); }
 	}
 
-	bool write(std::uint32_t binding, BufferWrite const data) {
+	bool write(std::uint32_t binding, void const* data, std::size_t size) {
 		assert(binding < eCOUNT_);
 		if (!static_cast<bool>(*this)) { return false; }
-		refresh(buffers[binding], data.size, buffer_layouts_v[binding].usage);
+		refresh(buffers[binding], size, buffer_layouts_v[binding].usage);
 		auto buf = buffers[binding].get();
-		bool const ret = buf.write(data);
-		auto dbi = vk::DescriptorBufferInfo(buf.resource, {}, data.size);
+		auto const ret = buf.write(data, size);
+		auto dbi = vk::DescriptorBufferInfo(buf.resource, {}, size);
 		auto wds = vk::WriteDescriptorSet(set, binding, 0, 1, buffer_layouts_v[binding].type, {}, &dbi);
 		vram->device.device.updateDescriptorSets(1, &wds, 0, {});
 		return ret;

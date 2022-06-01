@@ -8,7 +8,6 @@
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/core/unique.hpp>
-#include <vulkify/graphics/buffer_write.hpp>
 
 struct FT_LibraryRec_;
 using FT_Library = FT_LibraryRec_*;
@@ -73,7 +72,7 @@ struct VmaBuffer : VmaResource<vk::Buffer> {
 	std::size_t size{};
 	void* map{};
 
-	bool write(BufferWrite data);
+	bool write(void const* data, std::size_t size);
 
 	struct Deleter {
 		void operator()(VmaBuffer const&) const;
@@ -146,7 +145,7 @@ struct ImageWriter {
 
 	static bool canBlit(VmaImage const& src, VmaImage const& dst);
 
-	bool write(VmaImage& out, BufferWrite data, URegion region = {}, vk::ImageLayout il = {});
+	bool write(VmaImage& out, std::span<std::byte const> data, URegion region = {}, vk::ImageLayout il = {});
 	bool blit(VmaImage& in, VmaImage& out, IRegion inr, IRegion outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
 	bool copy(VmaImage& in, VmaImage& out, IRegion inr, IRegion outr, TPair<vk::ImageLayout> il = {}) const;
 	void clear(VmaImage& in, Rgba rgba) const;

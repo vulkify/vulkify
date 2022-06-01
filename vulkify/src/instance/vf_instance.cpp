@@ -797,7 +797,7 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 
 	auto proj = m_impl->setFactory.postInc(0, "UBO:P");
 	auto const mat_p = projection(extent);
-	proj.write(0, mat_p);
+	proj.write(0, &mat_p, sizeof(mat_p));
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
 	auto const cam = RenderCam{extent, &m_impl->camera};

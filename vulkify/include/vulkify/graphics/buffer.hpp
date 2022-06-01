@@ -1,11 +1,13 @@
 #pragma once
 #include <vulkify/core/result.hpp>
-#include <vulkify/graphics/buffer_write.hpp>
 #include <vulkify/graphics/geometry.hpp>
 #include <vulkify/graphics/resource.hpp>
 
 namespace vf {
 class Context;
+
+template <typename T>
+concept BufferData = std::is_trivially_copyable_v<T>;
 
 ///
 /// \brief GPU Vertex (and index) buffer
@@ -39,6 +41,12 @@ class UniformBuffer : public GfxResource {
 
 	std::size_t size() const;
 	Result<void> reserve(std::size_t size);
-	Result<void> write(BufferWrite data);
+
+	Result<void> write(void const* data, std::size_t size);
+
+	template <BufferData T>
+	Result<void> write(std::span<T const> data) {
+		return write(data.data(), data.size_bytes());
+	}
 };
 } // namespace vf

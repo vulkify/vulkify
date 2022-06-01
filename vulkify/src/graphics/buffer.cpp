@@ -33,8 +33,8 @@ void writeGeometry(BufferCache& vbo, BufferCache& ibo, Geometry const& geometry)
 GeometryBuffer::GeometryBuffer(Context const& context, std::string name) : GfxResource(context.vram(), std::move(name)) {
 	auto& bufs = m_allocation->buffers;
 	auto const& vram = context.vram();
-	bufs[0] = BufferCache(vram, vram.buffering, BufferType::eVertex);
-	bufs[1] = BufferCache(vram, vram.buffering, BufferType::eIndex);
+	bufs[0] = BufferCache(vram, vk::BufferUsageFlagBits::eVertexBuffer);
+	bufs[1] = BufferCache(vram, vk::BufferUsageFlagBits::eIndexBuffer);
 }
 
 Geometry GeometryBuffer::geometry() const {
@@ -55,7 +55,7 @@ Result<void> GeometryBuffer::write(Geometry geometry) {
 
 UniformBuffer::UniformBuffer(Context const& context, std::string name) : GfxResource(context.vram(), std::move(name)) {
 	auto& bufs = m_allocation->buffers;
-	bufs[0] = BufferCache(context.vram(), BufferType::eUniform);
+	bufs[0] = BufferCache(context.vram(), vk::BufferUsageFlagBits::eUniformBuffer);
 }
 
 std::size_t UniformBuffer::size() const { return m_allocation->buffers[0].buffers.get()->size; }
@@ -75,10 +75,10 @@ Result<void> UniformBuffer::reserve(std::size_t const size) {
 	return Result<void>::success();
 }
 
-Result<void> UniformBuffer::write(BufferWrite const data) {
+Result<void> UniformBuffer::write(void const* data, std::size_t const size) {
 	if (!m_allocation || !m_allocation->vram) { return Error::eInactiveInstance; }
-	if (!reserve(data.size)) { return Error::eMemoryError; }
-	if (!m_allocation->buffers[0].buffers.get()->write(data)) { return Error::eMemoryError; }
+	if (!reserve(size)) { return Error::eMemoryError; }
+	if (!m_allocation->buffers[0].buffers.get()->write(data, size)) { return Error::eMemoryError; }
 
 	return Result<void>::success();
 }

@@ -78,8 +78,6 @@ struct ImageCache {
 	VKImage peek() const noexcept { return {image->resource, view ? *view : vk::ImageView(), {info.info.extent.width, info.info.extent.height}}; }
 };
 
-enum class BufferType { eVertex, eIndex, eUniform, eStorage };
-
 struct BufferCache {
 	std::string name{};
 	mutable vk::BufferCreateInfo info{};
@@ -89,46 +87,24 @@ struct BufferCache {
 
 	BufferCache() = default;
 
-	BufferCache(Vram const& vram, std::size_t buffering, BufferType type) : vram(&vram) {
-		switch (type) {
-		case BufferType::eIndex: setIbo(buffering); break;
-		case BufferType::eVertex: setVbo(buffering); break;
-		default: assert(false && "Invalid buffer type"); break;
-		}
-	}
-
-	BufferCache(Vram const& vram, BufferType type) : vram(&vram) {
-		switch (type) {
-		case BufferType::eStorage: setSsbo(); break;
-		case BufferType::eUniform: setUbo(); break;
-		default: assert(false && "Invalid buffer type"); break;
-		}
+	BufferCache(Vram const& vram, vk::BufferUsageFlagBits usage) : vram(&vram) {
+		info.usage = usage;
+		info.size = 1;
+		for (std::size_t i = 0; i < vram.buffering; ++i) { buffers.push(vram.makeBuffer(info, true, this->name.c_str())); }
 	}
 
 	explicit operator bool() const { return vram && !buffers.storage.empty(); }
-
-	void init(vk::BufferUsageFlags usage, std::size_t rotations) {
-		if (!vram) { return; }
-		info.usage = usage;
-		info.size = 1;
-		for (std::size_t i = 0; i < rotations; ++i) { buffers.push(vram->makeBuffer(info, true, this->name.c_str())); }
-	}
-
-	void setVbo(std::size_t buffering) { init(vk::BufferUsageFlagBits::eVertexBuffer, buffering); }
-	void setIbo(std::size_t buffering) { init(vk::BufferUsageFlagBits::eIndexBuffer, buffering); }
-	void setUbo() { init(vk::BufferUsageFlagBits::eUniformBuffer, 1); }
-	void setSsbo() { init(vk::BufferUsageFlagBits::eStorageBuffer, 1); }
 
 	VmaBuffer const& get(bool next) const {
 		static auto const blank_v = VmaBuffer{};
 		if (!vram) { return blank_v; }
 		auto& buffer = buffers.get();
-		if (buffers.get()->size < data.size()) {
+		if (buffer->size < data.size()) {
 			info.size = data.size();
 			vram->device.defer(std::move(buffer));
 			buffer = vram->makeBuffer(info, true, name.c_str());
 		}
-		buffer->write(std::span<std::byte const>(data));
+		buffer->write(data.data(), data.size());
 		if (next) { buffers.next(); }
 		return buffer;
 	}

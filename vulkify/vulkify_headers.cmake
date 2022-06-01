@@ -20,7 +20,6 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   include/vulkify/graphics/atlas.hpp
   include/vulkify/graphics/bitmap.hpp
-  include/vulkify/graphics/buffer_write.hpp
   include/vulkify/graphics/buffer.hpp
   include/vulkify/graphics/camera.hpp
   include/vulkify/graphics/draw_model.hpp
