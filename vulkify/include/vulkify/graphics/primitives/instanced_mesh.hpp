@@ -20,7 +20,7 @@ class InstancedMesh : public MeshPrimitive {
 
 	Drawable drawable() const { return {instances, gbo, texture}; }
 
-	void draw(Surface const& surface, Pipeline const& pipeline = {}) const override { surface.draw(drawable(), pipeline); }
+	void draw(Surface const& surface, RenderState const& state = {}) const override { surface.draw(drawable(), state); }
 
 	Storage instances{};
 };

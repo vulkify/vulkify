@@ -3,7 +3,7 @@
 #include <span>
 
 namespace vf {
-struct DescriptorSet {
+struct SetWriter {
 	enum Binding { eUniform = 0, eStorage = 1, eCOUNT_ };
 
 	struct BufferLayout {

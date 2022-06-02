@@ -14,7 +14,7 @@ class Mesh : public MeshPrimitive {
 	Mesh(Context const& context, std::string name);
 
 	Drawable drawable() const { return {{&instance, 1}, gbo, texture}; }
-	void draw(Surface const& surface, Pipeline const& pipeline = {}) const override;
+	void draw(Surface const& surface, RenderState const& state = {}) const override;
 
 	DrawInstance instance{};
 };

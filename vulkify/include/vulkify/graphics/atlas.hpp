@@ -1,6 +1,6 @@
 #pragma once
 #include <vulkify/core/rect.hpp>
-#include <vulkify/graphics/texture.hpp>
+#include <vulkify/graphics/resources/texture.hpp>
 
 namespace vf {
 ///

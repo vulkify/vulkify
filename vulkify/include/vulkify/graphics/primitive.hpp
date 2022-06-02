@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkify/graphics/pipeline.hpp>
+#include <vulkify/graphics/render_state.hpp>
 
 namespace vf {
 class Surface;
@@ -11,6 +11,6 @@ class Primitive {
   public:
 	virtual ~Primitive() = default;
 
-	virtual void draw(Surface const& surface, Pipeline const& pipeline = {}) const = 0;
+	virtual void draw(Surface const& surface, RenderState const& state = {}) const = 0;
 };
 } // namespace vf

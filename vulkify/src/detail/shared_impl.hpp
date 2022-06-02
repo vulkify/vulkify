@@ -2,7 +2,6 @@
 #include <detail/cache.hpp>
 #include <detail/vram.hpp>
 #include <glm/mat4x4.hpp>
-#include <vulkify/graphics/handles.hpp>
 #include <vulkify/instance/instance_enums.hpp>
 
 namespace vf {
@@ -71,6 +70,11 @@ struct GfxCommandBuffer {
 
 	GfxCommandBuffer(Vram const& vram) : pool(vram.commandFactory->get()), cmd(pool.acquire()), writer(vram, cmd) {}
 	~GfxCommandBuffer() { pool.release(std::move(cmd), true); }
+};
+
+struct GfxShaderModule {
+	vk::UniqueShaderModule module{};
+	vk::Device device{};
 };
 
 struct HTexture {

@@ -308,7 +308,7 @@ constexpr int getSamples(AntiAliasing aa) {
 }
 
 std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
-	using DSet = DescriptorSet;
+	using DSet = SetWriter;
 	auto ret = std::vector<vk::UniqueDescriptorSetLayout>{};
 	auto addSet = [&](vk::ShaderStageFlags bufferStages) {
 		auto b0 = vk::DescriptorSetLayoutBinding(0, DSet::buffer_layouts_v[0].type, 1, bufferStages);

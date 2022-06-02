@@ -6,13 +6,14 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   graphics/atlas.cpp
   graphics/bitmap.cpp
-  graphics/buffer.cpp
   graphics/geometry.cpp
   graphics/image.cpp
-  graphics/resource.cpp
   graphics/shader.cpp
   graphics/surface.cpp
-  graphics/texture.cpp
+
+  graphics/resources/geometry_buffer.cpp
+  graphics/resources/resource.cpp
+  graphics/resources/texture.cpp
 
   graphics/primitives/circle_shape.cpp
   graphics/primitives/mesh.cpp
@@ -25,7 +26,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/cache.hpp
   detail/command_pool.hpp
   detail/defer_queue.hpp
-  detail/descriptor_set.hpp
   detail/descriptor_set_factory.hpp
   detail/pipeline_factory.cpp
   detail/pipeline_factory.hpp
@@ -33,6 +33,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/renderer.cpp
   detail/renderer.hpp
   detail/rotator.hpp
+  detail/set_writer.hpp
   detail/shared_impl.hpp
   detail/spir_v.cpp
   detail/trace.cpp

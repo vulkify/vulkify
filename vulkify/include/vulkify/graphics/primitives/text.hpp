@@ -1,7 +1,7 @@
 #pragma once
 #include <ktl/not_null.hpp>
-#include <vulkify/graphics/buffer.hpp>
 #include <vulkify/graphics/primitives/mesh.hpp>
+#include <vulkify/graphics/resources/geometry_buffer.hpp>
 
 namespace vf {
 class Ttf;
@@ -29,7 +29,7 @@ class Text : public Primitive {
 	Transform& transform() { return m_mesh.instance.transform; }
 	Transform const& transform() const { return m_mesh.instance.transform; }
 
-	void draw(Surface const& surface, Pipeline const& pipeline = {}) const override;
+	void draw(Surface const& surface, RenderState const& state = {}) const override;
 
 	std::string text{};
 	Align align{};

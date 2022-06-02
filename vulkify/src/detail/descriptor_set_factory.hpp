@@ -1,6 +1,6 @@
 #pragma once
-#include <detail/descriptor_set.hpp>
 #include <detail/rotator.hpp>
+#include <detail/set_writer.hpp>
 #include <detail/trace.hpp>
 #include <ktl/enumerate.hpp>
 #include <ktl/fixed_vector.hpp>
@@ -9,7 +9,7 @@
 namespace vf {
 struct DescriptorAllocator {
 	struct Set {
-		UniqueBuffer buffers[DescriptorSet::Binding::eCOUNT_]{};
+		UniqueBuffer buffers[SetWriter::Binding::eCOUNT_]{};
 		vk::DescriptorSet set{};
 	};
 	struct Pool {
@@ -78,7 +78,7 @@ struct DescriptorAllocator {
 		return storage.sets[index];
 	}
 
-	DescriptorSet descriptorSet(char const* name) {
+	SetWriter descriptorSet(char const* name) {
 		auto& set = this->set();
 		return {&vram, set.buffers, set.set, name, number};
 	}
@@ -102,7 +102,7 @@ struct DescriptorSetFactory {
 
 	explicit operator bool() const { return !allocators[0].pools.storage.empty(); }
 
-	DescriptorSet postInc(std::uint32_t set, char const* name) {
+	SetWriter postInc(std::uint32_t set, char const* name) {
 		assert(set < sets_v);
 		auto& rot = allocators[set];
 		auto ret = rot.descriptorSet(name);

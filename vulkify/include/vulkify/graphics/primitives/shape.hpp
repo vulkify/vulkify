@@ -1,8 +1,8 @@
 #pragma once
-#include <vulkify/graphics/buffer.hpp>
 #include <vulkify/graphics/drawable.hpp>
 #include <vulkify/graphics/primitive.hpp>
-#include <vulkify/graphics/texture.hpp>
+#include <vulkify/graphics/resources/geometry_buffer.hpp>
+#include <vulkify/graphics/resources/texture.hpp>
 
 namespace vf {
 class Context;
@@ -19,7 +19,7 @@ class Shape : public Primitive {
 		float scale{};
 		Rgba tint{white_v};
 
-		void draw(Shape const& shape, Surface const& surface, Pipeline const& pipeline) const;
+		void draw(Shape const& shape, Surface const& surface, RenderState const& state) const;
 	};
 
 	Shape() = default;
@@ -31,7 +31,7 @@ class Shape : public Primitive {
 	Rgba& tint() { return m_instance.tint; }
 	GeometryBuffer const& geometry() const { return m_geometry; }
 
-	void draw(Surface const& surface, Pipeline const& pipeline = {}) const override;
+	void draw(Surface const& surface, RenderState const& state = {}) const override;
 
 	Silhouette silhouette{};
 

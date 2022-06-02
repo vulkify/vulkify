@@ -3,7 +3,7 @@
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/core/transform.hpp>
 #include <vulkify/graphics/draw_model.hpp>
-#include <vulkify/graphics/handles.hpp>
+#include <vulkify/graphics/resources/texture_handle.hpp>
 #include <cstring>
 
 namespace vf {

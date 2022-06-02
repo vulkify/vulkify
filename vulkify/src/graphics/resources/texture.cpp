@@ -2,7 +2,7 @@
 #include <detail/trace.hpp>
 #include <vulkify/context/context.hpp>
 #include <vulkify/core/float_eq.hpp>
-#include <vulkify/graphics/texture.hpp>
+#include <vulkify/graphics/resources/texture.hpp>
 
 namespace vf {
 namespace {
@@ -91,7 +91,7 @@ Extent Texture::extent() const {
 
 TextureHandle Texture::handle() const {
 	if (!m_allocation || !m_allocation->image.cache || !m_allocation->image.sampler) { return {}; }
-	return TextureHandle{HTexture{*m_allocation->image.cache.view, *m_allocation->image.sampler}};
+	return {HTexture{*m_allocation->image.cache.view, *m_allocation->image.sampler}};
 }
 
 Texture::Texture(Vram const& vram, std::string name, CreateInfo const& createInfo)

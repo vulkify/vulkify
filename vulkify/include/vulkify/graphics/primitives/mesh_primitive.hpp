@@ -1,8 +1,8 @@
 #pragma once
 #include <vulkify/core/ptr.hpp>
-#include <vulkify/graphics/buffer.hpp>
-#include <vulkify/graphics/handles.hpp>
 #include <vulkify/graphics/primitive.hpp>
+#include <vulkify/graphics/resources/geometry_buffer.hpp>
+#include <vulkify/graphics/resources/texture_handle.hpp>
 
 namespace vf {
 ///
