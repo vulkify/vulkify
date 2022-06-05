@@ -1,11 +1,8 @@
-cmake_minimum_required(VERSION 3.17)
+cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 
-project(vulkify-quick-start)
+project(vulkify-examples)
 
-if(NOT TARGET vulkify)
-  find_package(vulkify REQUIRED)
-endif()
+add_subdirectory(quick_start)
 
-add_executable(${PROJECT_NAME})
-target_link_libraries(${PROJECT_NAME} PRIVATE vulkify::vulkify vulkify::options)
-target_sources(${PROJECT_NAME} PRIVATE quick_start.cpp)
+add_subdirectory(base)
+add_subdirectory(shader)

@@ -1,0 +1,1 @@
+- textures/crate.png: Simple Ton Wooden Crate Texture, https://opengameart.org/content/simple-toon-wooden-crate-texture
