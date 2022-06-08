@@ -35,6 +35,4 @@ bool Shader::load(char const* path, bool tryCompile) {
 	m_impl->module = m_impl->device.createShaderModuleUnique({{}, spv.codesize, spv.code.get()});
 	return static_cast<bool>(m_impl->module);
 }
-
-GfxShaderModule const& Shader::module() const { return m_impl.get(); }
 } // namespace vf

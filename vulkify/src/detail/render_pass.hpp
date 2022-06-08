@@ -1,9 +1,10 @@
 #pragma once
 #include <detail/cache.hpp>
-#include <detail/descriptor_set.hpp>
+#include <detail/set_writer.hpp>
 #include <glm/vec2.hpp>
 #include <ktl/unique_val.hpp>
 #include <vulkify/graphics/camera.hpp>
+#include <vulkify/graphics/resources/texture_handle.hpp>
 #include <mutex>
 
 namespace vf {
@@ -11,6 +12,7 @@ class Instance;
 struct DrawModel;
 struct PipelineFactory;
 struct DescriptorSetFactory;
+struct HTexture;
 
 struct SetBind {
 	std::uint32_t set{};
@@ -30,7 +32,7 @@ struct ShaderInput {
 		explicit operator bool() const { return sampler && white.image && magenta.image; }
 	};
 
-	DescriptorSet mat_p{};
+	SetWriter mat_p{};
 	Textures const* textures{};
 	SetBind one{1};
 	SetBind two{2};
@@ -42,11 +44,6 @@ struct RenderCam {
 };
 
 struct RenderPass {
-	struct Tex {
-		vk::Sampler sampler{};
-		vk::ImageView view{};
-	};
-
 	ktl::unique_val<Instance*> instance{};
 	PipelineFactory* pipelineFactory{};
 	DescriptorSetFactory* setFactory{};
@@ -59,8 +56,10 @@ struct RenderPass {
 
 	mutable vk::PipelineLayout bound{};
 
-	void writeView(DescriptorSet& set) const;
-	void writeModels(DescriptorSet& set, std::span<DrawModel const> instances, Tex tex) const;
+	HTexture whiteTexture() const;
+	void writeView(SetWriter& set) const;
+	void writeModels(SetWriter& set, std::span<DrawModel const> instances, TextureHandle const& texture) const;
+	void writeCustom(SetWriter& set, std::span<std::byte const> ubo, TextureHandle const& texture) const;
 	void bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const;
 	void setViewport() const;
 };

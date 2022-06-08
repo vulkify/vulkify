@@ -2,6 +2,7 @@
 #include <detail/trace.hpp>
 #include <detail/vram.hpp>
 #include <ktl/fixed_vector.hpp>
+#include <ktl/kformat.hpp>
 #include <atomic>
 
 namespace vf {
@@ -22,7 +23,7 @@ vk::SampleCountFlagBits getSamples(vk::SampleCountFlags supported, int desired) 
 	return vk::SampleCountFlagBits::e1;
 }
 
-constexpr auto name_v = "vf::(internal)";
+[[maybe_unused]] constexpr auto name_v = "vf::(internal)";
 } // namespace
 
 BlitCaps BlitCaps::make(vk::PhysicalDevice device, vk::Format format) {
@@ -61,9 +62,9 @@ vk::ImageLayout ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image, 
 	return operator()(cb, image, {vk::ImageLayout::eUndefined, target});
 }
 
-bool VmaBuffer::write(BufferWrite data) {
-	if (!map || size == 0) { return false; }
-	std::memcpy(map, data.data, data.size);
+bool VmaBuffer::write(void const* data, std::size_t size) {
+	if (!map || this->size < size) { return false; }
+	std::memcpy(map, data, size);
 	return true;
 }
 
@@ -186,10 +187,10 @@ static void copy(Vram const& vram, VmaBuffer dst, vk::CommandBuffer cmd, Span co
 
 bool ImageWriter::canBlit(VmaImage const& src, VmaImage const& dst) { return src.blitFlags().test(BlitFlag::eSrc) && dst.blitFlags().test(BlitFlag::eDst); }
 
-bool ImageWriter::write(VmaImage& out, BufferWrite const data, URegion region, vk::ImageLayout il) {
-	auto bci = vk::BufferCreateInfo({}, data.size, vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
+bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, URegion region, vk::ImageLayout il) {
+	auto bci = vk::BufferCreateInfo({}, data.size(), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
 	auto buffer = vram->makeBuffer(bci, true, "image_copy_staging");
-	if (!buffer || !buffer->write(data)) { return false; }
+	if (!buffer || !buffer->write(data.data(), data.size())) { return false; }
 
 	if (region.extent.x == 0 && region.extent.x == 0) {
 		if (region.offset.x != 0 || region.offset.y != 0) { return false; }

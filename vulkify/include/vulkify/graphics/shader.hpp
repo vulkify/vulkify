@@ -3,8 +3,8 @@
 #include <span>
 
 namespace vf {
-struct GfxShaderModule;
 class Context;
+struct GfxShaderModule;
 
 class Shader {
   public:
@@ -20,9 +20,9 @@ class Shader {
 	bool load(std::span<std::byte const> spirv);
 	bool load(char const* path, bool tryCompile);
 
-	GfxShaderModule const& module() const;
-
   private:
 	ktl::fixed_pimpl<GfxShaderModule, 64> m_impl;
+
+	friend class Surface;
 };
 } // namespace vf

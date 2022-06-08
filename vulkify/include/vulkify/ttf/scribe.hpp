@@ -20,6 +20,7 @@ struct Pen {
 	Ttf* out_ttf{};
 	Geometry* out_geometry{};
 	glm::vec2 head{};
+	Glyph::Height height{Glyph::height_v};
 	float maxHeight{};
 
 	Character character(Codepoint codepoint) const;

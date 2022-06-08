@@ -21,25 +21,59 @@ constexpr Scribe::Pivot pivot(Text::Align align) {
 }
 } // namespace
 
-Text::Text(Context const& context, std::string name) : m_mesh(context, std::move(name)) {}
+Text::Text(Context const& context, std::string name) { m_mesh.get() = {context, std::move(name)}; }
 
-Text::operator bool() const { return m_ttf && *m_ttf && m_mesh; }
+Text::operator bool() const { return m_ttf && *m_ttf && m_mesh.get(); }
 
 Text& Text::setFont(ktl::not_null<Ttf*> ttf) {
 	m_ttf = ttf;
-	m_mesh.texture = m_ttf->texture();
+	m_mesh.setDirty();
 	return *this;
 }
 
-void Text::draw(Surface const& surface, Pipeline const& pipeline) const {
-	update();
-	surface.draw(m_mesh.drawable(), pipeline);
+Text& Text::setString(std::string string) {
+	m_text = std::move(string);
+	m_mesh.setDirty();
+	return *this;
 }
 
-void Text::update() const {
-	assert(m_ttf);
-	auto scribe = Scribe{*m_ttf, height};
-	scribe.write(Scribe::Block{text}, pivot(align));
-	m_mesh.gbo.write(std::move(scribe.geometry));
+Text& Text::append(std::string string) {
+	m_text += std::move(string);
+	m_mesh.setDirty();
+	return *this;
+}
+
+Text& Text::append(char ch) {
+	m_text += ch;
+	m_mesh.setDirty();
+	return *this;
+}
+
+Text& Text::setAlign(Align align) {
+	m_align = align;
+	m_mesh.setDirty();
+	return *this;
+}
+
+Text& Text::setHeight(Height height) {
+	m_height = height;
+	m_mesh.setDirty();
+	return *this;
+}
+
+void Text::draw(Surface const& surface, RenderState const& state) const {
+	if (m_text.empty() || !m_ttf) { return; }
+	if (m_mesh.dirty) { rebuild(); }
+	surface.draw(m_mesh.get().drawable(), state);
+}
+
+void Text::rebuild() const {
+	auto scribe = Scribe{*m_ttf, m_height};
+	scribe.write(Scribe::Block{m_text}, pivot(m_align));
+	if (auto const* texture = m_ttf->texture(m_height)) {
+		m_mesh.get().texture = texture->handle();
+		m_mesh.get().gbo.write(std::move(scribe.geometry));
+		m_mesh.setClean();
+	}
 }
 } // namespace vf

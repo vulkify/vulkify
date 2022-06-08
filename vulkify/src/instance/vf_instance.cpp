@@ -308,7 +308,7 @@ constexpr int getSamples(AntiAliasing aa) {
 }
 
 std::vector<vk::UniqueDescriptorSetLayout> makeSetLayouts(vk::Device device) {
-	using DSet = DescriptorSet;
+	using DSet = SetWriter;
 	auto ret = std::vector<vk::UniqueDescriptorSetLayout>{};
 	auto addSet = [&](vk::ShaderStageFlags bufferStages) {
 		auto b0 = vk::DescriptorSetLayoutBinding(0, DSet::buffer_layouts_v[0].type, 1, bufferStages);
@@ -722,7 +722,7 @@ void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
 }
 
 bool VulkifyInstance::setVSync(VSync vsync) {
-	static constexpr std::string_view modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
+	[[maybe_unused]] static constexpr std::string_view modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
 	if (m_impl->surface.info.presentMode == fromVSync(vsync)) { return true; }
 	if (!m_impl->vulkan.gpu.gpu.presentModes.test(vsync)) {
 		VF_TRACEW("vf::(internal)", "Unsupported VSync mode requested [{}]", modes_v[static_cast<int>(vsync)]);
@@ -797,7 +797,7 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 
 	auto proj = m_impl->setFactory.postInc(0, "UBO:P");
 	auto const mat_p = projection(extent);
-	proj.write(0, mat_p);
+	proj.write(0, &mat_p, sizeof(mat_p));
 
 	auto const input = ShaderInput{proj, &m_impl->shaderTextures};
 	auto const cam = RenderCam{extent, &m_impl->camera};

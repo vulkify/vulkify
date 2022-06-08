@@ -1,8 +1,7 @@
 #pragma once
 #include <vulkify/core/result.hpp>
-#include <vulkify/graphics/buffer_write.hpp>
 #include <vulkify/graphics/geometry.hpp>
-#include <vulkify/graphics/resource.hpp>
+#include <vulkify/graphics/resources/resource.hpp>
 
 namespace vf {
 class Context;
@@ -12,24 +11,20 @@ class Context;
 ///
 class GeometryBuffer : public GfxResource {
   public:
+	struct Counts {
+		std::uint32_t vertices{};
+		std::uint32_t indices{};
+	};
+
 	GeometryBuffer() = default;
 	GeometryBuffer(Context const& context, std::string name);
 
 	Result<void> write(Geometry geometry);
 
 	Geometry geometry() const;
-};
+	Counts counts() const { return m_counts; }
 
-///
-/// \brief GPU Uniform buffer
-///
-class UniformBuffer : public GfxResource {
-  public:
-	UniformBuffer() = default;
-	UniformBuffer(Context const& context, std::string name);
-
-	std::size_t size() const;
-	Result<void> reserve(std::size_t size);
-	Result<void> write(BufferWrite data);
+  private:
+	Counts m_counts{};
 };
 } // namespace vf

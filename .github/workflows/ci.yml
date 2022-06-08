@@ -15,7 +15,7 @@ jobs:
       - name: init
         run: sudo apt install -yqq ninja-build xorg-dev g++-11
       - name: configure clang
-        run: cp cmake/CMakePresets.json . && cmake -S . --preset=nc-release -B build
+        run: cp cmake/CMakePresets.json . && cmake -S . --preset=nc-release -DVULKIFY_DEBUG_TRACE=OFF -B build
       - name: configure gcc
         run: cmake -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-11 -B plain_build
       - name: build clang

@@ -1,7 +1,8 @@
 #pragma once
 #include <ktl/not_null.hpp>
-#include <vulkify/graphics/buffer.hpp>
+#include <vulkify/core/dirty_flag.hpp>
 #include <vulkify/graphics/primitives/mesh.hpp>
+#include <vulkify/graphics/resources/geometry_buffer.hpp>
 
 namespace vf {
 class Ttf;
@@ -22,27 +23,30 @@ class Text : public Primitive {
 
 	explicit operator bool() const;
 
+	Rgba& tint() { return m_mesh.t.instance.tint; }
+	Rgba const& tint() const { return m_mesh.get().instance.tint; }
+	Transform& transform() { return m_mesh.get().instance.transform; }
+	Transform const& transform() const { return m_mesh.get().instance.transform; }
+	std::string const& string() const& { return m_text; }
+	Align align() const { return m_align; }
+	Height height() const { return m_height; }
+
 	Text& setFont(ktl::not_null<Ttf*> ttf);
+	Text& setString(std::string string);
+	Text& append(std::string string);
+	Text& append(char ch);
+	Text& setAlign(Align align);
+	Text& setHeight(Height height);
 
-	Rgba& tint() { return m_mesh.instance.tint; }
-	Rgba const& tint() const { return m_mesh.instance.tint; }
-	Transform& transform() { return m_mesh.instance.transform; }
-	Transform const& transform() const { return m_mesh.instance.transform; }
-
-	void draw(Surface const& surface, Pipeline const& pipeline = {}) const override;
-
-	std::string text{};
-	Align align{};
-	Height height{60};
-
-  protected:
-	///
-	/// \brief Requires m_ttf to be not-null
-	///
-	void update() const;
+	void draw(Surface const& surface, RenderState const& state = {}) const override;
 
   private:
-	mutable Mesh m_mesh{};
+	void rebuild() const;
+
+	DirtyFlag<Mesh> m_mesh{};
+	std::string m_text{};
+	Align m_align{};
+	Height m_height{60};
 	Ttf* m_ttf{};
 };
 } // namespace vf

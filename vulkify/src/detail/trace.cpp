@@ -1,4 +1,5 @@
 #include <detail/trace.hpp>
+#include <ktl/kformat.hpp>
 #include <cstdio>
 #include <ctime>
 
