@@ -10,7 +10,6 @@ namespace vf {
 class Context {
   public:
 	using Result = vf::Result<Context>;
-	using Icon = Instance::Icon;
 
 	static Result make(UInstance&& instance);
 

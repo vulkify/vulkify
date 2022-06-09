@@ -4,9 +4,11 @@
 #include <vulkify/graphics/bitmap.hpp>
 #include <vulkify/graphics/camera.hpp>
 #include <vulkify/graphics/surface.hpp>
+#include <vulkify/instance/cursor.hpp>
 #include <vulkify/instance/event.hpp>
 #include <vulkify/instance/event_queue.hpp>
 #include <vulkify/instance/gpu.hpp>
+#include <vulkify/instance/icon.hpp>
 #include <vulkify/instance/instance_enums.hpp>
 #include <vulkify/instance/monitor.hpp>
 #include <span>
@@ -14,25 +16,10 @@
 namespace vf {
 struct Vram;
 
-enum class CursorMode { eStandard, eHidden, eDisabled };
-
-struct Cursor {
-	std::uint64_t handle{};
-
-	constexpr bool operator==(Cursor const&) const = default;
-};
-
 class Instance {
   public:
 	static constexpr std::size_t max_events_v = 16;
 	static constexpr std::size_t max_scancodes_v = 16;
-
-	struct Icon {
-		using TopLeft = glm::ivec2;
-
-		Bitmap::View bitmap{};
-		TopLeft hotspot{};
-	};
 
 	virtual ~Instance() = default;
 

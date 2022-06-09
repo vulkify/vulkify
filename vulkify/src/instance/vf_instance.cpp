@@ -1,11 +1,6 @@
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include <detail/vk_instance.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <ktl/debug_trap.hpp>
-#include <ktl/fixed_vector.hpp>
-#include <vulkify/core/unique.hpp>
 
 #include <vulkify/instance/headless_instance.hpp>
 #include <vulkify/instance/vf_instance.hpp>
@@ -21,6 +16,7 @@
 #include <detail/trace.hpp>
 #include <detail/vk_surface.hpp>
 #include <detail/vram.hpp>
+#include <detail/window/window.hpp>
 #include <functional>
 
 #include <glm/mat4x4.hpp>
@@ -29,8 +25,6 @@
 #include <vulkify/graphics/geometry.hpp>
 #include <iostream>
 
-#include <vulkify/instance/gamepad.hpp>
-
 #include <ttf/ft.hpp>
 
 #include <ktl/ktl_version.hpp>
@@ -38,251 +32,6 @@
 static_assert(ktl::version_v >= ktl::kversion{1, 4, 0});
 
 namespace vf {
-namespace {
-using EventsStorage = ktl::fixed_vector<Event, Instance::max_events_v>;
-using ScancodeStorage = ktl::fixed_vector<std::uint32_t, Instance::max_scancodes_v>;
-using FileDropStorage = std::vector<std::string>;
-
-inline constexpr auto empty_cstr_v = "";
-
-struct CursorStorage {
-	struct Hasher {
-		std::size_t operator()(Cursor cursor) const { return std::hash<std::uint64_t>{}(cursor.handle); }
-	};
-
-	std::unordered_map<Cursor, GLFWcursor*, Hasher> cursors{};
-	std::uint64_t next{};
-};
-
-struct {
-	GLFWwindow* window{};
-	EventsStorage* events{};
-	ScancodeStorage* scancodes{};
-	FileDropStorage* fileDrops{};
-
-	bool match(GLFWwindow const* w) const { return w == window && events && scancodes && fileDrops; }
-} g_glfw;
-
-struct {
-	GLFWgamepadstate states[Gamepad::max_id_v]{};
-
-	void operator()() {
-		for (int i = 0; i < Gamepad::max_id_v; ++i) {
-			GLFWgamepadstate state;
-			if (glfwGetGamepadState(GLFW_JOYSTICK_1 + i, &state)) {
-				states[i] = state;
-			} else {
-				states[i] = {};
-			}
-		}
-	}
-} g_gamepads{};
-
-template <typename Out, typename In = int>
-constexpr glm::tvec2<Out> cast(glm::tvec2<In> const& in) {
-	return {static_cast<Out>(in.x), static_cast<Out>(in.y)};
-}
-
-void attachCallbacks(GLFWwindow* w) {
-	glfwSetWindowCloseCallback(w, [](GLFWwindow* w) {
-		if (g_glfw.match(w)) {
-			glfwSetWindowShouldClose(w, GLFW_TRUE);
-			if (g_glfw.events->has_space()) { g_glfw.events->push_back({{}, EventType::eClose}); }
-		}
-	});
-	glfwSetWindowIconifyCallback(w, [](GLFWwindow* w, int v) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({v == GLFW_TRUE, EventType::eIconify}); }
-	});
-	glfwSetWindowFocusCallback(w, [](GLFWwindow* w, int v) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({v == GLFW_TRUE, EventType::eFocus}); }
-	});
-	glfwSetWindowMaximizeCallback(w, [](GLFWwindow* w, int v) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({v == GLFW_TRUE, EventType::eMaximize}); }
-	});
-	glfwSetCursorEnterCallback(w, [](GLFWwindow* w, int v) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({v == GLFW_TRUE, EventType::eCursorEnter}); }
-	});
-	glfwSetWindowPosCallback(w, [](GLFWwindow* w, int x, int y) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({glm::ivec2(x, y), EventType::eMove}); }
-	});
-	glfwSetWindowSizeCallback(w, [](GLFWwindow* w, int x, int y) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({glm::ivec2(x, y), EventType::eWindowResize}); }
-	});
-	glfwSetFramebufferSizeCallback(w, [](GLFWwindow* w, int x, int y) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({glm::ivec2(x, y), EventType::eFramebufferResize}); }
-	});
-	glfwSetCursorPosCallback(w, [](GLFWwindow* w, double x, double y) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({glm::vec2(x, y), EventType::eCursorPos}); }
-	});
-	glfwSetScrollCallback(w, [](GLFWwindow* w, double x, double y) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) { g_glfw.events->push_back({glm::vec2(x, y), EventType::eScroll}); }
-	});
-	glfwSetKeyCallback(w, [](GLFWwindow* w, int key, int, int action, int mods) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) {
-			auto const keyEvent = KeyEvent{static_cast<Key>(key), static_cast<Action>(action), static_cast<Mods::type>(mods)};
-			g_glfw.events->push_back({keyEvent, EventType::eKey});
-		}
-	});
-	glfwSetMouseButtonCallback(w, [](GLFWwindow* w, int button, int action, int mods) {
-		if (g_glfw.match(w) && g_glfw.events->has_space()) {
-			auto const key = static_cast<Key>(button + static_cast<int>(Key::eMouseButtonBegin));
-			auto const keyEvent = KeyEvent{key, static_cast<Action>(action), static_cast<Mods::type>(mods)};
-			g_glfw.events->push_back({keyEvent, EventType::eMouseButton});
-		}
-	});
-
-	glfwSetCharCallback(w, [](GLFWwindow* w, std::uint32_t scancode) {
-		if (g_glfw.match(w) && g_glfw.scancodes->has_space()) { g_glfw.scancodes->push_back(scancode); }
-	});
-	glfwSetDropCallback(w, [](GLFWwindow* w, int count, char const** paths) {
-		if (g_glfw.match(w)) {
-			for (int i = 0; i < count; ++i) {
-				if (auto const path = paths[i]) { g_glfw.fileDrops->push_back(path); }
-			}
-		}
-	});
-}
-
-void detachCallbacks(GLFWwindow* w) {
-	glfwSetWindowCloseCallback(w, {});
-	glfwSetWindowIconifyCallback(w, {});
-	glfwSetWindowFocusCallback(w, {});
-	glfwSetWindowMaximizeCallback(w, {});
-	glfwSetCursorEnterCallback(w, {});
-	glfwSetWindowPosCallback(w, {});
-	glfwSetWindowSizeCallback(w, {});
-	glfwSetFramebufferSizeCallback(w, {});
-	glfwSetCursorPosCallback(w, {});
-	glfwSetScrollCallback(w, {});
-	glfwSetKeyCallback(w, {});
-	glfwSetMouseButtonCallback(w, {});
-
-	glfwSetCharCallback(w, {});
-	glfwSetDropCallback(w, {});
-}
-} // namespace
-
-namespace {
-struct Glfw {
-	CursorStorage cursors{};
-	bool active{};
-
-	Glfw(bool active = false) : active(active) {}
-
-	operator bool() const { return active; }
-	bool operator==(Glfw const& rhs) const { return active == rhs.active; }
-
-	static std::vector<char const*> instanceExtensions() {
-		static auto ret = std::vector<char const*>{};
-		if (ret.empty()) {
-			auto count = std::uint32_t{};
-			auto exts = glfwGetRequiredInstanceExtensions(&count);
-			for (std::uint32_t i = 0; i < count; ++i) { ret.push_back(exts[i]); }
-		}
-		return ret;
-	}
-
-	struct Deleter {
-		void operator()(Glfw const&) const { glfwTerminate(); }
-	};
-};
-
-using UniqueGlfw = Unique<Glfw, Glfw::Deleter>;
-
-struct Window {
-	GLFWwindow* win{};
-	EventsStorage events{};
-	ScancodeStorage scancodes{};
-	FileDropStorage fileDrops{};
-
-	bool operator==(Window const& rhs) const { return win == rhs.win; }
-
-	struct Deleter {
-		void operator()(Window const& window) const {
-			detachCallbacks(window.win);
-			glfwDestroyWindow(window.win);
-		}
-	};
-};
-
-using UniqueWindow = Unique<Window, Window::Deleter>;
-
-Result<std::shared_ptr<UniqueGlfw>> getOrMakeGlfw() {
-	static std::weak_ptr<UniqueGlfw> s_glfw{};
-	if (auto lock = s_glfw.lock()) { return lock; }
-	if (!glfwInit()) { return Error::eGlfwFailure; }
-	if (!glfwVulkanSupported()) {
-		glfwTerminate();
-		return Error::eNoVulkanSupport;
-	}
-	glfwSetErrorCallback([]([[maybe_unused]] int code, [[maybe_unused]] char const* szDesc) { VF_TRACEE("vf::Context", "GLFW Error [{}]: {}", code, szDesc); });
-	auto ret = std::make_shared<UniqueGlfw>(true);
-	s_glfw = ret;
-	return ret;
-}
-
-UniqueWindow makeWindow(InstanceCreateInfo const& info) {
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_DECORATED, info.windowFlags.test(WindowFlag::eBorderless) ? GLFW_FALSE : GLFW_TRUE);
-	glfwWindowHint(GLFW_VISIBLE, info.instanceFlags.test(InstanceFlag::eAutoShow) ? GLFW_TRUE : GLFW_FALSE);
-	glfwWindowHint(GLFW_MAXIMIZED, info.windowFlags.test(WindowFlag::eMaximized) ? GLFW_TRUE : GLFW_FALSE);
-	glfwWindowHint(GLFW_RESIZABLE, info.windowFlags.test(WindowFlag::eResizable) ? GLFW_TRUE : GLFW_FALSE);
-	auto ret = glfwCreateWindow(static_cast<int>(info.extent.x), static_cast<int>(info.extent.y), info.title, nullptr, nullptr);
-	attachCallbacks(ret);
-	return Window{ret};
-}
-
-template <typename T, typename F, typename U = GLFWwindow*>
-glm::tvec2<T> getGlfwVec(U w, F f) {
-	T x, y;
-	f(w, &x, &y);
-	return {x, y};
-}
-
-constexpr CursorMode castCursorMode(int mode) {
-	switch (mode) {
-	case GLFW_CURSOR_DISABLED: return CursorMode::eDisabled;
-	case GLFW_CURSOR_HIDDEN: return CursorMode::eHidden;
-	case GLFW_CURSOR_NORMAL:
-	default: return CursorMode::eStandard;
-	}
-}
-
-constexpr int cast(CursorMode mode) {
-	switch (mode) {
-	case CursorMode::eDisabled: return GLFW_CURSOR_DISABLED;
-	case CursorMode::eHidden: return GLFW_CURSOR_HIDDEN;
-	case CursorMode::eStandard:
-	default: return GLFW_CURSOR_NORMAL;
-	}
-}
-
-glm::ivec2 getFramebufferSize(GLFWwindow* w) { return getGlfwVec<int>(w, &glfwGetFramebufferSize); }
-glm::ivec2 getWindowSize(GLFWwindow* w) { return getGlfwVec<int>(w, &glfwGetWindowSize); }
-
-VideoMode makeVideoMode(GLFWvidmode const* mode) {
-	auto const bitDepth = glm::ivec3(mode->redBits, mode->greenBits, mode->blueBits);
-	auto const extent = glm::ivec2(mode->width, mode->height);
-	return {extent, bitDepth, static_cast<std::uint32_t>(mode->refreshRate)};
-}
-
-std::vector<VideoMode> makeVideoModes(GLFWvidmode const* modes, int count) {
-	auto ret = std::vector<VideoMode>{};
-	ret.reserve(static_cast<std::size_t>(count));
-	for (int i = 0; i < count; ++i) { ret.push_back(makeVideoMode(&modes[i])); }
-	return ret;
-}
-
-Monitor makeMonitor(GLFWmonitor* monitor) {
-	int count;
-	auto supported = glfwGetVideoModes(monitor, &count);
-	auto position = getGlfwVec<int>(monitor, &glfwGetMonitorPos);
-	auto szName = glfwGetMonitorName(monitor);
-	auto name = szName ? std::string(szName) : std::string();
-	return {std::move(name), makeVideoMode(glfwGetVideoMode(monitor)), makeVideoModes(supported, count), position, monitor};
-}
-} // namespace
-
 namespace {
 constexpr vk::Format textureFormat(vk::Format surface) { return Renderer::isSrgb(surface) ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm; }
 
@@ -430,10 +179,11 @@ struct SwapchainRenderer {
 	explicit operator bool() const { return static_cast<bool>(renderer.renderPass); }
 	VKSync sync() const { return frameSync.get().sync(); }
 
-	vk::CommandBuffer beginRender(VKImage acquired, Extent extent) {
+	vk::CommandBuffer beginRender(VKImage acquired) {
 		if (!renderer.renderPass) { return {}; }
 
 		auto& sync = frameSync.get();
+		auto const extent = Extent{acquired.extent.width, acquired.extent.height};
 		vram.device.reset(*sync.drawn);
 		framebuffer.colour = acquired;
 		if (msaa) {
@@ -509,7 +259,7 @@ glm::mat4 projection(Extent const extent, glm::vec2 const nf = {-100.0f, 100.0f}
 }
 
 struct VulkifyInstance::Impl {
-	std::shared_ptr<UniqueGlfw> glfw{};
+	std::shared_ptr<UniqueWindowInstance> winInst{};
 	UniqueWindow window{};
 	VKInstance vulkan{};
 	UniqueVram vram{};
@@ -527,12 +277,12 @@ struct VulkifyInstance::Impl {
 };
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
-	g_glfw = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->fileDrops};
+	g_window = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->fileDrops};
 }
 
 VulkifyInstance::~VulkifyInstance() {
 	m_impl->vulkan.device->waitIdle();
-	g_glfw = {};
+	g_window = {};
 	g_gamepads = {};
 }
 
@@ -551,13 +301,13 @@ PhysicalDevice selectDevice(std::span<PhysicalDevice> devices, GpuSelector const
 }
 
 VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
-	if (g_glfw.window) { return Error::eDuplicateInstance; }
+	if (g_window.window) { return Error::eDuplicateInstance; }
 	if (createInfo.extent.x == 0 || createInfo.extent.y == 0) { return Error::eInvalidArgument; }
 	if (createInfo.instanceFlags.test(InstanceFlag::eHeadless)) { return Error::eInvalidArgument; }
 
-	auto glfw = getOrMakeGlfw();
-	if (!glfw) { return glfw.error(); }
-	auto window = makeWindow(createInfo);
+	auto winInst = getOrMakeWindowInstance();
+	if (!winInst) { return winInst.error(); }
+	auto window = makeWindow(createInfo, winInst->get()->get());
 	if (!window) { return Error::eGlfwFailure; }
 
 	auto freetype = FtLib::make();
@@ -566,11 +316,12 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	auto vkinfo = VKInstance::Info{};
 	vkinfo.makeSurface = [&window](vk::Instance inst) {
 		auto surface = VkSurfaceKHR{};
-		[[maybe_unused]] auto const res = glfwCreateWindowSurface(static_cast<VkInstance>(inst), window->win, {}, &surface);
-		assert(res == VK_SUCCESS);
+		auto vkinst = static_cast<VkInstance>(inst);
+		[[maybe_unused]] auto const res = window->makeSurface(&vkinst, &surface);
+		assert(res);
 		return vk::SurfaceKHR(surface);
 	};
-	vkinfo.instanceExtensions = glfw->get()->get().instanceExtensions();
+	vkinfo.instanceExtensions = Window::Instance::extensions();
 	auto builder = VKInstance::Builder::make(std::move(vkinfo));
 	if (!builder) { return builder.error(); }
 	if (builder->devices.empty()) { return Error::eNoVulkanSupport; }
@@ -584,9 +335,9 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (!vram) { return Error::eVulkanInitFailure; }
 	vram.vram->ftlib = freetype.lib;
 
-	auto impl = ktl::make_unique<Impl>(std::move(*glfw), std::move(window), std::move(vulkan), std::move(vram));
+	auto impl = ktl::make_unique<Impl>(std::move(*winInst), std::move(window), std::move(vulkan), std::move(vram));
 	bool const linear = createInfo.instanceFlags.test(InstanceFlag::eLinearSwapchain);
-	impl->surface = VKSurface::make(device, impl->vulkan.gpu, *impl->vulkan.surface, getFramebufferSize(impl->window->win), linear);
+	impl->surface = VKSurface::make(device, impl->vulkan.gpu, *impl->vulkan.surface, impl->window->framebufferSize(), linear);
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
 	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
 
@@ -618,43 +369,30 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 Gpu const& VulkifyInstance::gpu() const { return m_impl->vulkan.gpu.gpu; }
 
 bool VulkifyInstance::closing() const {
-	auto const ret = glfwWindowShouldClose(m_impl->window->win);
+	auto const ret = m_impl->window->closing();
 	if (ret) { m_impl->vulkan.device->waitIdle(); }
 	return ret;
 }
 
-Extent VulkifyInstance::framebufferExtent() const { return getFramebufferSize(m_impl->window->win); }
-Extent VulkifyInstance::windowExtent() const { return getWindowSize(m_impl->window->win); }
-glm::ivec2 VulkifyInstance::position() const { return getGlfwVec<int>(m_impl->window->win, &glfwGetWindowPos); }
-glm::vec2 VulkifyInstance::contentScale() const { return getGlfwVec<float>(m_impl->window->win, glfwGetWindowContentScale); }
-CursorMode VulkifyInstance::cursorMode() const { return castCursorMode(glfwGetInputMode(m_impl->window->win, GLFW_CURSOR)); }
+Extent VulkifyInstance::framebufferExtent() const {
+	auto const ret = m_impl->surface.info.imageExtent;
+	if (ret.width > 0 && ret.height > 0) { return {ret.width, ret.height}; }
+	return m_impl->window->framebufferSize();
+}
+
+Extent VulkifyInstance::windowExtent() const { return m_impl->window->windowSize(); }
+glm::ivec2 VulkifyInstance::position() const { return m_impl->window->position(); }
+glm::vec2 VulkifyInstance::contentScale() const { return m_impl->window->contentScale(); }
+CursorMode VulkifyInstance::cursorMode() const { return m_impl->window->cursorMode(); }
 
 glm::vec2 VulkifyInstance::cursorPosition() const {
-	auto const pos = getGlfwVec<double>(m_impl->window->win, &glfwGetCursorPos);
+	auto const pos = m_impl->window->cursorPos();
 	auto const hwin = glm::vec2(windowExtent()) * 0.5f;
 	return {pos.x - hwin.x, hwin.y - pos.y};
 }
 
-MonitorList VulkifyInstance::monitors() const {
-	auto ret = MonitorList{};
-	int count;
-	auto monitors = glfwGetMonitors(&count);
-	if (count <= 0) { return {}; }
-	ret.primary = makeMonitor(monitors[0]);
-	ret.others.reserve(static_cast<std::size_t>(count - 1));
-	for (int i = 1; i < count; ++i) { ret.others.push_back(makeMonitor(monitors[i])); }
-	return ret;
-}
-
-WindowFlags VulkifyInstance::windowFlags() const {
-	auto ret = WindowFlags{};
-	ret.assign(WindowFlag::eBorderless, !glfwGetWindowAttrib(m_impl->window->win, GLFW_DECORATED));
-	ret.assign(WindowFlag::eResizable, glfwGetWindowAttrib(m_impl->window->win, GLFW_RESIZABLE));
-	ret.assign(WindowFlag::eFloating, glfwGetWindowAttrib(m_impl->window->win, GLFW_FLOATING));
-	ret.assign(WindowFlag::eAutoIconify, glfwGetWindowAttrib(m_impl->window->win, GLFW_AUTO_ICONIFY));
-	ret.assign(WindowFlag::eMaximized, glfwGetWindowAttrib(m_impl->window->win, GLFW_MAXIMIZED));
-	return ret;
-}
+MonitorList VulkifyInstance::monitors() const { return m_impl->window->monitors(); }
+WindowFlags VulkifyInstance::windowFlags() const { return m_impl->window->flags(); }
 
 AntiAliasing VulkifyInstance::antiAliasing() const {
 	switch (m_impl->vram.vram->colourSamples) {
@@ -668,58 +406,14 @@ AntiAliasing VulkifyInstance::antiAliasing() const {
 }
 
 VSync VulkifyInstance::vsync() const { return toVSync(m_impl->surface.info.presentMode); }
-
 std::vector<Gpu> VulkifyInstance::gpuList() const { return m_impl->vulkan.availableDevices(); }
-
-void VulkifyInstance::setPosition(glm::ivec2 xy) { glfwSetWindowPos(m_impl->window->win, xy.x, xy.y); }
-void VulkifyInstance::setExtent(Extent size) { glfwSetWindowSize(m_impl->window->win, static_cast<int>(size.x), static_cast<int>(size.y)); }
-void VulkifyInstance::setCursorMode(CursorMode mode) { glfwSetInputMode(m_impl->window->win, GLFW_CURSOR, cast(mode)); }
-
-void VulkifyInstance::setIcons(std::span<Icon const> icons) {
-	if (icons.empty()) {
-		glfwSetWindowIcon(m_impl->window->win, 0, {});
-		return;
-	}
-	auto vec = std::vector<GLFWimage>{};
-	vec.reserve(icons.size());
-	for (auto const& icon : icons) {
-		auto const extent = glm::ivec2(icon.bitmap.extent);
-		auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.data.data()));
-		vec.push_back({extent.x, extent.y, pixels});
-	}
-	glfwSetWindowIcon(m_impl->window->win, static_cast<int>(vec.size()), vec.data());
-}
-
-void VulkifyInstance::setWindowed(Extent extent) {
-	auto const ext = glm::ivec2(extent);
-	glfwSetWindowMonitor(m_impl->window->win, nullptr, 0, 0, ext.x, ext.y, 0);
-}
-
-void VulkifyInstance::setFullscreen(Monitor const& monitor, Extent resolution) {
-	auto gmonitor = reinterpret_cast<GLFWmonitor*>(monitor.handle);
-	auto const vmode = glfwGetVideoMode(gmonitor);
-	if (!vmode) { return; }
-	auto res = glm::ivec2(resolution);
-	if (resolution.x == 0 || resolution.y == 0) { resolution = {vmode->width, vmode->height}; }
-	glfwSetWindowMonitor(m_impl->window->win, gmonitor, 0, 0, res.x, res.y, vmode->refreshRate);
-}
-
-void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) {
-	auto updateAttrib = [&](WindowFlag flag, int attrib, bool ifSet) {
-		if (set.test(flag)) { glfwSetWindowAttrib(m_impl->window->win, attrib, ifSet ? GLFW_TRUE : GLFW_FALSE); }
-		if (unset.test(flag)) { glfwSetWindowAttrib(m_impl->window->win, attrib, ifSet ? GLFW_FALSE : GLFW_TRUE); }
-	};
-	updateAttrib(WindowFlag::eBorderless, GLFW_DECORATED, false);
-	updateAttrib(WindowFlag::eFloating, GLFW_FLOATING, true);
-	updateAttrib(WindowFlag::eResizable, GLFW_RESIZABLE, true);
-	updateAttrib(WindowFlag::eAutoIconify, GLFW_AUTO_ICONIFY, true);
-	auto const maximized = glfwGetWindowAttrib(m_impl->window->win, GLFW_MAXIMIZED);
-	if (maximized) {
-		if (unset.test(WindowFlag::eMaximized)) { glfwRestoreWindow(m_impl->window->win); }
-	} else {
-		if (set.test(WindowFlag::eMaximized)) { glfwMaximizeWindow(m_impl->window->win); }
-	}
-}
+void VulkifyInstance::setPosition(glm::ivec2 xy) { m_impl->window->position(xy); }
+void VulkifyInstance::setExtent(Extent size) { m_impl->window->windowSize(size); }
+void VulkifyInstance::setCursorMode(CursorMode mode) { m_impl->window->cursorMode(mode); }
+void VulkifyInstance::setIcons(std::span<Icon const> icons) { m_impl->window->setIcons(icons); }
+void VulkifyInstance::setWindowed(Extent extent) { m_impl->window->setWindowed(extent); }
+void VulkifyInstance::setFullscreen(Monitor const& monitor, Extent resolution) { m_impl->window->setFullscreen(monitor, resolution); }
+void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) { m_impl->window->update(set, unset); }
 
 bool VulkifyInstance::setVSync(VSync vsync) {
 	[[maybe_unused]] static constexpr std::string_view modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
@@ -729,7 +423,7 @@ bool VulkifyInstance::setVSync(VSync vsync) {
 		return false;
 	}
 	m_impl->surface.info.presentMode = fromVSync(vsync);
-	auto res = m_impl->surface.refresh(framebufferExtent());
+	auto res = m_impl->surface.refresh(m_impl->window->framebufferSize());
 	if (res != vk::Result::eSuccess) {
 		VF_TRACE("vf::(internal)", trace::Type::eError, "Failed to create swapchain!");
 		return false;
@@ -740,44 +434,19 @@ bool VulkifyInstance::setVSync(VSync vsync) {
 
 Camera& VulkifyInstance::camera() { return m_impl->camera; }
 
-Cursor VulkifyInstance::makeCursor(Icon icon) {
-	auto const extent = glm::ivec2(icon.bitmap.extent);
-	auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.data.data()));
-	auto const img = GLFWimage{extent.x, extent.y, pixels};
-	auto const glfwCursor = glfwCreateCursor(&img, icon.hotspot.x, icon.hotspot.y);
-	if (glfwCursor) {
-		auto& cursors = m_impl->glfw->get().cursors;
-		auto const ret = Cursor{++cursors.next};
-		cursors.cursors.insert_or_assign(ret, glfwCursor);
-		return ret;
-	}
-	return {};
-}
-
-void VulkifyInstance::destroyCursor(Cursor cursor) { m_impl->glfw->get().cursors.cursors.erase(cursor); }
-
-bool VulkifyInstance::setCursor(Cursor cursor) {
-	if (cursor == Cursor{}) {
-		glfwSetCursor(m_impl->window->win, {});
-		return true;
-	}
-	auto& cursors = m_impl->glfw->get().cursors;
-	auto it = cursors.cursors.find(cursor);
-	if (it == cursors.cursors.end()) { return false; }
-	glfwSetCursor(m_impl->window->win, it->second);
-	return true;
-}
-
-void VulkifyInstance::show() { glfwShowWindow(m_impl->window->win); }
-void VulkifyInstance::hide() { glfwHideWindow(m_impl->window->win); }
-void VulkifyInstance::close() { glfwSetWindowShouldClose(m_impl->window->win, GLFW_TRUE); }
+Cursor VulkifyInstance::makeCursor(Icon icon) { return m_impl->window->makeCursor(icon); }
+void VulkifyInstance::destroyCursor(Cursor cursor) { m_impl->window->destroyCursor(cursor); }
+bool VulkifyInstance::setCursor(Cursor cursor) { return m_impl->window->setCursor(cursor); }
+void VulkifyInstance::show() { m_impl->window->show(); }
+void VulkifyInstance::hide() { m_impl->window->hide(); }
+void VulkifyInstance::close() { m_impl->window->close(); }
 
 EventQueue VulkifyInstance::poll() {
 	m_impl->window->events.clear();
 	m_impl->window->scancodes.clear();
 	m_impl->window->fileDrops.clear();
 	g_gamepads();
-	glfwPollEvents();
+	m_impl->window->poll();
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->fileDrops};
 }
 
@@ -787,11 +456,11 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 		return {};
 	}
 	auto const sync = m_impl->renderer.sync();
-	auto const extent = getFramebufferSize(m_impl->window->win);
-	m_impl->acquired = m_impl->surface.acquire(sync.draw, extent);
+	m_impl->acquired = m_impl->surface.acquire(sync.draw, m_impl->window->framebufferSize());
+	auto const extent = Extent{m_impl->acquired.image.extent.width, m_impl->acquired.image.extent.height};
 	if (!m_impl->acquired) { return {}; }
 	auto& sr = m_impl->renderer;
-	auto cmd = sr.beginRender(m_impl->acquired.image, extent);
+	auto cmd = sr.beginRender(m_impl->acquired.image);
 	m_impl->vulkan.util->defer.decrement();
 	m_impl->renderer.clear = clear;
 
@@ -812,7 +481,7 @@ bool VulkifyInstance::endPass() {
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();
 	m_impl->surface.submit(cb, sync);
-	m_impl->surface.present(m_impl->acquired, sync.present, getFramebufferSize(m_impl->window->win));
+	m_impl->surface.present(m_impl->acquired, sync.present, m_impl->window->framebufferSize());
 	m_impl->acquired = {};
 	m_impl->renderer.next();
 	m_impl->setFactory.next();
@@ -828,38 +497,26 @@ Vram const& HeadlessInstance::vram() const { return g_inactive.vram; }
 
 // gamepad
 
-GamepadMap Gamepad::map() {
-	auto ret = GamepadMap{};
-	for (int i = GLFW_JOYSTICK_1; i <= GLFW_JOYSTICK_16; ++i) { ret.map[i] = glfwJoystickIsGamepad(i) == GLFW_TRUE; }
-	return ret;
-}
+GamepadMap Gamepad::map() { return Window::gamepads(); }
 
 Gamepad::operator bool() const {
 	if (id < 0) { return false; }
-	return glfwJoystickIsGamepad(GLFW_JOYSTICK_1 + id) == GLFW_TRUE;
+	return Window::isGamepad(id);
 }
 
 char const* Gamepad::name() const {
-	if (!*this) { return empty_cstr_v; }
-	auto ret = glfwGetGamepadName(id);
-	if (!ret) { ret = glfwGetJoystickName(id); }
-	return ret ? ret : empty_cstr_v;
+	if (!*this) { return ""; }
+	return Window::gamepadName(id);
 }
 
 bool Gamepad::operator()(Button button) const {
 	if (!*this) { return false; }
-	auto const& buttons = g_gamepads.states[id].buttons;
-	auto const index = static_cast<int>(button);
-	if (index >= static_cast<int>(std::size(buttons))) { return false; }
-	return buttons[index] == GLFW_PRESS;
+	return Window::isPressed(id, button);
 }
 
 float Gamepad::operator()(Axis axis) const {
-	if (!*this) { return false; }
-	auto const& axes = g_gamepads.states[id].axes;
-	auto const index = static_cast<int>(axis);
-	if (index >= static_cast<int>(std::size(axes))) { return false; }
-	return axes[index];
+	if (!*this) { return {}; }
+	return Window::value(id, axis);
 }
 
 std::size_t GamepadMap::count() const { return static_cast<std::size_t>(std::count(std::begin(map), std::end(map), true)); }

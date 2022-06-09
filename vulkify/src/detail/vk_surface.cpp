@@ -74,7 +74,6 @@ vk::SwapchainCreateInfoKHR VKSurface::makeInfo(glm::uvec2 const extent) const { 
 
 vk::Result VKSurface::refresh(glm::uvec2 const extent) {
 	if (!device) { return vk::Result::eErrorDeviceLost; }
-	if (!valid(extent)) { return vk::Result::eNotReady; }
 	info = makeInfo(extent);
 	info.oldSwapchain = *swapchain.swapchain;
 	vk::SwapchainKHR vks;

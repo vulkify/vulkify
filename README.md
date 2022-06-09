@@ -24,9 +24,9 @@ Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
 - [x] Multi-sampled anti-aliasing (MSAA)
 - [x] Custom (fragment) shader support
   - [x] Custom descriptor set
-  - [ ] Custom uniform buffer
-  - [ ] Custom texture
-- [x] Shape outlines
+  - [x] Custom uniform buffer
+  - [x] Custom texture
+- [x] Shape silhouettes
 - [x] Cursor unprojection
 - [x] TrueType Fonts
 - [x] Bulk command buffer recording
@@ -60,7 +60,7 @@ Inspired by [SFML](https://github.com/SFML/SFML), powered by Vulkan and C++20.
 
 ## Usage
 
-Refer to [quick_start.cpp](examples/quick_start.cpp) for currently working code. Documentation and README are WIPs.
+Refer to [examples](examples) for currently working code. Documentation and README are WIPs.
 
 
 ## [Wiki](https://github.com/vulkify/vulkify/wiki)

@@ -104,10 +104,9 @@ vk::UniquePipeline PipelineFactory::makePipeline(vk::PipelineLayout layout, Spec
 	pcbsci.pAttachments = &pcbas;
 	gpci.pColorBlendState = &pcbsci;
 
-	auto pdscis = ktl::fixed_vector<vk::DynamicState, 4>{};
 	auto pdsci = vk::PipelineDynamicStateCreateInfo();
-	pdscis = {vk::DynamicState::eViewport, vk::DynamicState::eScissor, vk::DynamicState::eLineWidth};
-	pdsci = vk::PipelineDynamicStateCreateInfo({}, static_cast<std::uint32_t>(pdscis.size()), pdscis.data());
+	vk::DynamicState const pdscis[] = {vk::DynamicState::eViewport, vk::DynamicState::eScissor, vk::DynamicState::eLineWidth};
+	pdsci = vk::PipelineDynamicStateCreateInfo({}, static_cast<std::uint32_t>(std::size(pdscis)), pdscis);
 	gpci.pDynamicState = &pdsci;
 
 	auto pvsci = vk::PipelineViewportStateCreateInfo({}, 1, {}, 1);
