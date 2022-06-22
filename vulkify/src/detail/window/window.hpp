@@ -85,6 +85,7 @@ struct Window {
 	void setFullscreen(Monitor const& monitor, Extent resolution);
 
 	static GamepadMap gamepads();
+	static void updateGamepadMappings(char const* text);
 	static bool isGamepad(int id);
 	static char const* gamepadName(int id);
 	static bool isPressed(int id, Gamepad::Button button);

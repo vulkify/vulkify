@@ -350,6 +350,8 @@ GamepadMap Window::gamepads() {
 	return ret;
 }
 
+void Window::updateGamepadMappings(char const* text) { glfwUpdateGamepadMappings(text); }
+
 bool Window::isGamepad(int id) {
 	auto ret = false;
 	ret = glfwJoystickIsGamepad(GLFW_JOYSTICK_1 + id) == GLFW_TRUE;
@@ -373,6 +375,7 @@ float Window::value(int id, Gamepad::Axis axis) {
 	auto const& axes = g_gamepads.states[id].axes;
 	auto const index = static_cast<int>(axis);
 	if (index >= static_cast<int>(std::size(axes))) { return false; }
-	return axes[index];
+	float const coeff = axis == GamepadAxis::eLeftY || axis == GamepadAxis::eRightY ? -1.0f : 1.0f;
+	return coeff * axes[index];
 }
 } // namespace vf

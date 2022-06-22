@@ -498,6 +498,7 @@ Vram const& HeadlessInstance::vram() const { return g_inactive.vram; }
 // gamepad
 
 GamepadMap Gamepad::map() { return Window::gamepads(); }
+void Gamepad::updateMappings(char const* sdlGameControllerDb) { Window::updateGamepadMappings(sdlGameControllerDb); }
 
 Gamepad::operator bool() const {
 	if (id < 0) { return false; }
