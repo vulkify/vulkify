@@ -44,7 +44,6 @@ class Texture : public GfxResource {
 	Texture(Context const& context, std::string name, Image::View image, CreateInfo const& createInfo = {});
 
 	Result<void> create(Image::View image);
-	Result<void> overwrite(Image::View image);
 	Result<void> overwrite(Image::View image, Rect const& region);
 	Result<void> rescale(float scale);
 

@@ -40,7 +40,7 @@ struct VKSurface {
 	explicit operator bool() const { return device.device && surface; }
 
 	vk::SwapchainCreateInfoKHR makeInfo(glm::uvec2 extent) const;
-	vk::Result refresh(glm::uvec2 extent);
+	vk::Result refresh(glm::uvec2 extent, vk::PresentModeKHR mode);
 	Acquire acquire(vk::Semaphore signal, glm::uvec2 extent);
 	void submit(vk::CommandBuffer cb, VKSync const& sync);
 	void present(Acquire const& acquired, vk::Semaphore wait, glm::uvec2 extent);

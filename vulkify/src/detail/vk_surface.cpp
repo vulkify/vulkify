@@ -65,17 +65,18 @@ vk::SwapchainCreateInfoKHR makeSwci(VKDevice const& device, VKGpu const& gpu, vk
 VKSurface VKSurface::make(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, glm::ivec2 framebuffer, bool linear) {
 	if (!device) { return {}; }
 	auto ret = VKSurface{device, gpu, surface, linear};
-	if (ret.refresh(framebuffer) != vk::Result::eSuccess) { return {}; }
+	if (ret.refresh(framebuffer, vk::PresentModeKHR::eFifo) != vk::Result::eSuccess) { return {}; }
 	ret.linear = isLinear(ret.info.imageFormat);
 	return ret;
 }
 
 vk::SwapchainCreateInfoKHR VKSurface::makeInfo(glm::uvec2 const extent) const { return makeSwci(device, gpu, surface, extent, linear); }
 
-vk::Result VKSurface::refresh(glm::uvec2 const extent) {
+vk::Result VKSurface::refresh(glm::uvec2 const extent, vk::PresentModeKHR const mode) {
 	if (!device) { return vk::Result::eErrorDeviceLost; }
 	info = makeInfo(extent);
 	info.oldSwapchain = *swapchain.swapchain;
+	info.presentMode = mode;
 	vk::SwapchainKHR vks;
 	auto const ret = device.device.createSwapchainKHR(&info, nullptr, &vks);
 	if (ret != vk::Result::eSuccess) { return ret; }
@@ -97,7 +98,7 @@ VKSurface::Acquire VKSurface::acquire(vk::Semaphore const signal, glm::uvec2 con
 	std::uint32_t idx{};
 	auto result = device.device.acquireNextImageKHR(*swapchain.swapchain, max_wait_v, signal, {}, &idx);
 	if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
-		refresh(extent);
+		refresh(extent, info.presentMode);
 		return {};
 	}
 	auto const i = std::size_t(idx);
@@ -130,6 +131,6 @@ void VKSurface::present(Acquire const& acquired, vk::Semaphore const wait, glm::
 	info.pSwapchains = &*swapchain.swapchain;
 	info.pImageIndices = &*acquired.index;
 	auto res = device.queue.queue.presentKHR(&info);
-	if (res != vk::Result::eSuccess && res != vk::Result::eSuboptimalKHR) { refresh(extent); }
+	if (res != vk::Result::eSuccess && res != vk::Result::eSuboptimalKHR) { refresh(extent, this->info.presentMode); }
 }
 } // namespace vf

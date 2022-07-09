@@ -422,8 +422,7 @@ bool VulkifyInstance::setVSync(VSync vsync) {
 		VF_TRACEW("vf::(internal)", "Unsupported VSync mode requested [{}]", modes_v[static_cast<int>(vsync)]);
 		return false;
 	}
-	m_impl->surface.info.presentMode = fromVSync(vsync);
-	auto res = m_impl->surface.refresh(m_impl->window->framebufferSize());
+	auto res = m_impl->surface.refresh(m_impl->window->framebufferSize(), fromVSync(vsync));
 	if (res != vk::Result::eSuccess) {
 		VF_TRACE("vf::(internal)", trace::Type::eError, "Failed to create swapchain!");
 		return false;
