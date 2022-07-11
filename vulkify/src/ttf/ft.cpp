@@ -10,6 +10,16 @@
 namespace vf {
 [[maybe_unused]] static constexpr auto name_v = "vf::Ttf";
 
+namespace {
+constexpr int getSpace(Codepoint const cp) {
+	switch (static_cast<char>(cp)) {
+	case ' ': return 1;
+	case '\t': return 4;
+	default: return 0;
+	}
+}
+} // namespace
+
 FtLib FtLib::make() noexcept {
 	FtLib ret;
 	if (FT_Init_FreeType(&ret.lib)) {
@@ -248,11 +258,15 @@ Ttf::Entry& Ttf::insert(Font& out_font, Codepoint const codepoint, Atlas::Bulk* 
 Pen::Character Pen::character(Codepoint codepoint) const {
 	if (!out_ttf || !*out_ttf) { return {}; }
 	if (auto const ch = out_ttf->get(codepoint, height)) { return ch; }
-	return out_ttf->get({});
+	return out_ttf->get({}, height);
 }
 
 glm::vec2 Pen::write(Codepoint const codepoint) {
 	if (!out_ttf || !*out_ttf) { return head; }
+	if (auto space = getSpace(codepoint); space > 0) {
+		head += space * character('i').glyph->metrics.advance;
+		return head;
+	}
 	if (auto const ch = character(codepoint)) {
 		auto const pen = head + glm::vec2(ch.glyph->metrics.topLeft);
 		auto const hs = glm::vec2(ch.glyph->metrics.extent) * 0.5f;
