@@ -233,9 +233,9 @@ Ttf::Font& Ttf::getOrMake(Height height) {
 	if (it == m_fonts.end()) {
 		auto [i, _] = m_fonts.insert_or_assign(height, Font{Atlas(*m_face->vram, atlasName(m_name, height), initial_extent_v)});
 		it = i;
-		m_face->face->setPixelSize({0, height});
 		insert(it->second, {}, nullptr);
 	}
+	m_face->face->setPixelSize({0, height});
 	return it->second;
 }
 
@@ -286,7 +286,7 @@ glm::vec2 Pen::write(std::span<Codepoint const> codepoints) {
 }
 
 glm::vec2 Scribe::extent(std::string_view line) const {
-	auto pen = Pen{&ttf};
+	auto pen = Pen{&ttf, {}, {}, height};
 	for (auto const ch : line) { pen.write(static_cast<Codepoint>(ch)); }
 	return {pen.head.x, pen.maxHeight};
 }
@@ -320,12 +320,17 @@ Scribe& Scribe::write(std::string_view const text, Pivot pivot) {
 Scribe& Scribe::write(Block block, Pivot pivot) {
 	if (!ttf || block.text.empty()) { return *this; }
 	auto text = block.text;
-	auto height = float{};
-	auto const lh = lineHeight();
-	for (auto line = std::string_view{}; block.getline(line);) { height += lh; }
+	auto maxLineHeight = 0.0f;
+	auto lineCount = 0;
+	for (auto line = std::string_view{}; block.getline(line);) {
+		maxLineHeight = std::max(maxLineHeight, extent(line).y);
+		++lineCount;
+	}
+	auto const dy = maxLineHeight * leading.coefficient;
+	auto const height = lineCount == 1 ? maxLineHeight : dy * lineCount;
 	origin.y += height * (0.5f - pivot.y);
 	block.text = text;
-	for (auto line = std::string_view{}; block.getline(line); lineBreak()) { write(line, {pivot.x, 0.5f}); }
+	for (auto line = std::string_view{}; block.getline(line); origin.y -= dy) { write(line, {pivot.x, 0.5f}); }
 	return *this;
 }
 
