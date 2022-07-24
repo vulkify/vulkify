@@ -295,7 +295,7 @@ PhysicalDevice selectDevice(std::span<PhysicalDevice> devices, GpuSelector const
 		for (auto const& device : devices) { gpus.push_back(device.gpu); }
 		auto const first = gpus.data();
 		auto const last = first + gpus.size();
-		if (auto gpu = gpuSelector->operator()(first, last); gpu < last) { index = gpu - first; }
+		if (auto gpu = gpuSelector->operator()(first, last); gpu < last) { index = static_cast<std::size_t>(gpu - first); }
 	}
 	return std::move(devices[index]);
 }

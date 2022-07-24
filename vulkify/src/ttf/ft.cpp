@@ -327,7 +327,7 @@ Scribe& Scribe::write(Block block, Pivot pivot) {
 		++lineCount;
 	}
 	auto const dy = maxLineHeight * leading.coefficient;
-	auto const height = lineCount == 1 ? maxLineHeight : dy * lineCount;
+	auto const height = lineCount == 1 ? maxLineHeight : dy * static_cast<float>(lineCount);
 	origin.y += height * (0.5f - pivot.y);
 	block.text = text;
 	for (auto line = std::string_view{}; block.getline(line); origin.y -= dy) { write(line, {pivot.x, 0.5f}); }
