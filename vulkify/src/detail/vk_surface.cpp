@@ -62,10 +62,10 @@ vk::SwapchainCreateInfoKHR makeSwci(VKDevice const& device, VKGpu const& gpu, vk
 }
 } // namespace
 
-VKSurface VKSurface::make(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, glm::ivec2 framebuffer, bool linear) {
+VKSurface VKSurface::make(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, vk::PresentModeKHR mode, glm::ivec2 extent, bool linear) {
 	if (!device) { return {}; }
 	auto ret = VKSurface{device, gpu, surface, linear};
-	if (ret.refresh(framebuffer, vk::PresentModeKHR::eFifo) != vk::Result::eSuccess) { return {}; }
+	if (ret.refresh(extent, mode) != vk::Result::eSuccess) { return {}; }
 	ret.linear = isLinear(ret.info.imageFormat);
 	return ret;
 }

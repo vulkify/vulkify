@@ -40,7 +40,6 @@ class HeadlessInstance : public Instance {
 	void setWindowed(glm::uvec2) override {}
 	void setFullscreen(Monitor const&, glm::uvec2) override {}
 	void updateWindowFlags(WindowFlags, WindowFlags) override {}
-	bool setVSync(VSync) override { return false; }
 	Camera& camera() override { return m_camera; }
 
 	EventQueue poll() override { return std::move(m_eventQueue); }

@@ -35,7 +35,7 @@ struct VKSurface {
 	vk::SwapchainCreateInfoKHR info{};
 	VKSwapchain swapchain{};
 
-	static VKSurface make(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, glm::ivec2 framebuffer, bool linear);
+	static VKSurface make(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, vk::PresentModeKHR mode, glm::ivec2 extent, bool linear);
 
 	explicit operator bool() const { return device.device && surface; }
 

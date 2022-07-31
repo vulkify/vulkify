@@ -2,6 +2,7 @@
 #include <glm/vec2.hpp>
 #include <vulkify/core/ptr.hpp>
 #include <vulkify/instance/instance_enums.hpp>
+#include <vector>
 
 namespace vf {
 struct Gpu;
@@ -20,5 +21,6 @@ struct InstanceCreateInfo {
 	InstanceFlags instanceFlags{};
 	AntiAliasing desiredAA{AntiAliasing::e2x};
 	Ptr<GpuSelector const> gpuSelector{};
+	std::vector<VSync> desiredVsyncs{VSync::eAdaptive, VSync::eOn};
 };
 } // namespace vf

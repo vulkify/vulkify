@@ -16,6 +16,7 @@ class Builder {
 	WindowFlags windowFlags() const { return m_createInfo.windowFlags; }
 	InstanceFlags instanceFlags() const { return m_createInfo.instanceFlags; }
 	AntiAliasing antiAliasing() const { return m_createInfo.desiredAA; }
+	std::span<VSync const> vsyncs() const { return m_createInfo.desiredVsyncs; }
 
 	Builder& setTitle(std::string set);
 	Builder& setExtent(glm::uvec2 set);
@@ -25,6 +26,7 @@ class Builder {
 	Builder& setFlag(InstanceFlag flag, bool set = true);
 	Builder& setAntiAliasing(AntiAliasing aa);
 	Builder& setSelectGpu(SelectGpu selectGpu);
+	Builder& setVsyncs(std::vector<VSync> desired);
 
 	Context::Result build();
 
@@ -73,6 +75,11 @@ inline Builder& Builder::setAntiAliasing(AntiAliasing aa) {
 
 inline Builder& Builder::setSelectGpu(SelectGpu selectGpu) {
 	m_selectGpu = std::move(selectGpu);
+	return *this;
+}
+
+inline Builder& Builder::setVsyncs(std::vector<VSync> desired) {
+	m_createInfo.desiredVsyncs = std::move(desired);
 	return *this;
 }
 } // namespace vf

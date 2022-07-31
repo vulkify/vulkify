@@ -51,7 +51,6 @@ class Instance {
 	virtual void setWindowed(glm::uvec2 extent) = 0;
 	virtual void setFullscreen(Monitor const& monitor, glm::uvec2 resolution = {}) = 0;
 	virtual void updateWindowFlags(WindowFlags set, WindowFlags unset = {}) = 0;
-	virtual bool setVSync(VSync vsync) = 0;
 	virtual Camera& camera() = 0;
 
 	virtual EventQueue poll() = 0;

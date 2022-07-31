@@ -300,6 +300,15 @@ PhysicalDevice selectDevice(std::span<PhysicalDevice> devices, GpuSelector const
 	return std::move(devices[index]);
 }
 
+[[maybe_unused]] constexpr std::string_view vsync_modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
+
+vk::PresentModeKHR selectMode(VKGpu const& gpu, std::span<VSync const> desired) {
+	for (auto const vsync : desired) {
+		if (gpu.gpu.presentModes.test(vsync)) { return fromVSync(vsync); }
+	}
+	return vk::PresentModeKHR::eFifo;
+}
+
 VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 	if (g_window.window) { return Error::eDuplicateInstance; }
 	if (createInfo.extent.x == 0 || createInfo.extent.y == 0) { return Error::eInvalidArgument; }
@@ -322,6 +331,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 		return vk::SurfaceKHR(surface);
 	};
 	vkinfo.instanceExtensions = Window::Instance::extensions();
+	vkinfo.desiredVsyncs = createInfo.desiredVsyncs;
 	auto builder = VKInstance::Builder::make(std::move(vkinfo));
 	if (!builder) { return builder.error(); }
 	if (builder->devices.empty()) { return Error::eNoVulkanSupport; }
@@ -337,7 +347,10 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& createInfo) {
 
 	auto impl = ktl::make_unique<Impl>(std::move(*winInst), std::move(window), std::move(vulkan), std::move(vram));
 	bool const linear = createInfo.instanceFlags.test(InstanceFlag::eLinearSwapchain);
-	impl->surface = VKSurface::make(device, impl->vulkan.gpu, *impl->vulkan.surface, impl->window->framebufferSize(), linear);
+	auto const extent = impl->window->framebufferSize();
+	auto const mode = selectMode(impl->vulkan.gpu, createInfo.desiredVsyncs);
+	VF_TRACEI("vf::(internal)", "VSync set to [{}]", vsync_modes_v[static_cast<int>(toVSync(mode))]);
+	impl->surface = VKSurface::make(device, impl->vulkan.gpu, *impl->vulkan.surface, mode, extent, linear);
 	if (!impl->surface) { return Error::eVulkanInitFailure; }
 	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
 
@@ -415,22 +428,6 @@ void VulkifyInstance::setWindowed(Extent extent) { m_impl->window->setWindowed(e
 void VulkifyInstance::setFullscreen(Monitor const& monitor, Extent resolution) { m_impl->window->setFullscreen(monitor, resolution); }
 void VulkifyInstance::updateWindowFlags(WindowFlags set, WindowFlags unset) { m_impl->window->update(set, unset); }
 
-bool VulkifyInstance::setVSync(VSync vsync) {
-	[[maybe_unused]] static constexpr std::string_view modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
-	if (m_impl->surface.info.presentMode == fromVSync(vsync)) { return true; }
-	if (!m_impl->vulkan.gpu.gpu.presentModes.test(vsync)) {
-		VF_TRACEW("vf::(internal)", "Unsupported VSync mode requested [{}]", modes_v[static_cast<int>(vsync)]);
-		return false;
-	}
-	auto res = m_impl->surface.refresh(m_impl->window->framebufferSize(), fromVSync(vsync));
-	if (res != vk::Result::eSuccess) {
-		VF_TRACE("vf::(internal)", trace::Type::eError, "Failed to create swapchain!");
-		return false;
-	}
-	VF_TRACEI("vf::(internal)", "VSync set to [{}]", modes_v[static_cast<int>(vsync)]);
-	return true;
-}
-
 Camera& VulkifyInstance::camera() { return m_impl->camera; }
 
 Cursor VulkifyInstance::makeCursor(Icon icon) { return m_impl->window->makeCursor(icon); }
@@ -454,6 +451,7 @@ Surface VulkifyInstance::beginPass(Rgba clear) {
 		VF_TRACE("vf::(internal)", trace::Type::eWarn, "RenderPass already begun");
 		return {};
 	}
+
 	auto const sync = m_impl->renderer.sync();
 	m_impl->acquired = m_impl->surface.acquire(sync.draw, m_impl->window->framebufferSize());
 	auto const extent = Extent{m_impl->acquired.image.extent.width, m_impl->acquired.image.extent.height};

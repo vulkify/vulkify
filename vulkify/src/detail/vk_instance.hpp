@@ -6,6 +6,7 @@
 #include <vulkify/core/result.hpp>
 #include <vulkify/instance/gpu.hpp>
 #include <mutex>
+#include <span>
 
 namespace vf {
 using MakeSurface = ktl::kfunction<vk::SurfaceKHR(vk::Instance)>;
@@ -44,6 +45,7 @@ struct VKInstance {
 	struct Info {
 		std::vector<char const*> instanceExtensions{};
 		MakeSurface makeSurface{};
+		std::span<VSync const> desiredVsyncs{};
 	};
 
 	struct Builder;
