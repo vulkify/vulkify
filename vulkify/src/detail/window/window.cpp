@@ -148,8 +148,8 @@ void GamepadStorage::operator()() {
 }
 
 void Window::Deleter::operator()(Window const& window) const {
-	detachCallbacks(window.win.get<GLFWwindow*>());
-	glfwDestroyWindow(window.win.get<GLFWwindow*>());
+	detachCallbacks(static_cast<GLFWwindow*>(window.win));
+	glfwDestroyWindow(static_cast<GLFWwindow*>(window.win));
 }
 
 void Window::Deleter::operator()(Instance const&) const { glfwTerminate(); }
@@ -191,55 +191,55 @@ std::vector<char const*> Window::Instance::extensions() {
 	return ret;
 }
 
-bool Window::makeSurface(ErasedPtr vkinst, ErasedPtr out_vksurface) const {
+bool Window::makeSurface(void* p_inst, void* p_surface) const {
 	auto ret = false;
-	auto* inst = vkinst.get<VkInstance*>();
-	auto* surface = out_vksurface.get<VkSurfaceKHR*>();
+	auto* inst = static_cast<VkInstance*>(p_inst);
+	auto* surface = static_cast<VkSurfaceKHR*>(p_surface);
 	assert(inst && surface);
-	auto const res = glfwCreateWindowSurface(*inst, win.get<GLFWwindow*>(), {}, surface);
+	auto const res = glfwCreateWindowSurface(*inst, static_cast<GLFWwindow*>(win), {}, surface);
 	ret = res == VK_SUCCESS;
 	return ret;
 }
 
 bool Window::closing() const {
 	auto ret = false;
-	ret = glfwWindowShouldClose(win.get<GLFWwindow*>());
+	ret = glfwWindowShouldClose(static_cast<GLFWwindow*>(win));
 	return ret;
 }
 
 glm::ivec2 Window::framebufferSize() const {
 	auto ret = glm::ivec2{};
-	ret = getGlfwVec<int>(win.get<GLFWwindow*>(), &glfwGetFramebufferSize);
+	ret = getGlfwVec<int>(static_cast<GLFWwindow*>(win), &glfwGetFramebufferSize);
 	return ret;
 }
 
 glm::ivec2 Window::windowSize() const {
 	auto ret = glm::ivec2{};
-	ret = getGlfwVec<int>(win.get<GLFWwindow*>(), &glfwGetWindowSize);
+	ret = getGlfwVec<int>(static_cast<GLFWwindow*>(win), &glfwGetWindowSize);
 	return ret;
 }
 
 glm::ivec2 Window::position() const {
 	auto ret = glm::ivec2{};
-	ret = getGlfwVec<int>(win.get<GLFWwindow*>(), &glfwGetWindowPos);
+	ret = getGlfwVec<int>(static_cast<GLFWwindow*>(win), &glfwGetWindowPos);
 	return ret;
 }
 
 glm::vec2 Window::cursorPos() const {
 	auto ret = glm::vec2{};
-	ret = getGlfwVec<double>(win.get<GLFWwindow*>(), &glfwGetCursorPos);
+	ret = getGlfwVec<double>(static_cast<GLFWwindow*>(win), &glfwGetCursorPos);
 	return ret;
 }
 
 glm::vec2 Window::contentScale() const {
 	auto ret = glm::vec2{};
-	ret = getGlfwVec<float>(win.get<GLFWwindow*>(), &glfwGetWindowContentScale);
+	ret = getGlfwVec<float>(static_cast<GLFWwindow*>(win), &glfwGetWindowContentScale);
 	return ret;
 }
 
 CursorMode Window::cursorMode() const {
 	auto ret = CursorMode{};
-	ret = castCursorMode(glfwGetInputMode(win.get<GLFWwindow*>(), GLFW_CURSOR));
+	ret = castCursorMode(glfwGetInputMode(static_cast<GLFWwindow*>(win), GLFW_CURSOR));
 	return ret;
 }
 
@@ -256,36 +256,36 @@ MonitorList Window::monitors() const {
 
 WindowFlags Window::flags() const {
 	auto ret = WindowFlags{};
-	ret.assign(WindowFlag::eBorderless, !glfwGetWindowAttrib(win.get<GLFWwindow*>(), GLFW_DECORATED));
-	ret.assign(WindowFlag::eResizable, glfwGetWindowAttrib(win.get<GLFWwindow*>(), GLFW_RESIZABLE));
-	ret.assign(WindowFlag::eFloating, glfwGetWindowAttrib(win.get<GLFWwindow*>(), GLFW_FLOATING));
-	ret.assign(WindowFlag::eAutoIconify, glfwGetWindowAttrib(win.get<GLFWwindow*>(), GLFW_AUTO_ICONIFY));
-	ret.assign(WindowFlag::eMaximized, glfwGetWindowAttrib(win.get<GLFWwindow*>(), GLFW_MAXIMIZED));
+	ret.assign(WindowFlag::eBorderless, !glfwGetWindowAttrib(static_cast<GLFWwindow*>(win), GLFW_DECORATED));
+	ret.assign(WindowFlag::eResizable, glfwGetWindowAttrib(static_cast<GLFWwindow*>(win), GLFW_RESIZABLE));
+	ret.assign(WindowFlag::eFloating, glfwGetWindowAttrib(static_cast<GLFWwindow*>(win), GLFW_FLOATING));
+	ret.assign(WindowFlag::eAutoIconify, glfwGetWindowAttrib(static_cast<GLFWwindow*>(win), GLFW_AUTO_ICONIFY));
+	ret.assign(WindowFlag::eMaximized, glfwGetWindowAttrib(static_cast<GLFWwindow*>(win), GLFW_MAXIMIZED));
 	return ret;
 }
 
-void Window::show() { glfwShowWindow(win.get<GLFWwindow*>()); }
-void Window::hide() { glfwHideWindow(win.get<GLFWwindow*>()); }
-void Window::close() { glfwSetWindowShouldClose(win.get<GLFWwindow*>(), GLFW_TRUE); }
+void Window::show() { glfwShowWindow(static_cast<GLFWwindow*>(win)); }
+void Window::hide() { glfwHideWindow(static_cast<GLFWwindow*>(win)); }
+void Window::close() { glfwSetWindowShouldClose(static_cast<GLFWwindow*>(win), GLFW_TRUE); }
 void Window::poll() { glfwPollEvents(); }
-void Window::position(glm::ivec2 pos) { glfwSetWindowPos(win.get<GLFWwindow*>(), pos.x, pos.y); }
-void Window::windowSize(glm::ivec2 size) { glfwSetWindowSize(win.get<GLFWwindow*>(), size.x, size.y); }
-void Window::cursorMode(CursorMode mode) { glfwSetInputMode(win.get<GLFWwindow*>(), GLFW_CURSOR, cast(mode)); }
+void Window::position(glm::ivec2 pos) { glfwSetWindowPos(static_cast<GLFWwindow*>(win), pos.x, pos.y); }
+void Window::windowSize(glm::ivec2 size) { glfwSetWindowSize(static_cast<GLFWwindow*>(win), size.x, size.y); }
+void Window::cursorMode(CursorMode mode) { glfwSetInputMode(static_cast<GLFWwindow*>(win), GLFW_CURSOR, cast(mode)); }
 
 void Window::update(WindowFlags set, WindowFlags unset) {
 	auto updateAttrib = [&](WindowFlag flag, int attrib, bool ifSet) {
-		if (set.test(flag)) { glfwSetWindowAttrib(win.get<GLFWwindow*>(), attrib, ifSet ? GLFW_TRUE : GLFW_FALSE); }
-		if (unset.test(flag)) { glfwSetWindowAttrib(win.get<GLFWwindow*>(), attrib, ifSet ? GLFW_FALSE : GLFW_TRUE); }
+		if (set.test(flag)) { glfwSetWindowAttrib(static_cast<GLFWwindow*>(win), attrib, ifSet ? GLFW_TRUE : GLFW_FALSE); }
+		if (unset.test(flag)) { glfwSetWindowAttrib(static_cast<GLFWwindow*>(win), attrib, ifSet ? GLFW_FALSE : GLFW_TRUE); }
 	};
 	updateAttrib(WindowFlag::eBorderless, GLFW_DECORATED, false);
 	updateAttrib(WindowFlag::eFloating, GLFW_FLOATING, true);
 	updateAttrib(WindowFlag::eResizable, GLFW_RESIZABLE, true);
 	updateAttrib(WindowFlag::eAutoIconify, GLFW_AUTO_ICONIFY, true);
-	auto const maximized = glfwGetWindowAttrib(win.get<GLFWwindow*>(), GLFW_MAXIMIZED);
+	auto const maximized = glfwGetWindowAttrib(static_cast<GLFWwindow*>(win), GLFW_MAXIMIZED);
 	if (maximized) {
-		if (unset.test(WindowFlag::eMaximized)) { glfwRestoreWindow(win.get<GLFWwindow*>()); }
+		if (unset.test(WindowFlag::eMaximized)) { glfwRestoreWindow(static_cast<GLFWwindow*>(win)); }
 	} else {
-		if (set.test(WindowFlag::eMaximized)) { glfwMaximizeWindow(win.get<GLFWwindow*>()); }
+		if (set.test(WindowFlag::eMaximized)) { glfwMaximizeWindow(static_cast<GLFWwindow*>(win)); }
 	}
 }
 
@@ -306,18 +306,18 @@ void Window::destroyCursor(Cursor cursor) { instance->cursors.cursors.erase(curs
 
 bool Window::setCursor(Cursor cursor) {
 	if (cursor == Cursor{}) {
-		glfwSetCursor(win.get<GLFWwindow*>(), {});
+		glfwSetCursor(static_cast<GLFWwindow*>(win), {});
 		return true;
 	}
 	auto it = instance->cursors.cursors.find(cursor);
 	if (it == instance->cursors.cursors.end()) { return false; }
-	glfwSetCursor(win.get<GLFWwindow*>(), it->second.get<GLFWcursor*>());
+	glfwSetCursor(static_cast<GLFWwindow*>(win), static_cast<GLFWcursor*>(it->second));
 	return true;
 }
 
 void Window::setIcons(std::span<Icon const> icons) {
 	if (icons.empty()) {
-		glfwSetWindowIcon(win.get<GLFWwindow*>(), 0, {});
+		glfwSetWindowIcon(static_cast<GLFWwindow*>(win), 0, {});
 		return;
 	}
 	auto vec = std::vector<GLFWimage>{};
@@ -327,12 +327,12 @@ void Window::setIcons(std::span<Icon const> icons) {
 		auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.data.data()));
 		vec.push_back({extent.x, extent.y, pixels});
 	}
-	glfwSetWindowIcon(win.get<GLFWwindow*>(), static_cast<int>(vec.size()), vec.data());
+	glfwSetWindowIcon(static_cast<GLFWwindow*>(win), static_cast<int>(vec.size()), vec.data());
 }
 
 void Window::setWindowed(Extent extent) {
 	auto const ext = glm::ivec2(extent);
-	glfwSetWindowMonitor(win.get<GLFWwindow*>(), nullptr, 0, 0, ext.x, ext.y, 0);
+	glfwSetWindowMonitor(static_cast<GLFWwindow*>(win), nullptr, 0, 0, ext.x, ext.y, 0);
 }
 
 void Window::setFullscreen(Monitor const& monitor, Extent resolution) {
@@ -341,7 +341,7 @@ void Window::setFullscreen(Monitor const& monitor, Extent resolution) {
 	if (!vmode) { return; }
 	auto res = glm::ivec2(resolution);
 	if (resolution.x == 0 || resolution.y == 0) { resolution = {vmode->width, vmode->height}; }
-	glfwSetWindowMonitor(win.get<GLFWwindow*>(), gmonitor, 0, 0, res.x, res.y, vmode->refreshRate);
+	glfwSetWindowMonitor(static_cast<GLFWwindow*>(win), gmonitor, 0, 0, res.x, res.y, vmode->refreshRate);
 }
 
 GamepadMap Window::gamepads() {

@@ -25,7 +25,13 @@ add_library(options INTERFACE)
 add_library(${project_name}::options ALIAS options)
 
 target_compile_options(options INTERFACE
-  $<$<BOOL:${gcc_like}>:-Wall -Wextra -Wpedantic -Wconversion -Werror=return-type $<$<NOT:$<CONFIG:Debug>>:-Werror>>
+  $<$<BOOL:${gcc_like}>:-Wall -Wextra -Wpedantic -Wconversion -Werror=return-type>
   $<$<BOOL:${WIN64_MSBUILD}>:/MP $<$<NOT:$<CONFIG:Debug>>:/WX>>
 )
+
+if(is_root_project)
+  target_compile_options(options INTERFACE
+    $<$<BOOL:${gcc_like}>:$<$<NOT:$<CONFIG:Debug>>:-Werror>>)
+endif()
+
 target_link_libraries(options INTERFACE ${project_name}::interface)

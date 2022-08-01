@@ -1,5 +1,4 @@
 #pragma once
-#include <detail/erased_ptr.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/core/result.hpp>
 #include <vulkify/core/unique.hpp>
@@ -32,7 +31,7 @@ struct CursorStorage {
 		std::size_t operator()(Cursor cursor) const { return std::hash<std::uint64_t>{}(cursor.handle); }
 	};
 
-	std::unordered_map<Cursor, ErasedPtr, Hasher> cursors{};
+	std::unordered_map<Cursor, void*, Hasher> cursors{};
 	std::uint64_t next{};
 };
 
@@ -45,7 +44,7 @@ struct GamepadStorage {
 struct Window {
 	struct Instance;
 
-	ErasedPtr win{};
+	void* win{};
 	Instance* instance{};
 
 	EventsStorage events{};
@@ -54,7 +53,7 @@ struct Window {
 
 	bool operator==(Window const& rhs) const { return win == rhs.win; }
 
-	bool makeSurface(ErasedPtr vkinst, ErasedPtr out_vksurface) const;
+	bool makeSurface(void* p_instance, void* p_surface) const;
 
 	bool closing() const;
 	glm::ivec2 framebufferSize() const;
@@ -116,12 +115,12 @@ using UniqueWindowInstance = Unique<Window::Instance, Window::Deleter>;
 Result<std::shared_ptr<UniqueWindowInstance>> getOrMakeWindowInstance();
 
 struct WindowView {
-	ErasedPtr window{};
+	void* window{};
 	EventsStorage* events{};
 	ScancodeStorage* scancodes{};
 	FileDropStorage* fileDrops{};
 
-	bool match(ErasedPtr const w) const { return w == window && events && scancodes && fileDrops; }
+	bool match(void const* w) const { return w == window && events && scancodes && fileDrops; }
 };
 
 inline WindowView g_window{};
