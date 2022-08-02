@@ -46,6 +46,9 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/vram.cpp
   detail/vram.hpp
 
+  detail/window/window.hpp
+  detail/window/window.cpp
+
   spir_v/default.frag.hpp
   spir_v/default.vert.hpp
 

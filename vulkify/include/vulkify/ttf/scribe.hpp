@@ -21,7 +21,7 @@ struct Pen {
 	Geometry* out_geometry{};
 	glm::vec2 head{};
 	Glyph::Height height{Glyph::height_v};
-	float maxHeight{};
+	float max_height{};
 
 	Character character(Codepoint codepoint) const;
 	glm::vec2 write(Codepoint codepoint);
@@ -51,12 +51,12 @@ struct Scribe {
 	Leading leading{};
 
 	glm::vec2 extent(std::string_view line) const;
-	float lineHeight() const;
+	float line_height() const;
 
 	Scribe& preload(std::string_view text);
 	Scribe& write(std::string_view text, Pivot pivot = centre_v);
 	Scribe& write(Block text, Pivot pivot = centre_v);
-	Scribe& lineBreak();
+	Scribe& line_break();
 };
 
 // impl

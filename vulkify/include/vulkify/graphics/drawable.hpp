@@ -13,7 +13,7 @@ struct DrawInstance {
 	Transform transform{};
 	Rgba tint = white_v;
 
-	DrawModel drawModel() const;
+	DrawModel draw_model() const;
 };
 
 ///
@@ -27,10 +27,10 @@ struct Drawable {
 
 // impl
 
-inline DrawModel DrawInstance::drawModel() const {
+inline DrawModel DrawInstance::draw_model() const {
 	auto ret = DrawModel{};
 	ret.pos_orn = {transform.position, transform.orientation.value()};
-	auto const utint = tint.toU32();
+	auto const utint = tint.to_u32();
 	float ftint;
 	std::memcpy(&ftint, &utint, sizeof(float));
 	ret.scl_tint = {transform.scale, ftint, 0.0f};

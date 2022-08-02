@@ -21,12 +21,12 @@ struct TextureCreateInfo {
 /// \brief Texture coordinates for a quad in texture space
 ///
 struct QuadTexCoords {
-	glm::ivec2 topLeft{};
-	glm::ivec2 bottomRight{};
+	glm::ivec2 top_left{};
+	glm::ivec2 bottom_right{};
 
 	constexpr UvRect uv(glm::uvec2 const extent) const {
 		auto const ext = glm::vec2(extent);
-		return {glm::vec2(topLeft) / ext, glm::vec2(bottomRight) / ext};
+		return {glm::vec2(top_left) / ext, glm::vec2(bottom_right) / ext};
 	}
 };
 
@@ -41,30 +41,29 @@ class Texture : public GfxResource {
 	using Handle = TextureHandle;
 
 	Texture() = default;
-	Texture(Context const& context, std::string name, Image::View image, CreateInfo const& createInfo = {});
+	Texture(Context const& context, std::string name, Image::View image, CreateInfo const& create_info = {});
 
 	Result<void> create(Image::View image);
-	Result<void> overwrite(Image::View image);
 	Result<void> overwrite(Image::View image, Rect const& region);
 	Result<void> rescale(float scale);
 
 	Texture clone(std::string name) const;
 
 	Extent extent() const;
-	AddressMode addressMode() const { return m_addressMode; }
+	AddressMode address_mode() const { return m_address_mode; }
 	Filtering filtering() const { return m_filtering; }
 	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
 	Handle handle() const;
 
   private:
 	Texture(Vram const& vram, std::string name, CreateInfo const& info);
-	Texture cloneImage(std::string name) const;
+	Texture clone_image(std::string name) const;
 
 	void refresh(Extent extent);
 	void write(Image::View image, Rect const& region);
-	void setInvalid();
+	void set_invalid();
 
-	AddressMode m_addressMode{};
+	AddressMode m_address_mode{};
 	Filtering m_filtering{};
 
 	friend class Atlas;

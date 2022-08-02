@@ -8,7 +8,7 @@ class FencePool {
 	FencePool(VKDevice device = {}, std::size_t count = 0) : m_device(device) {
 		if (!m_device) { return; }
 		m_idle.reserve(count);
-		for (std::size_t i = 0; i < count; ++i) { m_idle.push_back(makeFence()); }
+		for (std::size_t i = 0; i < count; ++i) { m_idle.push_back(make_fence()); }
 	}
 
 	vk::Fence next() {
@@ -20,7 +20,7 @@ class FencePool {
 			}
 			return false;
 		});
-		if (m_idle.empty()) { m_idle.push_back(makeFence()); }
+		if (m_idle.empty()) { m_idle.push_back(make_fence()); }
 		auto ret = std::move(m_idle.back());
 		m_idle.pop_back();
 		m_device.reset(*ret, {});
@@ -29,7 +29,7 @@ class FencePool {
 	}
 
   private:
-	vk::UniqueFence makeFence() const { return m_device.device.createFenceUnique({vk::FenceCreateFlagBits::eSignaled}); }
+	vk::UniqueFence make_fence() const { return m_device.device.createFenceUnique({vk::FenceCreateFlagBits::eSignaled}); }
 
 	std::vector<vk::UniqueFence> m_idle{};
 	std::vector<vk::UniqueFence> m_busy{};
@@ -77,7 +77,7 @@ class CommandPool {
 		Cmd cmd{std::move(defer), cb, m_fencePool.next()};
 		vk::SubmitInfo const si(0U, nullptr, {}, 1U, &cb);
 		{
-			auto lock = std::scoped_lock(*m_device.queueMutex);
+			auto lock = std::scoped_lock(*m_device.queue_mutex);
 			ret = m_device.queue.queue.submit(1, &si, cmd.fence);
 		}
 		if (ret == vk::Result::eSuccess) {

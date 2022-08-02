@@ -1,5 +1,7 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
+#include <cstddef>
+#include <istream>
 #include <span>
 
 namespace vf {
@@ -18,10 +20,10 @@ class Shader {
 	explicit operator bool() const;
 
 	bool load(std::span<std::byte const> spirv);
-	bool load(char const* path, bool tryCompile);
+	bool load(char const* path, bool try_compile);
 
   private:
-	ktl::fixed_pimpl<GfxShaderModule, 64> m_impl;
+	ktl::fixed_pimpl<GfxShaderModule, 64> m_module;
 
 	friend class Surface;
 };

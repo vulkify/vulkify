@@ -25,7 +25,7 @@ struct TImageData {
 class Image {
   public:
 	static constexpr std::size_t channels_v = 4;
-	static constexpr std::size_t sizeBytes(Extent const extent) { return extent.x * extent.y * channels_v; }
+	static constexpr std::size_t size_bytes(Extent const extent) { return extent.x * extent.y * channels_v; }
 
 	using View = TImageData<std::span<std::byte const>>;
 	///
@@ -72,5 +72,5 @@ struct Image::Encoded {
 	std::span<std::byte const> bytes{};
 };
 
-constexpr bool Image::valid(Image::View view) { return valid(view.extent) && sizeBytes(view.extent) == view.data.size_bytes(); }
+constexpr bool Image::valid(Image::View view) { return valid(view.extent) && size_bytes(view.extent) == view.data.size_bytes(); }
 } // namespace vf

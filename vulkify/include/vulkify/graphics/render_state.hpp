@@ -10,12 +10,12 @@ enum class Topology { eTriangleList, eTriangleStrip, eLineList, eLineStrip, ePoi
 
 struct RenderState {
 	struct Pipeline {
-		PolygonMode polygonMode{PolygonMode::eFill};
+		PolygonMode polygon_mode{PolygonMode::eFill};
 		Topology topology{Topology::eTriangleList};
-		float lineWidth{1.0f};
+		float line_width{1.0f};
 	};
 
 	Pipeline pipeline{};
-	Ptr<DescriptorSet const> descriptorSet{};
+	Ptr<DescriptorSet const> descriptor_set{};
 };
 } // namespace vf

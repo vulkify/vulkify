@@ -19,7 +19,7 @@ class nvec2 {
 	static nvec2 const left_v;
 	static nvec2 const up_v;
 
-	static constexpr float sqrMag(glm::vec2 in);
+	static constexpr float sqr_mag(glm::vec2 in);
 	static glm::vec2 normalize(glm::vec2 in);
 
 	nvec2() = default;
@@ -53,10 +53,10 @@ inline nvec2 const nvec2::down_v = nvec2{0.0f, -1.0f};
 inline nvec2 const nvec2::left_v = nvec2{-1.0f, 0.0f};
 inline nvec2 const nvec2::up_v = nvec2{0.0f, 1.0f};
 
-constexpr float nvec2::sqrMag(glm::vec2 const in) { return in.x * in.x + in.y * in.y; }
+constexpr float nvec2::sqr_mag(glm::vec2 const in) { return in.x * in.x + in.y * in.y; }
 
 inline glm::vec2 nvec2::normalize(glm::vec2 const in) {
-	auto const mag = std::sqrt(sqrMag(in));
+	auto const mag = std::sqrt(sqr_mag(in));
 	return FloatEq{}(mag, 0.0f) ? glm::vec2{} : in / mag;
 }
 

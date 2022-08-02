@@ -18,13 +18,13 @@ constexpr std::string_view redirect_null_v =
 #endif
 } // namespace
 
-bool SpirV::glslcAvailable() {
+bool SpirV::glslc_available() {
 	auto const str = ktl::kformat("glslc --version > {} 2>&1", redirect_null_v);
 	auto const ret = std::system(str.data());
 	return ret == 0;
 }
 
-bool SpirV::isGlsl(char const* path) {
+bool SpirV::is_glsl(char const* path) {
 	auto p = stdfs::path(path);
 	auto const ext = p.extension().string();
 	return ext == ".vert" || ext == ".frag";
@@ -69,7 +69,7 @@ SpirV SpirV::load(std::string path) {
 }
 
 SpirV SpirV::compile(char const* glsl, std::string path) {
-	if (!glslcAvailable()) {
+	if (!glslc_available()) {
 		VF_TRACE(name_v, trace::Type::eWarn, "glslc not available");
 		return {};
 	}
@@ -95,18 +95,18 @@ SpirV SpirV::compile(char const* glsl, std::string path) {
 	return load(std::move(path));
 }
 
-SpirV SpirV::loadOrCompile(std::string path) {
-	if (isGlsl(path.c_str())) {
-		static bool s_glslc = glslcAvailable();
+SpirV SpirV::load_or_compile(std::string path) {
+	if (is_glsl(path.c_str())) {
+		static bool s_glslc = glslc_available();
 		auto spv = std::string{};
 		if (s_glslc) {
 			// try-compile Glsl to Spir-V
-			spv = spirvPath(path.c_str());
+			spv = spirv_path(path.c_str());
 			auto ret = SpirV::compile(path.c_str(), spv);
 			if (ret.code) { return ret; }
 		}
 		// search for pre-compiled Spir-V
-		path = spv.empty() ? spirvPath(path.c_str()) : std::move(spv);
+		path = spv.empty() ? spirv_path(path.c_str()) : std::move(spv);
 		if (!stdfs::is_regular_file(path)) { return {}; }
 	}
 	// load Spir-V

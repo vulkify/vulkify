@@ -15,42 +15,41 @@ class HeadlessInstance : public Instance {
 	Vram const& vram() const override;
 	Gpu const& gpu() const override { return m_gpu; }
 	bool closing() const override { return Clock::now() - m_start > m_autoclose; }
-	glm::uvec2 framebufferExtent() const override { return m_framebufferExtent; }
-	glm::uvec2 windowExtent() const override { return m_windowExtent; }
+	glm::uvec2 framebuffer_extent() const override { return m_framebuffer_extent; }
+	glm::uvec2 window_extent() const override { return m_window_extent; }
 	glm::ivec2 position() const override { return {}; }
-	glm::vec2 contentScale() const override { return glm::vec2(1.0f); }
-	CursorMode cursorMode() const override { return {}; }
-	glm::vec2 cursorPosition() const override { return {}; }
+	glm::vec2 content_scale() const override { return glm::vec2(1.0f); }
+	CursorMode cursor_mode() const override { return {}; }
+	glm::vec2 cursor_position() const override { return {}; }
 	MonitorList monitors() const override { return {}; }
-	WindowFlags windowFlags() const override { return m_windowFlags; }
-	AntiAliasing antiAliasing() const override { return AntiAliasing::eNone; }
+	WindowFlags window_flags() const override { return m_window_flags; }
+	AntiAliasing anti_aliasing() const override { return AntiAliasing::eNone; }
 	VSync vsync() const override { return {}; }
-	std::vector<Gpu> gpuList() const override { return {m_gpu}; }
+	std::vector<Gpu> gpu_list() const override { return {m_gpu}; }
 
 	void show() override {}
 	void hide() override {}
 	void close() override {}
-	void setPosition(glm::ivec2) override {}
-	void setExtent(glm::uvec2) override {}
-	void setCursorMode(CursorMode) override {}
-	Cursor makeCursor(Icon) override { return {}; }
-	void destroyCursor(Cursor) override {}
-	bool setCursor(Cursor) override { return false; }
-	void setIcons(std::span<Icon const>) override {}
-	void setWindowed(glm::uvec2) override {}
-	void setFullscreen(Monitor const&, glm::uvec2) override {}
-	void updateWindowFlags(WindowFlags, WindowFlags) override {}
-	bool setVSync(VSync) override { return false; }
+	void set_position(glm::ivec2) override {}
+	void set_extent(glm::uvec2) override {}
+	void set_cursor_mode(CursorMode) override {}
+	Cursor make_cursor(Icon) override { return {}; }
+	void destroy_cursor(Cursor) override {}
+	bool set_cursor(Cursor) override { return false; }
+	void set_icons(std::span<Icon const>) override {}
+	void set_windowed(glm::uvec2) override {}
+	void set_fullscreen(Monitor const&, glm::uvec2) override {}
+	void update_window_flags(WindowFlags, WindowFlags) override {}
 	Camera& camera() override { return m_camera; }
 
-	EventQueue poll() override { return std::move(m_eventQueue); }
-	Surface beginPass(Rgba) override { return {}; }
-	bool endPass() override { return true; }
+	EventQueue poll() override { return std::move(m_event_queue); }
+	Surface begin_pass(Rgba) override { return {}; }
+	bool end_pass() override { return true; }
 
-	EventQueue m_eventQueue{};
-	glm::uvec2 m_framebufferExtent{};
-	glm::uvec2 m_windowExtent{};
-	WindowFlags m_windowFlags{};
+	EventQueue m_event_queue{};
+	glm::uvec2 m_framebuffer_extent{};
+	glm::uvec2 m_window_extent{};
+	WindowFlags m_window_flags{};
 	Camera m_camera{};
 
   private:

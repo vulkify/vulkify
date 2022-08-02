@@ -7,7 +7,7 @@
 
 namespace vf {
 namespace {
-char const* getName(char const* name, std::string& fallback, std::atomic<int>& count) {
+char const* get_name(char const* name, std::string& fallback, std::atomic<int>& count) {
 	if (!name) {
 		fallback = ktl::kformat("unnamed_{}", count++);
 		name = fallback.c_str();
@@ -15,7 +15,7 @@ char const* getName(char const* name, std::string& fallback, std::atomic<int>& c
 	return name;
 }
 
-vk::SampleCountFlagBits getSamples(vk::SampleCountFlags supported, int desired) {
+vk::SampleCountFlagBits get_samples(vk::SampleCountFlags supported, int desired) {
 	if (desired >= 16 && (supported & vk::SampleCountFlagBits::e16)) { return vk::SampleCountFlagBits::e16; }
 	if (desired >= 8 && (supported & vk::SampleCountFlagBits::e8)) { return vk::SampleCountFlagBits::e8; }
 	if (desired >= 4 && (supported & vk::SampleCountFlagBits::e4)) { return vk::SampleCountFlagBits::e4; }
@@ -48,10 +48,10 @@ vk::ImageLayout ImageBarrier::operator()(vk::CommandBuffer cb, vk::Image image, 
 	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	barrier.image = image;
 	barrier.subresourceRange.aspectMask = aspects;
-	barrier.subresourceRange.baseMipLevel = layerMip.mip.first;
-	barrier.subresourceRange.levelCount = layerMip.mip.count;
-	barrier.subresourceRange.baseArrayLayer = layerMip.layer.first;
-	barrier.subresourceRange.layerCount = layerMip.layer.count;
+	barrier.subresourceRange.baseMipLevel = layer_mip.mip.first;
+	barrier.subresourceRange.levelCount = layer_mip.mip.count;
+	barrier.subresourceRange.baseArrayLayer = layer_mip.layer.first;
+	barrier.subresourceRange.layerCount = layer_mip.layer.count;
 	barrier.srcAccessMask = access.first;
 	barrier.dstAccessMask = access.second;
 	cb.pipelineBarrier(stages.first, stages.second, {}, {}, {}, barrier);
@@ -94,32 +94,32 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples)
 		return {};
 	}
 	auto factory = ktl::make_unique<CommandFactory>();
-	factory->commandPools.factory().device = device;
-	vram.commandFactory = factory.get();
-	vram.deviceLimits = limits;
-	vram.colourSamples = getSamples(limits.framebufferColorSampleCounts, samples);
+	factory->command_pools.factory().device = device;
+	vram.command_factory = factory.get();
+	vram.device_limits = limits;
+	vram.colour_samples = get_samples(limits.framebufferColorSampleCounts, samples);
 	return {std::move(factory), vram};
 }
 
 void Vram::Deleter::operator()(Vram const& vram) const {
 	vram.device.defer.queue->entries.clear();
-	vram.commandFactory->commandPools.clear();
+	vram.command_factory->command_pools.clear();
 	vmaDestroyAllocator(vram.allocator);
 }
 
 template <vk::ObjectType T, typename U>
-void setDebugName(VKDevice const& device, U handle, char const* name) {
+void set_debug_name(VKDevice const& device, U handle, char const* name) {
 	if (device.flags.test(VKDevice::Flag::eDebugMsgr)) {
 		static auto count = std::atomic<int>{};
-		auto nameFallback = std::string{};
-		name = getName(name, nameFallback, count);
-		device.setDebugName(T, handle, name);
+		auto name_fallback = std::string{};
+		name = get_name(name, name_fallback, count);
+		device.set_debug_name(T, handle, name);
 	}
 }
 
-UniqueImage Vram::makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear) const {
-	if (!allocator || !commandFactory) { return {}; }
-	if (info.extent.width > deviceLimits.maxImageDimension2D || info.extent.height > deviceLimits.maxImageDimension2D) {
+UniqueImage Vram::make_image(vk::ImageCreateInfo info, bool host, char const* name, bool linear) const {
+	if (!allocator || !command_factory) { return {}; }
+	if (info.extent.width > device_limits.maxImageDimension2D || info.extent.height > device_limits.maxImageDimension2D) {
 		VF_TRACEW(name_v, "Invalid image extent: [{}, {}]", info.extent.width, info.extent.height);
 		return {};
 	}
@@ -138,13 +138,13 @@ UniqueImage Vram::makeImage(vk::ImageCreateInfo info, bool host, char const* nam
 	auto handle = VmaAllocation{};
 	if (auto res = vmaCreateImage(allocator, &imageInfo, &vaci, &ret, &handle, nullptr); res != VK_SUCCESS) { return {}; }
 
-	setDebugName<vk::ObjectType::eImage>(device, ret, name);
+	set_debug_name<vk::ObjectType::eImage>(device, ret, name);
 
 	return VmaImage{{vk::Image(ret), allocator, handle}, info.initialLayout, info.extent, info.tiling, BlitCaps::make(device.gpu, info.format)};
 }
 
-UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, bool host, char const* name) const {
-	if (!commandFactory || !allocator) { return {}; }
+UniqueBuffer Vram::make_buffer(vk::BufferCreateInfo info, bool host, char const* name) const {
+	if (!command_factory || !allocator) { return {}; }
 	info.sharingMode = vk::SharingMode::eExclusive;
 	info.queueFamilyIndexCount = 1U;
 	info.pQueueFamilyIndices = &device.queue.family;
@@ -159,16 +159,16 @@ UniqueBuffer Vram::makeBuffer(vk::BufferCreateInfo info, bool host, char const* 
 	void* map{};
 	if (host) { vmaMapMemory(allocator, handle, &map); }
 
-	setDebugName<vk::ObjectType::eBuffer>(device, ret, name);
+	set_debug_name<vk::ObjectType::eBuffer>(device, ret, name);
 
 	return VmaBuffer{{vk::Buffer(ret), allocator, handle}, info.size, map};
 }
 
 void Vram::blit(vk::CommandBuffer cmd, vk::Image in, vk::Image out, TRect<std::int32_t> inr, TRect<std::int32_t> outr, vk::Filter filter) {
 	auto isrl = vk::ImageSubresourceLayers(vk::ImageAspectFlagBits::eColor, 0, 0, 1);
-	auto const srcOffsets = std::array<vk::Offset3D, 2>{{{inr.offset.x, inr.offset.y}, {inr.extent.x, inr.extent.y, 1}}};
-	auto const dstOffsets = std::array<vk::Offset3D, 2>{{{outr.offset.x, outr.offset.y}, {outr.extent.x, outr.extent.y, 1}}};
-	auto ib = vk::ImageBlit(isrl, srcOffsets, isrl, dstOffsets);
+	auto const src_offsets = std::array<vk::Offset3D, 2>{{{inr.offset.x, inr.offset.y}, {inr.extent.x, inr.extent.y, 1}}};
+	auto const dst_offsets = std::array<vk::Offset3D, 2>{{{outr.offset.x, outr.offset.y}, {outr.extent.x, outr.extent.y, 1}}};
+	auto ib = vk::ImageBlit(isrl, src_offsets, isrl, dst_offsets);
 	cmd.blitImage(in, vk::ImageLayout::eTransferSrcOptimal, out, vk::ImageLayout::eTransferDstOptimal, ib, filter);
 }
 
@@ -178,18 +178,18 @@ static void copy(Vram const& vram, VmaBuffer dst, vk::CommandBuffer cmd, Span co
 	if (!dst.resource || size == 0) { return; }
 	auto bci = vk::BufferCreateInfo({}, static_cast<vk::DeviceSize>(size), vk::BufferUsageFlagBits::eTransferSrc);
 	auto str = ktl::kformat("{}_staging", name);
-	auto stage = vram.makeBuffer(bci, true, str.c_str());
+	auto stage = vram.make_buffer(bci, true, str.c_str());
 	assert(stage);
 	stage->write(data.data(), data.size());
 	cmd.copyBuffer(stage->resource, dst.resource, vk::BufferCopy({}, {}, bci.size));
 	*out++ = std::move(stage);
 }
 
-bool ImageWriter::canBlit(VmaImage const& src, VmaImage const& dst) { return src.blitFlags().test(BlitFlag::eSrc) && dst.blitFlags().test(BlitFlag::eDst); }
+bool ImageWriter::can_blit(VmaImage const& src, VmaImage const& dst) { return src.blit_flags().test(BlitFlag::eSrc) && dst.blit_flags().test(BlitFlag::eDst); }
 
 bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, URegion region, vk::ImageLayout il) {
 	auto bci = vk::BufferCreateInfo({}, data.size(), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
-	auto buffer = vram->makeBuffer(bci, true, "image_copy_staging");
+	auto buffer = vram->make_buffer(bci, true, "image_copy_staging");
 	if (!buffer || !buffer->write(data.data(), data.size())) { return false; }
 
 	if (region.extent.x == 0 && region.extent.x == 0) {
@@ -211,7 +211,7 @@ bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, URegion 
 }
 
 bool ImageWriter::blit(VmaImage& in, VmaImage& out, IRegion inr, IRegion outr, vk::Filter filter, TPair<vk::ImageLayout> il) const {
-	if (!canBlit(in, out) || in.extent == out.extent) { return copy(in, out, inr, outr, il); }
+	if (!can_blit(in, out) || in.extent == out.extent) { return copy(in, out, inr, outr, il); }
 	if (in.extent.width == 0 || in.extent.height == 0) { return false; }
 	if (out.extent.width == 0 || out.extent.height == 0) { return false; }
 

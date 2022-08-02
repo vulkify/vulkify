@@ -22,15 +22,15 @@ struct Selector : GpuSelector {
 
 Context::Result Builder::build() {
 	auto instance = UInstance{};
-	auto selector = Selector(std::move(m_selectGpu));
-	m_createInfo.title = m_title.c_str();
-	if (selector.select) { m_createInfo.gpuSelector = &selector; }
-	if (m_createInfo.instanceFlags.test(InstanceFlag::eHeadless)) {
+	auto selector = Selector(std::move(m_selec_gGpu));
+	m_create_info.title = m_title.c_str();
+	if (selector.select) { m_create_info.gpu_selector = &selector; }
+	if (m_create_info.instance_flags.test(InstanceFlag::eHeadless)) {
 		auto inst = HeadlessInstance::make();
 		if (!inst) { return inst.error(); }
 		instance = std::move(inst.value());
 	} else {
-		auto inst = VulkifyInstance::make(m_createInfo);
+		auto inst = VulkifyInstance::make(m_create_info);
 		if (!inst) { return inst.error(); }
 		instance = std::move(inst.value());
 	}

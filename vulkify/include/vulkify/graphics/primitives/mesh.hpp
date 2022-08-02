@@ -8,7 +8,7 @@ namespace vf {
 ///
 class Mesh : public MeshPrimitive {
   public:
-	static Mesh makeQuad(Context const& context, std::string name, QuadCreateInfo const& info = {}, TextureHandle texture = {});
+	static Mesh make_quad(Context const& context, std::string name, QuadCreateInfo const& info = {}, TextureHandle texture = {});
 
 	Mesh() = default;
 	Mesh(Context const& context, std::string name);

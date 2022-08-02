@@ -35,12 +35,12 @@ struct VKSurface {
 	vk::SwapchainCreateInfoKHR info{};
 	VKSwapchain swapchain{};
 
-	static VKSurface make(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, glm::ivec2 framebuffer, bool linear);
+	static VKSurface make(VKDevice const& device, VKGpu const& gpu, vk::SurfaceKHR surface, vk::PresentModeKHR mode, glm::ivec2 extent, bool linear);
 
 	explicit operator bool() const { return device.device && surface; }
 
-	vk::SwapchainCreateInfoKHR makeInfo(glm::uvec2 extent) const;
-	vk::Result refresh(glm::uvec2 extent);
+	vk::SwapchainCreateInfoKHR make_info(glm::uvec2 extent) const;
+	vk::Result refresh(glm::uvec2 extent, vk::PresentModeKHR mode);
 	Acquire acquire(vk::Semaphore signal, glm::uvec2 extent);
 	void submit(vk::CommandBuffer cb, VKSync const& sync);
 	void present(Acquire const& acquired, vk::Semaphore wait, glm::uvec2 extent);

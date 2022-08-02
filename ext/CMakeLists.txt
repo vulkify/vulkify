@@ -1,8 +1,8 @@
 set(ext_targets "")
 
-execute_process(COMMAND
-  ${CMAKE_COMMAND} -E tar -xf src.zip
-  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+file(ARCHIVE_EXTRACT
+  INPUT "${CMAKE_CURRENT_SOURCE_DIR}/src.zip"
+  DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 # glfw

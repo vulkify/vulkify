@@ -119,7 +119,7 @@ int Base::operator()() {
 int Base::run() {
 	auto builder = vf::Builder{};
 	configure(builder);
-	auto context = builder.setTitle(title()).build();
+	auto context = builder.set_title(title()).build();
 	if (!context) { return EXIT_FAILURE; }
 	m_context.emplace(std::move(*context));
 	try {

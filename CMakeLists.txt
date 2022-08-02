@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 
 enable_language(CXX)
 
@@ -54,7 +54,7 @@ endif()
 include(FetchContent)
 FetchContent_Declare(ktl
   GIT_REPOSITORY https://github.com/karnkaul/ktl
-  GIT_TAG v1.4
+  GIT_TAG v1.4.1
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext/src/ktl"
 )
 FetchContent_MakeAvailable(ktl)

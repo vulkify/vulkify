@@ -22,10 +22,24 @@ struct TRect {
 /// origin: centre, +x: right, +y: up
 ///
 struct Rect : TRect<float> {
-	constexpr glm::vec2 topLeft() const { return offset - glm::vec2(extent.x, -extent.y) * 0.5f; }
-	constexpr glm::vec2 topRight() const { return offset + extent * 0.5f; }
-	constexpr glm::vec2 bottomLeft() const { return offset - extent * 0.5f; }
-	constexpr glm::vec2 bottomRight() const { return offset + glm::vec2(extent.x, -extent.y) * 0.5f; }
+	constexpr glm::vec2 top_left() const { return offset - glm::vec2(extent.x, -extent.y) * 0.5f; }
+	constexpr glm::vec2 top_right() const { return offset + extent * 0.5f; }
+	constexpr glm::vec2 bottom_left() const { return offset - extent * 0.5f; }
+	constexpr glm::vec2 bottom_right() const { return offset + glm::vec2(extent.x, -extent.y) * 0.5f; }
+
+	constexpr bool contains(glm::vec2 point) const {
+		auto const in = [](float t, float min, float max) { return t >= min && t <= max; };
+		auto const bl = bottom_left();
+		auto const tr = top_right();
+		return in(point.x, bl.x, tr.x) && in(point.y, bl.y, tr.y);
+	}
+
+	constexpr bool intersects(Rect const& other) const {
+		auto const in = [](Rect const& a, Rect const& b) {
+			return a.contains(b.top_left()) || a.contains(b.top_right()) || a.contains(b.bottom_left()) || a.contains(b.bottom_right());
+		};
+		return in(*this, other) || in(other, *this);
+	}
 };
 
 ///
@@ -34,7 +48,7 @@ struct Rect : TRect<float> {
 /// origin: top-left, +x: right, +y: down, normalized [0-1]
 ///
 struct UvRect {
-	glm::vec2 topLeft{0.0f, 0.0f};
-	glm::vec2 bottomRight{1.0f, 1.0f};
+	glm::vec2 top_left{0.0f, 0.0f};
+	glm::vec2 bottom_right{1.0f, 1.0f};
 };
 } // namespace vf

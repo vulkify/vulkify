@@ -41,12 +41,12 @@ struct Helper {
 
 	vf::Mesh makeTriangle() {
 		auto geometry = vf::Geometry{};
-		geometry.vertices.push_back(vf::Vertex{{-50.0f, -50.0f}});
-		geometry.vertices.push_back(vf::Vertex{{50.0f, -50.0f}});
-		geometry.vertices.push_back(vf::Vertex{{0.0f, 50.0f}});
+		geometry.vertices.push_back(vf::Vertex::make({-50.0f, -50.0f}));
+		geometry.vertices.push_back(vf::Vertex::make({50.0f, -50.0f}));
+		geometry.vertices.push_back(vf::Vertex::make({0.0f, 50.0f}));
 		auto ret = vf::Mesh(context, "triangle");
 		ret.gbo.write(std::move(geometry));
-		ret.instance.transform.position = area.topLeft() + glm::vec2(padding_v.x, -padding_v.y);
+		ret.instance.transform.position = area.top_left() + glm::vec2(padding_v.x, -padding_v.y);
 		return ret;
 	}
 
@@ -60,8 +60,8 @@ struct Helper {
 
 	vf::QuadShape makeRgbQuad(vf::Texture const& texture) {
 		auto ret = vf::QuadShape(context, "rgb_quad", vf::QuadShape::State{glm::vec2(100.0f, 100.0f)});
-		ret.setTexture(texture.clone("rgb_texture_clone"), false);
-		ret.transform().position = area.topRight() + glm::vec2(-padding_v.x, -padding_v.y);
+		ret.set_texture(texture.clone("rgb_texture_clone"), false);
+		ret.transform().position = area.top_right() + glm::vec2(-padding_v.x, -padding_v.y);
 		ret.silhouette.tint = vf::magenta_v;
 		ret.silhouette.scale = 1.2f;
 		return ret;
@@ -71,22 +71,22 @@ struct Helper {
 		auto ret = vf::CircleShape(context, "hexagon", vf::CircleShape::State{100.0f, 6});
 		auto bitmap = vf::Bitmap(vf::magenta_v);
 		texture.overwrite(bitmap.image(), vf::Texture::Rect{{1, 1}, {1, 1}});
-		ret.setTexture(std::move(texture), false);
-		ret.transform().position = area.bottomLeft() + glm::vec2(padding_v.x, padding_v.y);
+		ret.set_texture(std::move(texture), false);
+		ret.transform().position = area.bottom_left() + glm::vec2(padding_v.x, padding_v.y);
 		ret.silhouette.scale = 1.25f;
 		return ret;
 	}
 
 	std::pair<vf::Mesh, vf::CircleShape> makeCircles() {
 		auto circle = vf::Mesh(context, "circle");
-		auto geometry = vf::Geometry::makeRegularPolygon({100.0f, 64});
+		auto geometry = vf::Geometry::make_regular_polygon({100.0f, 64});
 		auto const circleRgbaStart = vf::yellow_v;
 		auto const circleRgbaEnd = vf::cyan_v;
 		auto span = std::span<vf::Vertex>(geometry.vertices).subspan(1); // exclude centre
 		interpolateRgba(span.subspan(0, span.size() / 2), circleRgbaStart, circleRgbaEnd);
 		interpolateRgba(span.subspan(span.size() / 2), circleRgbaEnd, circleRgbaStart);
 		circle.gbo.write(std::move(geometry));
-		circle.instance.transform.position = area.bottomRight() + glm::vec2(-padding_v.x, padding_v.y);
+		circle.instance.transform.position = area.bottom_right() + glm::vec2(-padding_v.x, padding_v.y);
 		auto iris = vf::CircleShape(context, "iris", vf::CircleShape::State{50.0f});
 		iris.transform().position = circle.instance.transform.position;
 		iris.tint() = vf::black_v;
@@ -99,7 +99,7 @@ struct Helper {
 		if (loadResult) { std::cout << imagePath << " [" << loadResult->x << 'x' << loadResult->y << "] loaded sucessfully\n"; }
 
 		auto ret = vf::QuadShape(context, "textured_quad", {{200.0f, 200.0f}});
-		ret.setTexture(vf::Texture(context, "texture", image), false); // should be magenta if image is bad
+		ret.set_texture(vf::Texture(context, "texture", image), false); // should be magenta if image is bad
 		return ret;
 	}
 
@@ -114,7 +114,7 @@ struct Helper {
 
 	vf::Text makeText(vf::Ttf& ttf) {
 		auto ret = vf::Text(context, "test_text");
-		ret.setFont(&ttf).setHeight(80).setString("vulkify");
+		ret.set_font(&ttf).set_height(80).set_string("vulkify");
 		ret.tint() = vf::Rgba::make(0xec3841ff);
 		ret.transform().position.y = area.extent.y * 0.5f - padding_v.y;
 		return ret;
@@ -194,7 +194,7 @@ void test(vf::Context context) {
 int main(int argc, char** argv) {
 	bool const headless = argc > 1 && argv[1] == std::string_view("--headless");
 	std::cout << "vulkify " << vf::version_v << '\n';
-	auto context = vf::Builder{}.setFlag(vf::WindowFlag::eResizable).setFlag(vf::InstanceFlag::eHeadless, headless).build();
+	auto context = vf::Builder{}.set_flag(vf::WindowFlag::eResizable).set_flag(vf::InstanceFlag::eHeadless, headless).build();
 	if (!context) { return EXIT_FAILURE; }
 	test(std::move(context.value()));
 }

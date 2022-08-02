@@ -24,7 +24,7 @@ class Shaded : public vf::Primitive {
 		auto set = vf::DescriptorSet(*m_shader);
 		set.write(uniform);
 		set.write(blendTexture);
-		copy.descriptorSet = &set;
+		copy.descriptor_set = &set;
 		m_t.draw(surface, copy);
 	}
 
@@ -76,7 +76,7 @@ class Shader : public Base {
 	}
 
 	glm::vec2 quadSize() const {
-		glm::vec2 const extent = context().framebufferExtent();
+		glm::vec2 const extent = context().framebuffer_extent();
 		auto const side = extent.y * 0.8f;
 		return {side, side};
 	}
@@ -89,13 +89,13 @@ class Shader : public Base {
 	}
 
 	void makeQuads() {
-		glm::vec2 const extent = context().framebufferExtent();
+		glm::vec2 const extent = context().framebuffer_extent();
 		auto const maxWidth = extent.x * 0.33f;
 		auto const maxHeight = extent.y;
 		auto const side = std::min(maxWidth * 0.8f, maxHeight * 0.8f);
 		auto const gap = (extent.x - 3.0f * side) * 0.25f;
 		auto const dx = side + gap;
-		auto geometry = vf::Geometry::makeQuad({{side, side}});
+		auto geometry = vf::Geometry::make_quad({{side, side}});
 
 		auto& left = makeQuad(geometry);
 		auto& centre = makeQuad(geometry);

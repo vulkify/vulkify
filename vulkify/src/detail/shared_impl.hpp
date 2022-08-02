@@ -8,18 +8,18 @@ namespace vf {
 struct PipelineFactory;
 class Texture;
 
-inline vk::SamplerCreateInfo samplerInfo(Vram const& vram, vk::SamplerAddressMode mode, vk::Filter filter) {
+inline vk::SamplerCreateInfo sampler_info(Vram const& vram, vk::SamplerAddressMode mode, vk::Filter filter) {
 	auto ret = vk::SamplerCreateInfo{};
 	ret.minFilter = ret.magFilter = filter;
-	ret.anisotropyEnable = vram.deviceLimits.maxSamplerAnisotropy > 0.0f;
-	ret.maxAnisotropy = vram.deviceLimits.maxSamplerAnisotropy;
+	ret.anisotropyEnable = vram.device_limits.maxSamplerAnisotropy > 0.0f;
+	ret.maxAnisotropy = vram.device_limits.maxSamplerAnisotropy;
 	ret.borderColor = vk::BorderColor::eIntOpaqueBlack;
 	ret.mipmapMode = vk::SamplerMipmapMode::eNearest;
 	ret.addressModeU = ret.addressModeV = ret.addressModeW = mode;
 	return ret;
 }
 
-constexpr vk::PresentModeKHR fromVSync(VSync vsync) {
+constexpr vk::PresentModeKHR from_vsync(VSync vsync) {
 	switch (vsync) {
 	default:
 	case VSync::eOn: return vk::PresentModeKHR::eFifo;
@@ -29,7 +29,7 @@ constexpr vk::PresentModeKHR fromVSync(VSync vsync) {
 	}
 }
 
-constexpr VSync toVSync(vk::PresentModeKHR mode) {
+constexpr VSync to_vsync(vk::PresentModeKHR mode) {
 	switch (mode) {
 	default:
 	case vk::PresentModeKHR::eFifo: return VSync::eOn;
@@ -68,7 +68,7 @@ struct GfxCommandBuffer {
 	vk::CommandBuffer cmd;
 	ImageWriter writer;
 
-	GfxCommandBuffer(Vram const& vram) : pool(vram.commandFactory->get()), cmd(pool.acquire()), writer(vram, cmd) {}
+	GfxCommandBuffer(Vram const& vram) : pool(vram.command_factory->get()), cmd(pool.acquire()), writer(vram, cmd) {}
 	~GfxCommandBuffer() { pool.release(std::move(cmd), true); }
 };
 

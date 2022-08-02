@@ -10,6 +10,16 @@
 namespace vf {
 [[maybe_unused]] static constexpr auto name_v = "vf::Ttf";
 
+namespace {
+constexpr int get_space(Codepoint const cp) {
+	switch (static_cast<char>(cp)) {
+	case ' ': return 1;
+	case '\t': return 4;
+	default: return 0;
+	}
+}
+} // namespace
+
 FtLib FtLib::make() noexcept {
 	FtLib ret;
 	if (FT_Init_FreeType(&ret.lib)) {
@@ -38,7 +48,7 @@ FtFace FtFace::make(FT_Library lib, char const* path) noexcept {
 	return ret;
 }
 
-bool FtFace::setCharSize(glm::uvec2 const size, glm::uvec2 const res) const noexcept {
+bool FtFace::set_char_size(glm::uvec2 const size, glm::uvec2 const res) const noexcept {
 	if (FT_Set_Char_Size(face, size.x, size.y, res.x, res.y)) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Failed to set font face char size");
 		return false;
@@ -46,7 +56,7 @@ bool FtFace::setCharSize(glm::uvec2 const size, glm::uvec2 const res) const noex
 	return true;
 }
 
-bool FtFace::setPixelSize(glm::uvec2 const size) const noexcept {
+bool FtFace::set_pixel_size(glm::uvec2 const size) const noexcept {
 	if (FT_Set_Pixel_Sizes(face, size.x, size.y)) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Failed to set font face pixel size");
 		return false;
@@ -54,9 +64,9 @@ bool FtFace::setPixelSize(glm::uvec2 const size) const noexcept {
 	return true;
 }
 
-FtFace::Id FtFace::glyphIndex(std::uint32_t codepoint) const noexcept { return FT_Get_Char_Index(face, codepoint); }
+FtFace::Id FtFace::glyph_index(std::uint32_t codepoint) const noexcept { return FT_Get_Char_Index(face, codepoint); }
 
-bool FtFace::loadGlyph(Id index, FT_Render_Mode mode) const {
+bool FtFace::load_glyph(Id index, FT_Render_Mode mode) const {
 	try {
 		if (FT_Load_Glyph(face, index, FT_LOAD_DEFAULT)) {
 			VF_TRACEW(name_v, "Failed to load glyph for index [{}]", index);
@@ -76,7 +86,7 @@ bool FtFace::loadGlyph(Id index, FT_Render_Mode mode) const {
 	return true;
 }
 
-std::vector<std::byte> FtFace::buildGlyphImage() const {
+std::vector<std::byte> FtFace::build_glyph_image() const {
 	auto ret = std::vector<std::byte>{};
 	if (face && face->glyph && face->glyph->bitmap.width > 0U && face->glyph->bitmap.rows > 0U) {
 		glm::uvec2 const extent{face->glyph->bitmap.width, face->glyph->bitmap.rows};
@@ -99,13 +109,13 @@ std::vector<std::byte> FtFace::buildGlyphImage() const {
 
 FtSlot FtFace::slot(std::uint32_t const codepoint) {
 	auto ret = FtSlot{};
-	FtFace::Id const id = codepoint == 0 ? 0 : glyphIndex(codepoint);
-	if (loadGlyph(id)) {
+	FtFace::Id const id = codepoint == 0 ? 0 : glyph_index(codepoint);
+	if (load_glyph(id)) {
 		auto const& slot = *face->glyph;
 		ret.metrics.advance = {slot.advance.x >> 6, slot.advance.y >> 6};
 		ret.metrics.topLeft = {slot.bitmap_left, slot.bitmap_top};
 		ret.metrics.extent = {slot.bitmap.width, slot.bitmap.rows};
-		ret.pixmap = buildGlyphImage();
+		ret.pixmap = build_glyph_image();
 	}
 	return ret;
 }
@@ -136,9 +146,12 @@ Ttf::operator bool() const { return m_face->vram && m_face->face; }
 
 bool Ttf::load(std::span<std::byte const> bytes) {
 	if (!m_face->vram) { return false; }
-	if (auto face = FtFace::make(m_face->vram->ftlib, bytes)) {
+	auto data = std::make_unique<std::byte[]>(bytes.size());
+	std::memcpy(data.get(), bytes.data(), bytes.size());
+	if (auto face = FtFace::make(m_face->vram->ftlib, {data.get(), bytes.size()})) {
 		m_face->face = face;
-		onLoaded();
+		m_file_data = std::move(data);
+		on_loaded();
 		return true;
 	}
 	return false;
@@ -148,7 +161,7 @@ bool Ttf::load(char const* path) {
 	if (!m_face->vram) { return false; }
 	if (auto face = FtFace::make(m_face->vram->ftlib, path)) {
 		m_face->face = face;
-		onLoaded();
+		on_loaded();
 		return true;
 	}
 	return false;
@@ -161,20 +174,20 @@ bool Ttf::contains(Codepoint codepoint, Height height) const {
 
 Ttf::Character Ttf::find(Codepoint codepoint, Height height) const {
 	if (!*this) { return {}; }
-	auto fontIt = m_fonts.find(height);
-	if (fontIt == m_fonts.end()) { return {}; }
+	auto font_it = m_fonts.find(height);
+	if (font_it == m_fonts.end()) { return {}; }
 
-	auto& font = fontIt->second;
-	auto entryIt = font.map.find(codepoint);
-	if (entryIt == font.map.end()) { return {}; }
+	auto& font = font_it->second;
+	auto entry_it = font.map.find(codepoint);
+	if (entry_it == font.map.end()) { return {}; }
 
-	auto& entry = entryIt->second;
+	auto& entry = entry_it->second;
 	return {&entry.glyph, font.atlas.uv(entry.coords)};
 }
 
 Ttf::Character Ttf::get(Codepoint codepoint, Height height) {
 	if (!*this) { return {}; }
-	auto& font = getOrMake(height);
+	auto& font = get_or_make(height);
 
 	Entry const* ret{};
 	if (auto it = font.map.find(codepoint); it != font.map.end()) { ret = &it->second; }
@@ -187,7 +200,7 @@ Ttf::Character Ttf::get(Codepoint codepoint, Height height) {
 std::size_t Ttf::preload(std::span<Codepoint const> codepoints, Height const height) {
 	if (!m_face->face) { return {}; }
 	auto ret = std::size_t{};
-	auto& font = getOrMake(height);
+	auto& font = get_or_make(height);
 	auto bulk = Atlas::Bulk{font.atlas};
 	for (auto const codepoint : codepoints) {
 		if (font.map.contains(codepoint)) { continue; }
@@ -207,13 +220,13 @@ Ptr<Texture const> Ttf::texture(Height height) const {
 	return {};
 }
 
-void Ttf::onLoaded() {
+void Ttf::on_loaded() {
 	assert(m_face->vram);
 	m_fonts.clear();
-	getOrMake(height_v);
+	get_or_make(height_v);
 }
 
-Ttf::Font& Ttf::getOrMake(Height height) {
+Ttf::Font& Ttf::get_or_make(Height height) {
 	auto atlasName = [](std::string ttfName, Ttf::Height const height) {
 		auto str = std::stringstream{};
 		str << ttfName << '_' << height;
@@ -223,9 +236,9 @@ Ttf::Font& Ttf::getOrMake(Height height) {
 	if (it == m_fonts.end()) {
 		auto [i, _] = m_fonts.insert_or_assign(height, Font{Atlas(*m_face->vram, atlasName(m_name, height), initial_extent_v)});
 		it = i;
-		m_face->face->setPixelSize({0, height});
 		insert(it->second, {}, nullptr);
 	}
+	m_face->face->set_pixel_size({0, height});
 	return it->second;
 }
 
@@ -248,18 +261,22 @@ Ttf::Entry& Ttf::insert(Font& out_font, Codepoint const codepoint, Atlas::Bulk* 
 Pen::Character Pen::character(Codepoint codepoint) const {
 	if (!out_ttf || !*out_ttf) { return {}; }
 	if (auto const ch = out_ttf->get(codepoint, height)) { return ch; }
-	return out_ttf->get({});
+	return out_ttf->get({}, height);
 }
 
 glm::vec2 Pen::write(Codepoint const codepoint) {
 	if (!out_ttf || !*out_ttf) { return head; }
+	if (auto space = get_space(codepoint); space > 0) {
+		head += space * character('i').glyph->metrics.advance;
+		return head;
+	}
 	if (auto const ch = character(codepoint)) {
 		auto const pen = head + glm::vec2(ch.glyph->metrics.topLeft);
 		auto const hs = glm::vec2(ch.glyph->metrics.extent) * 0.5f;
 		auto const origin = pen + glm::vec2(hs.x, -hs.y);
-		if (out_geometry) { out_geometry->addQuad({ch.glyph->metrics.extent, origin, ch.uv}); }
+		if (out_geometry) { out_geometry->add_quad({ch.glyph->metrics.extent, origin, ch.uv}); }
 		head += ch.glyph->metrics.advance;
-		maxHeight = std::max(maxHeight, static_cast<float>(ch.glyph->metrics.extent.y));
+		max_height = std::max(max_height, static_cast<float>(ch.glyph->metrics.extent.y));
 	}
 	return head;
 }
@@ -272,13 +289,13 @@ glm::vec2 Pen::write(std::span<Codepoint const> codepoints) {
 }
 
 glm::vec2 Scribe::extent(std::string_view line) const {
-	auto pen = Pen{&ttf};
+	auto pen = Pen{&ttf, {}, {}, height};
 	for (auto const ch : line) { pen.write(static_cast<Codepoint>(ch)); }
-	return {pen.head.x, pen.maxHeight};
+	return {pen.head.x, pen.max_height};
 }
 
 Scribe& Scribe::preload(std::string_view text) {
-	auto& font = ttf.getOrMake(height);
+	auto& font = ttf.get_or_make(height);
 	auto bulk = Atlas::Bulk(font.atlas);
 	for (auto const ch : text) {
 		auto const codepoint = static_cast<Codepoint>(ch);
@@ -306,23 +323,28 @@ Scribe& Scribe::write(std::string_view const text, Pivot pivot) {
 Scribe& Scribe::write(Block block, Pivot pivot) {
 	if (!ttf || block.text.empty()) { return *this; }
 	auto text = block.text;
-	auto height = float{};
-	auto const lh = lineHeight();
-	for (auto line = std::string_view{}; block.getline(line);) { height += lh; }
+	auto max_line_height = 0.0f;
+	auto line_count = 0;
+	for (auto line = std::string_view{}; block.getline(line);) {
+		max_line_height = std::max(max_line_height, extent(line).y);
+		++line_count;
+	}
+	auto const dy = max_line_height * leading.coefficient;
+	auto const height = line_count == 1 ? max_line_height : dy * static_cast<float>(line_count);
 	origin.y += height * (0.5f - pivot.y);
 	block.text = text;
-	for (auto line = std::string_view{}; block.getline(line); lineBreak()) { write(line, {pivot.x, 0.5f}); }
+	for (auto line = std::string_view{}; block.getline(line); origin.y -= dy) { write(line, {pivot.x, 0.5f}); }
 	return *this;
 }
 
-float Scribe::lineHeight() const {
+float Scribe::line_height() const {
 	auto const ch = ttf.get(leading.codepoint, height);
 	if (!ch) { return {}; }
 	return static_cast<float>(ch.glyph->metrics.extent.y) * leading.coefficient;
 }
 
-Scribe& Scribe::lineBreak() {
-	origin.y -= lineHeight();
+Scribe& Scribe::line_break() {
+	origin.y -= line_height();
 	return *this;
 }
 } // namespace vf

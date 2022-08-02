@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 namespace vf {
 class Context;
@@ -55,6 +56,7 @@ struct Gamepad {
 	using Map = GamepadMap;
 
 	static Map map();
+	static void update_mappings(char const* sdl_game_controller_db);
 
 	Id id{};
 

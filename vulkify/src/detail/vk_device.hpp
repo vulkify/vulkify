@@ -32,7 +32,7 @@ struct VKDevice {
 	vk::PhysicalDevice gpu{};
 	vk::Device device{};
 	Defer defer{};
-	std::mutex* queueMutex{};
+	std::mutex* queue_mutex{};
 	Flags flags{};
 
 	explicit operator bool() const { return device; }
@@ -42,7 +42,7 @@ struct VKDevice {
 	void wait(vk::Fence fence, std::uint64_t wait = fence_wait_v) const;
 	void reset(vk::Fence fence, std::uint64_t wait = fence_wait_v) const;
 
-	vk::UniqueImageView makeImageView(vk::Image const image, vk::Format const format, vk::ImageAspectFlags aspects) const {
+	vk::UniqueImageView make_image_view(vk::Image const image, vk::Format const format, vk::ImageAspectFlags aspects) const {
 		vk::ImageViewCreateInfo info;
 		info.viewType = vk::ImageViewType::e2D;
 		info.format = format;
@@ -53,7 +53,7 @@ struct VKDevice {
 	}
 
 	template <typename T>
-	void setDebugName(vk::ObjectType type, T const handle, char const* name) const {
+	void set_debug_name(vk::ObjectType type, T const handle, char const* name) const {
 		if (flags.test(Flag::eDebugMsgr)) { device.setDebugUtilsObjectNameEXT({type, reinterpret_cast<std::uint64_t>(handle), name}); }
 	}
 };

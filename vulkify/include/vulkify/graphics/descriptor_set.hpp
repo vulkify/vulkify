@@ -17,7 +17,7 @@ class DescriptorSet {
 
 	template <BufferData T>
 	void write(T const& t);
-	void write(std::vector<std::byte> uniformData) { m_data.bytes = std::move(uniformData); }
+	void write(std::vector<std::byte> uniform_data) { m_data.bytes = std::move(uniform_data); }
 	void write(TextureHandle texture) { m_data.texture = texture; }
 
   private:

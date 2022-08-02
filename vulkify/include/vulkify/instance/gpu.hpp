@@ -12,8 +12,8 @@ struct Gpu {
 
 	std::string name{};
 	Features features{};
-	PresentModes presentModes{};
-	float maxLineWidth{};
+	PresentModes present_modes{};
+	float max_line_width{};
 	Type type{};
 };
 } // namespace vf

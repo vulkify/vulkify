@@ -15,7 +15,7 @@ using namespace std::string_view_literals;
 namespace {
 constexpr auto validation_layer_v = "VK_LAYER_KHRONOS_validation"sv;
 
-vk::UniqueInstance makeInstance(std::vector<char const*> extensions, bool& out_validation) {
+vk::UniqueInstance make_instance(std::vector<char const*> extensions, bool& out_validation) {
 	if (out_validation) {
 		auto const availLayers = vk::enumerateInstanceLayerProperties();
 		auto layerSearch = [](vk::LayerProperties const& lp) { return lp.layerName == validation_layer_v; };
@@ -45,7 +45,7 @@ vk::UniqueInstance makeInstance(std::vector<char const*> extensions, bool& out_v
 	return vk::createInstanceUnique(ici);
 }
 
-vk::UniqueDebugUtilsMessengerEXT makeDebugMessenger(vk::Instance instance) {
+vk::UniqueDebugUtilsMessengerEXT make_debug_messenger(vk::Instance instance) {
 	auto validationCallback = [](VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT,
 								 VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*) -> vk::Bool32 {
 		static constexpr std::string_view ignores[] = {"CoreValidation-Shader-OutputNotConsumed"};
@@ -76,7 +76,7 @@ vk::UniqueDebugUtilsMessengerEXT makeDebugMessenger(vk::Instance instance) {
 	return instance.createDebugUtilsMessengerEXTUnique(dumci, nullptr);
 }
 
-Gpu makeGpu(vk::PhysicalDevice const& device, vk::SurfaceKHR surface) {
+Gpu make_gpu(vk::PhysicalDevice const& device, vk::SurfaceKHR surface) {
 	auto ret = Gpu{};
 	auto const properties = device.getProperties();
 	ret.name = properties.deviceName.data();
@@ -88,13 +88,13 @@ Gpu makeGpu(vk::PhysicalDevice const& device, vk::SurfaceKHR surface) {
 	case vk::PhysicalDeviceType::eOther: ret.type = Gpu::Type::eOther; break;
 	default: break;
 	}
-	ret.maxLineWidth = properties.limits.lineWidthRange[1];
+	ret.max_line_width = properties.limits.lineWidthRange[1];
 	auto const features = device.getFeatures();
 	if (features.fillModeNonSolid) { ret.features.set(Gpu::Feature::eWireframe); }
 	if (features.samplerAnisotropy) { ret.features.set(Gpu::Feature::eAnisotropicFiltering); }
 	if (features.sampleRateShading) { ret.features.set(Gpu::Feature::eMsaa); }
 	if (features.wideLines) { ret.features.set(Gpu::Feature::eWideLines); }
-	for (auto const mode : device.getSurfacePresentModesKHR(surface)) { ret.presentModes.set(toVSync(mode)); }
+	for (auto const mode : device.getSurfacePresentModesKHR(surface)) { ret.present_modes.set(to_vsync(mode)); }
 	return ret;
 }
 
@@ -106,8 +106,8 @@ constexpr std::array required_extensions_v = {
 #endif
 };
 
-std::vector<PhysicalDevice> validDevices(vk::Instance instance, vk::SurfaceKHR surface) {
-	auto const hasAllExtensions = [](vk::PhysicalDevice const& device) {
+std::vector<PhysicalDevice> valid_devices(vk::Instance instance, vk::SurfaceKHR surface) {
+	auto const has_all_extensions = [](vk::PhysicalDevice const& device) {
 		auto remain = std::unordered_set<std::string_view>{required_extensions_v.begin(), required_extensions_v.end()};
 		for (auto const& extension : device.enumerateDeviceExtensionProperties()) {
 			auto const& name = extension.extensionName;
@@ -115,11 +115,11 @@ std::vector<PhysicalDevice> validDevices(vk::Instance instance, vk::SurfaceKHR s
 		}
 		return remain.empty();
 	};
-	auto const hasAllFeatures = [](vk::PhysicalDevice const& device) {
+	auto const has_all_features = [](vk::PhysicalDevice const& device) {
 		auto const& features = device.getFeatures();
 		return features.fillModeNonSolid && features.samplerAnisotropy && features.sampleRateShading;
 	};
-	auto const getQueueFamily = [surface](vk::PhysicalDevice const& device, std::uint32_t& out_family) {
+	auto const get_queue_family = [surface](vk::PhysicalDevice const& device, std::uint32_t& out_family) {
 		static constexpr auto queue_flags_v = vk::QueueFlagBits::eGraphics | vk::QueueFlagBits::eTransfer;
 		auto const properties = device.getQueueFamilyProperties();
 		for (auto const& [props, family] : ktl::enumerate<std::uint32_t>(properties)) {
@@ -133,9 +133,9 @@ std::vector<PhysicalDevice> validDevices(vk::Instance instance, vk::SurfaceKHR s
 	auto available = instance.enumeratePhysicalDevices();
 	auto ret = std::vector<PhysicalDevice>{};
 	for (auto const& device : available) {
-		if (!hasAllExtensions(device) || !hasAllFeatures(device)) { continue; }
-		auto pd = PhysicalDevice{makeGpu(device, surface), device};
-		if (!getQueueFamily(device, pd.queueFamily)) { continue; }
+		if (!has_all_extensions(device) || !has_all_features(device)) { continue; }
+		auto pd = PhysicalDevice{make_gpu(device, surface), device};
+		if (!get_queue_family(device, pd.queueFamily)) { continue; }
 		if (device.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu) { pd.score -= 100; }
 		if (device.getFeatures().wideLines) { pd.score -= 10; }
 		ret.push_back(std::move(pd));
@@ -144,7 +144,7 @@ std::vector<PhysicalDevice> validDevices(vk::Instance instance, vk::SurfaceKHR s
 	return ret;
 }
 
-vk::UniqueDevice makeDevice(std::span<char const*> layers, PhysicalDevice const& device) {
+vk::UniqueDevice make_device(std::span<char const*> layers, PhysicalDevice const& device) {
 	static constexpr float priority_v = 1.0f;
 	auto qci = vk::DeviceQueueCreateInfo({}, device.queueFamily, 1, &priority_v);
 	auto dci = vk::DeviceCreateInfo{};
@@ -165,29 +165,29 @@ vk::UniqueDevice makeDevice(std::span<char const*> layers, PhysicalDevice const&
 }
 } // namespace
 
-std::vector<Gpu> VKInstance::availableDevices() const {
+std::vector<Gpu> VKInstance::available_devices() const {
 	auto ret = std::vector<Gpu>{};
 	if (instance && surface) {
-		auto devices = validDevices(*instance, *surface);
+		auto devices = valid_devices(*instance, *surface);
 		ret.reserve(devices.size());
-		for (auto const& device : devices) { ret.push_back(makeGpu(device.device, *surface)); }
+		for (auto const& device : devices) { ret.push_back(make_gpu(device.device, *surface)); }
 	}
 	return ret;
 }
 
 Result<VKInstance::Builder> VKInstance::Builder::make(Info info, bool validation) {
-	if (!info.makeSurface) { return Error::eInvalidArgument; }
+	if (!info.make_surface) { return Error::eInvalidArgument; }
 	auto ret = Builder{};
 	auto dl = vk::DynamicLoader{};
 	VULKAN_HPP_DEFAULT_DISPATCHER.init(dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr"));
-	ret.instance.instance = makeInstance(info.instanceExtensions, validation);
+	ret.instance.instance = make_instance(info.instance_extensions, validation);
 	ret.validation = validation;
 	VULKAN_HPP_DEFAULT_DISPATCHER.init(*ret.instance.instance);
-	if (validation) { ret.instance.messenger = makeDebugMessenger(*ret.instance.instance); }
-	auto surface = info.makeSurface(*ret.instance.instance);
+	if (validation) { ret.instance.messenger = make_debug_messenger(*ret.instance.instance); }
+	auto surface = info.make_surface(*ret.instance.instance);
 	if (!surface) { return Error::eVulkanInitFailure; }
 	ret.instance.surface = vk::UniqueSurfaceKHR(surface, *ret.instance.instance);
-	ret.devices = validDevices(*ret.instance.instance, *ret.instance.surface);
+	ret.devices = valid_devices(*ret.instance.instance, *ret.instance.surface);
 	if (ret.devices.empty()) { return Error::eNoVulkanSupport; }
 	return Result<Builder>(std::move(ret));
 }
@@ -199,7 +199,7 @@ Result<VKInstance> VKInstance::Builder::operator()(PhysicalDevice&& selected) {
 	instance.gpu.properties = selected.device.getProperties();
 	auto layers = ktl::fixed_vector<char const*, 2>{};
 	if (validation) { layers.push_back(validation_layer_v.data()); }
-	instance.device = makeDevice(layers, selected);
+	instance.device = make_device(layers, selected);
 	if (!instance.device) { return Error::eVulkanInitFailure; }
 
 	VULKAN_HPP_DEFAULT_DISPATCHER.init(*instance.device);

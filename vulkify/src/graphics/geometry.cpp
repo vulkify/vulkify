@@ -13,14 +13,14 @@ void Geometry::add(std::span<Vertex const> v, std::span<std::uint32_t const> i) 
 	for (auto const index : i) { indices.push_back(index + offset); }
 }
 
-void Geometry::addQuad(QuadCreateInfo const& info) {
+void Geometry::add_quad(QuadCreateInfo const& info) {
 	auto const colour = info.vertex.normalize();
 	auto const hs = info.size * 0.5f;
 	Vertex const verts[] = {
-		{info.origin + v2(-hs.x, hs.y), info.uv.topLeft, colour},
-		{info.origin + v2(-hs.x, -hs.y), {info.uv.topLeft.x, info.uv.bottomRight.y}, colour},
-		{info.origin + v2(hs.x, -hs.y), info.uv.bottomRight, colour},
-		{info.origin + v2(hs.x, hs.y), {info.uv.bottomRight.x, info.uv.topLeft.y}, colour},
+		{info.origin + v2(-hs.x, hs.y), info.uv.top_left, colour},
+		{info.origin + v2(-hs.x, -hs.y), {info.uv.top_left.x, info.uv.bottom_right.y}, colour},
+		{info.origin + v2(hs.x, -hs.y), info.uv.bottom_right, colour},
+		{info.origin + v2(hs.x, hs.y), {info.uv.bottom_right.x, info.uv.top_left.y}, colour},
 	};
 	std::uint32_t const idxs[] = {0, 1, 2, 2, 3, 0};
 	add(verts, idxs);
@@ -31,13 +31,13 @@ void Geometry::reserve(std::size_t verts, std::size_t inds) {
 	indices.reserve(indices.size() + inds);
 }
 
-Geometry Geometry::makeQuad(QuadCreateInfo const& info) {
+Geometry Geometry::make_quad(QuadCreateInfo const& info) {
 	auto ret = Geometry{};
-	ret.addQuad(info);
+	ret.add_quad(info);
 	return ret;
 }
 
-Geometry Geometry::makeRegularPolygon(PolygonCreateInfo const& info) {
+Geometry Geometry::make_regular_polygon(PolygonCreateInfo const& info) {
 	if (info.points < 3) { return {}; }
 	auto ret = Geometry{};
 	auto const colour = info.vertex.normalize();

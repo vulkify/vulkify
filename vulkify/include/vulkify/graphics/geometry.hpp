@@ -15,15 +15,17 @@ struct Vertex {
 	///
 	/// \brief Vertex position
 	///
-	glm::vec2 xy{};
+	glm::vec2 xy;
 	///
 	/// \brief Texture coordinates
 	///
-	glm::vec2 uv{};
+	glm::vec2 uv;
 	///
 	/// \brief Vertex colour
 	///
-	glm::vec4 rgba{1.0f};
+	glm::vec4 rgba;
+
+	static constexpr Vertex make(glm::vec2 xy = {}, glm::vec2 uv = {}, glm::vec4 rgba = glm::vec4{1.0f}) { return {xy, uv, rgba}; }
 };
 
 ///
@@ -56,11 +58,11 @@ struct Geometry {
 	std::vector<std::uint32_t> indices{};
 
 	void add(std::span<Vertex const> v, std::span<std::uint32_t const> i);
-	void addQuad(QuadCreateInfo const& info);
+	void add_quad(QuadCreateInfo const& info);
 
 	void reserve(std::size_t verts, std::size_t inds);
 
-	static Geometry makeQuad(QuadCreateInfo const& info = {});
-	static Geometry makeRegularPolygon(PolygonCreateInfo const& info = {});
+	static Geometry make_quad(QuadCreateInfo const& info = {});
+	static Geometry make_regular_polygon(PolygonCreateInfo const& info = {});
 };
 } // namespace vf

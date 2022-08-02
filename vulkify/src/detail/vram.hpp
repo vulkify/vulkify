@@ -48,7 +48,7 @@ struct ImageBarrier {
 	TPair<vk::AccessFlags> access{access_flags_v, access_flags_v};
 	TPair<vk::PipelineStageFlags> stages{stage_flags_v, stage_flags_v};
 	vk::ImageAspectFlags aspects{vk::ImageAspectFlagBits::eColor};
-	LayerMip layerMip{};
+	LayerMip layer_mip{};
 
 	vk::ImageLayout operator()(vk::CommandBuffer cb, vk::Image image, TPair<vk::ImageLayout> layouts) const;
 	vk::ImageLayout operator()(vk::CommandBuffer cb, vk::Image image, vk::ImageLayout target) const;
@@ -87,7 +87,7 @@ struct VmaImage : VmaResource<vk::Image> {
 
 	void transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier const& barrier = {});
 	VKImage image(vk::ImageView view = {}) const { return {resource, view, {extent.width, extent.height}}; }
-	BlitFlags blitFlags() const { return tiling == vk::ImageTiling::eLinear ? caps.linear : caps.optimal; }
+	BlitFlags blit_flags() const { return tiling == vk::ImageTiling::eLinear ? caps.linear : caps.optimal; }
 
 	struct Deleter {
 		void operator()(VmaImage const&) const;
@@ -103,8 +103,8 @@ struct CommandFactory {
 		CommandPool operator()() const { return device; }
 	};
 
-	PerThread<CommandPool, Factory> commandPools{};
-	CommandPool& get() const { return commandPools.get(); }
+	PerThread<CommandPool, Factory> command_pools{};
+	CommandPool& get() const { return command_pools.get(); }
 };
 
 struct Vram {
@@ -112,18 +112,18 @@ struct Vram {
 	VmaAllocator allocator{};
 	FT_Library ftlib{};
 	std::size_t buffering{};
-	CommandFactory* commandFactory{};
+	CommandFactory* command_factory{};
 	ShaderCache* shaderCache{};
 
-	vk::PhysicalDeviceLimits deviceLimits{};
-	vk::SampleCountFlagBits colourSamples{};
+	vk::PhysicalDeviceLimits device_limits{};
+	vk::SampleCountFlagBits colour_samples{};
 	vk::Format textureFormat = vk::Format::eR8G8B8A8Srgb;
 
-	bool operator==(Vram const& rhs) const { return commandFactory == rhs.commandFactory && allocator == rhs.allocator; }
-	explicit operator bool() const { return commandFactory && allocator; }
+	bool operator==(Vram const& rhs) const { return command_factory == rhs.command_factory && allocator == rhs.allocator; }
+	explicit operator bool() const { return command_factory && allocator; }
 
-	UniqueImage makeImage(vk::ImageCreateInfo info, bool host, char const* name, bool linear = false) const;
-	UniqueBuffer makeBuffer(vk::BufferCreateInfo info, bool host, char const* name) const;
+	UniqueImage make_image(vk::ImageCreateInfo info, bool host, char const* name, bool linear = false) const;
+	UniqueBuffer make_buffer(vk::BufferCreateInfo info, bool host, char const* name) const;
 
 	static void blit(vk::CommandBuffer cmd, vk::Image in, vk::Image out, TRect<std::int32_t> inr, TRect<std::int32_t> outr, vk::Filter filter);
 
@@ -143,7 +143,7 @@ struct ImageWriter {
 
 	std::vector<UniqueBuffer> scratch{};
 
-	static bool canBlit(VmaImage const& src, VmaImage const& dst);
+	static bool can_blit(VmaImage const& src, VmaImage const& dst);
 
 	bool write(VmaImage& out, std::span<std::byte const> data, URegion region = {}, vk::ImageLayout il = {});
 	bool blit(VmaImage& in, VmaImage& out, IRegion inr, IRegion outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;

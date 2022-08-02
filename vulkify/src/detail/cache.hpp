@@ -12,7 +12,7 @@ struct ImageCache {
 		std::string name{};
 		vk::ImageCreateInfo info{};
 		vk::ImageAspectFlags aspect{};
-		bool preferHost{false};
+		bool prefer_host{false};
 	};
 
 	Info info{};
@@ -25,7 +25,7 @@ struct ImageCache {
 	explicit operator bool() const { return info.vram.device.device; }
 	bool operator==(ImageCache const& rhs) const { return !image && !view && !rhs.image && !rhs.view; }
 
-	vk::ImageCreateInfo& setDepth() {
+	vk::ImageCreateInfo& set_depth() {
 		static constexpr auto flags = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransientAttachment;
 		info.info = vk::ImageCreateInfo();
 		info.info.usage = flags;
@@ -33,7 +33,7 @@ struct ImageCache {
 		return info.info;
 	}
 
-	vk::ImageCreateInfo& setColour() {
+	vk::ImageCreateInfo& set_colour() {
 		static constexpr auto flags = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc;
 		info.info = vk::ImageCreateInfo();
 		info.info.usage = flags;
@@ -41,13 +41,13 @@ struct ImageCache {
 		return info.info;
 	}
 
-	vk::ImageCreateInfo& setTexture(bool const transferSrc) {
+	vk::ImageCreateInfo& set_texture(bool const transfer_src) {
 		static constexpr auto flags = vk::ImageUsageFlagBits::eSampled;
 		info.info = vk::ImageCreateInfo();
 		info.info.usage = flags;
 		info.info.format = info.vram.textureFormat;
 		info.info.usage |= vk::ImageUsageFlagBits::eTransferDst;
-		if (transferSrc) { info.info.usage |= vk::ImageUsageFlagBits::eTransferSrc; }
+		if (transfer_src) { info.info.usage |= vk::ImageUsageFlagBits::eTransferSrc; }
 		info.aspect |= vk::ImageAspectFlagBits::eColor;
 		return info.info;
 	}
@@ -63,9 +63,9 @@ struct ImageCache {
 		info.info.extent = vk::Extent3D(extent.x, extent.y, 1);
 		info.info.format = format;
 		info.vram.device.defer(std::move(image), std::move(view));
-		image = info.vram.makeImage(info.info, info.preferHost, info.name.c_str());
+		image = info.vram.make_image(info.info, info.prefer_host, info.name.c_str());
 		if (!image) { return false; }
-		view = info.vram.device.makeImageView(image->resource, format, info.aspect);
+		view = info.vram.device.make_image_view(image->resource, format, info.aspect);
 		return *view;
 	}
 
@@ -90,7 +90,7 @@ struct BufferCache {
 	BufferCache(Vram const& vram, vk::BufferUsageFlagBits usage) : vram(&vram) {
 		info.usage = usage;
 		info.size = 1;
-		for (std::size_t i = 0; i < vram.buffering; ++i) { buffers.push(vram.makeBuffer(info, true, this->name.c_str())); }
+		for (std::size_t i = 0; i < vram.buffering; ++i) { buffers.push(vram.make_buffer(info, true, this->name.c_str())); }
 	}
 
 	explicit operator bool() const { return vram && !buffers.storage.empty(); }
@@ -102,7 +102,7 @@ struct BufferCache {
 		if (buffer->size < data.size()) {
 			info.size = data.size();
 			vram->device.defer(std::move(buffer));
-			buffer = vram->makeBuffer(info, true, name.c_str());
+			buffer = vram->make_buffer(info, true, name.c_str());
 		}
 		buffer->write(data.data(), data.size());
 		if (next) { buffers.next(); }
