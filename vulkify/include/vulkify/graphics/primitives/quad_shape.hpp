@@ -17,6 +17,7 @@ class QuadShape : public Shape {
 	State const& state() const { return m_state; }
 	glm::vec2 size() const { return m_state.size; }
 	Texture const& texture() const { return m_texture; }
+	vf::Rect rect() const { return {{size() * transform().scale, transform().position}}; }
 
 	QuadShape& setState(State state);
 	QuadShape& setTexture(Texture texture, bool resizeToMatch);

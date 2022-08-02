@@ -26,6 +26,20 @@ struct Rect : TRect<float> {
 	constexpr glm::vec2 topRight() const { return offset + extent * 0.5f; }
 	constexpr glm::vec2 bottomLeft() const { return offset - extent * 0.5f; }
 	constexpr glm::vec2 bottomRight() const { return offset + glm::vec2(extent.x, -extent.y) * 0.5f; }
+
+	constexpr bool contains(glm::vec2 point) const {
+		auto const in = [](float t, float min, float max) { return t >= min && t <= max; };
+		auto const bl = bottomLeft();
+		auto const tr = topRight();
+		return in(point.x, bl.x, tr.x) && in(point.y, bl.y, tr.y);
+	}
+
+	constexpr bool intersects(Rect const& other) const {
+		auto const in = [](Rect const& a, Rect const& b) {
+			return a.contains(b.topLeft()) || a.contains(b.topRight()) || a.contains(b.bottomLeft()) || a.contains(b.bottomRight());
+		};
+		return in(*this, other) || in(other, *this);
+	}
 };
 
 ///
