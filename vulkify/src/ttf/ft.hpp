@@ -36,12 +36,12 @@ struct FtFace {
 	explicit operator bool() const noexcept { return face != nullptr; }
 	constexpr bool operator==(FtFace const&) const = default;
 
-	bool setCharSize(glm::uvec2 size = {0U, 16U * 64U}, glm::uvec2 res = {300U, 300U}) const noexcept;
-	bool setPixelSize(glm::uvec2 size = {0U, 16U}) const noexcept;
+	bool set_char_size(glm::uvec2 size = {0U, 16U * 64U}, glm::uvec2 res = {300U, 300U}) const noexcept;
+	bool set_pixel_size(glm::uvec2 size = {0U, 16U}) const noexcept;
 
-	Id glyphIndex(std::uint32_t codepoint) const noexcept;
-	bool loadGlyph(Id index, FT_Render_Mode mode = FT_RENDER_MODE_NORMAL) const;
-	std::vector<std::byte> buildGlyphImage() const;
+	Id glyph_index(std::uint32_t codepoint) const noexcept;
+	bool load_glyph(Id index, FT_Render_Mode mode = FT_RENDER_MODE_NORMAL) const;
+	std::vector<std::byte> build_glyph_image() const;
 
 	FtSlot slot(std::uint32_t codepoint);
 };

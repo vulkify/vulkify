@@ -19,8 +19,8 @@ class QuadShape : public Shape {
 	Texture const& texture() const { return m_texture; }
 	vf::Rect rect() const { return {{size() * transform().scale, transform().position}}; }
 
-	QuadShape& setState(State state);
-	QuadShape& setTexture(Texture texture, bool resizeToMatch);
+	QuadShape& set_state(State state);
+	QuadShape& set_texture(Texture texture, bool resizeToMatch);
 
   protected:
 	QuadShape& refresh();

@@ -25,39 +25,39 @@ Text::Text(Context const& context, std::string name) { m_mesh.get() = {context, 
 
 Text::operator bool() const { return m_ttf && *m_ttf && m_mesh.get(); }
 
-Text& Text::setFont(ktl::not_null<Ttf*> ttf) {
+Text& Text::set_font(ktl::not_null<Ttf*> ttf) {
 	m_ttf = ttf;
-	m_mesh.setDirty();
+	m_mesh.set_dirty();
 	return *this;
 }
 
-Text& Text::setString(std::string string) {
+Text& Text::set_string(std::string string) {
 	m_text = std::move(string);
-	m_mesh.setDirty();
+	m_mesh.set_dirty();
 	return *this;
 }
 
 Text& Text::append(std::string string) {
 	m_text += std::move(string);
-	m_mesh.setDirty();
+	m_mesh.set_dirty();
 	return *this;
 }
 
 Text& Text::append(char ch) {
 	m_text += ch;
-	m_mesh.setDirty();
+	m_mesh.set_dirty();
 	return *this;
 }
 
-Text& Text::setAlign(Align align) {
+Text& Text::set_align(Align align) {
 	m_align = align;
-	m_mesh.setDirty();
+	m_mesh.set_dirty();
 	return *this;
 }
 
-Text& Text::setHeight(Height height) {
+Text& Text::set_height(Height height) {
 	m_height = height;
-	m_mesh.setDirty();
+	m_mesh.set_dirty();
 	return *this;
 }
 
@@ -73,7 +73,7 @@ void Text::rebuild() const {
 	if (auto const* texture = m_ttf->texture(m_height)) {
 		m_mesh.get().texture = texture->handle();
 		m_mesh.get().gbo.write(std::move(scribe.geometry));
-		m_mesh.setClean();
+		m_mesh.set_clean();
 	}
 }
 } // namespace vf

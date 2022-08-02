@@ -43,9 +43,9 @@ struct VKInstance {
 	};
 
 	struct Info {
-		std::vector<char const*> instanceExtensions{};
-		MakeSurface makeSurface{};
-		std::span<VSync const> desiredVsyncs{};
+		std::vector<char const*> instance_extensions{};
+		MakeSurface make_surface{};
+		std::span<VSync const> desired_vsyncs{};
 	};
 
 	struct Builder;
@@ -58,7 +58,7 @@ struct VKInstance {
 	VKQueue queue{};
 	ktl::kunique_ptr<Util> util{};
 
-	std::vector<Gpu> availableDevices() const;
+	std::vector<Gpu> available_devices() const;
 };
 
 struct VKInstance::Builder {

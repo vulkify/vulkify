@@ -11,13 +11,13 @@ auto Context::make(UInstance&& instance) -> Result {
 
 Frame Context::frame(Rgba clear) {
 	auto poll = m_instance->poll();
-	auto surface = m_instance->beginPass(clear);
-	return Frame{std::move(surface), poll, diffExchg(m_stamp)};
+	auto surface = m_instance->begin_pass(clear);
+	return Frame{std::move(surface), poll, diff_exchg(m_stamp)};
 }
 
 glm::mat3 Context::unprojection() const {
 	auto const& camera = m_instance->camera();
-	auto const scale = glm::vec2(1.0f / camera.view.getScale(framebufferExtent()));
+	auto const scale = glm::vec2(1.0f / camera.view.get_scale(framebuffer_extent()));
 	return Transform::scaling(scale) * Transform::rotation(camera.orientation) * Transform::translation(camera.position);
 }
 } // namespace vf

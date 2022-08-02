@@ -20,7 +20,7 @@ struct Framebuffer : RenderTarget {
 struct Renderer {
 	struct Frame;
 
-	vk::UniqueRenderPass renderPass{};
+	vk::UniqueRenderPass render_pass{};
 	vk::Device device{};
 
 	static constexpr bool isSrgb(vk::Format const f) {
@@ -30,7 +30,7 @@ struct Renderer {
 
 	static Renderer make(vk::Device device, vk::Format colour, vk::SampleCountFlagBits samples);
 
-	vk::UniqueFramebuffer makeFramebuffer(RenderTarget const& target) const;
+	vk::UniqueFramebuffer make_framebuffer(RenderTarget const& target) const;
 };
 
 struct Renderer::Frame {
@@ -41,9 +41,9 @@ struct Renderer::Frame {
 	void render(Rgba clear, std::span<vk::CommandBuffer const> recorded) const;
 	void blit(VKImage const& src, VKImage const& dst) const;
 
-	void undefToColour(std::span<VKImage const> images) const;
-	void colourToTfr(VKImage const& src, VKImage const& dst) const;
-	void colourToPresent(VKImage const& image) const;
-	void tfrToPresent(VKImage const& image) const;
+	void undef_to_colour(std::span<VKImage const> images) const;
+	void colour_to_tfr(VKImage const& src, VKImage const& dst) const;
+	void colour_to_present(VKImage const& image) const;
+	void tfr_to_present(VKImage const& image) const;
 };
 } // namespace vf

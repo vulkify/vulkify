@@ -12,74 +12,74 @@ using SelectGpu = std::function<std::size_t(std::span<Gpu const>)>;
 class Builder {
   public:
 	std::string const& title() const { return m_title; }
-	glm::uvec2 extent() const { return m_createInfo.extent; }
-	WindowFlags windowFlags() const { return m_createInfo.windowFlags; }
-	InstanceFlags instanceFlags() const { return m_createInfo.instanceFlags; }
-	AntiAliasing antiAliasing() const { return m_createInfo.desiredAA; }
-	std::span<VSync const> vsyncs() const { return m_createInfo.desiredVsyncs; }
+	glm::uvec2 extent() const { return m_create_info.extent; }
+	WindowFlags window_flags() const { return m_create_info.window_flags; }
+	InstanceFlags instance_flags() const { return m_create_info.instance_flags; }
+	AntiAliasing anti_aliasing() const { return m_create_info.desired_aa; }
+	std::span<VSync const> vsyncs() const { return m_create_info.desired_vsyncs; }
 
-	Builder& setTitle(std::string set);
-	Builder& setExtent(glm::uvec2 set);
-	Builder& updateFlags(WindowFlags set, WindowFlags unset = {});
-	Builder& updateFlags(InstanceFlags set, InstanceFlags unset = {});
-	Builder& setFlag(WindowFlag flag, bool set = true);
-	Builder& setFlag(InstanceFlag flag, bool set = true);
-	Builder& setAntiAliasing(AntiAliasing aa);
-	Builder& setSelectGpu(SelectGpu selectGpu);
-	Builder& setVsyncs(std::vector<VSync> desired);
+	Builder& set_title(std::string set);
+	Builder& set_extent(glm::uvec2 set);
+	Builder& update_flags(WindowFlags set, WindowFlags unset = {});
+	Builder& update_flags(InstanceFlags set, InstanceFlags unset = {});
+	Builder& set_flag(WindowFlag flag, bool set = true);
+	Builder& set_flag(InstanceFlag flag, bool set = true);
+	Builder& set_anti_aliasing(AntiAliasing aa);
+	Builder& set_select_gpu(SelectGpu selectGpu);
+	Builder& set_vsyncs(std::vector<VSync> desired);
 
 	Context::Result build();
 
   private:
-	SelectGpu m_selectGpu{};
-	InstanceCreateInfo m_createInfo{};
+	SelectGpu m_selec_gGpu{};
+	InstanceCreateInfo m_create_info{};
 	std::string m_title{"(Untitled)"};
 };
 
 // impl
 
-inline Builder& Builder::setTitle(std::string set) {
+inline Builder& Builder::set_title(std::string set) {
 	m_title = std::move(set);
 	return *this;
 }
 
-inline Builder& Builder::setExtent(glm::uvec2 set) {
-	m_createInfo.extent = set;
+inline Builder& Builder::set_extent(glm::uvec2 set) {
+	m_create_info.extent = set;
 	return *this;
 }
 
-inline Builder& Builder::updateFlags(WindowFlags set, WindowFlags unset) {
-	m_createInfo.windowFlags.update(set, unset);
+inline Builder& Builder::update_flags(WindowFlags set, WindowFlags unset) {
+	m_create_info.window_flags.update(set, unset);
 	return *this;
 }
 
-inline Builder& Builder::updateFlags(InstanceFlags set, InstanceFlags unset) {
-	m_createInfo.instanceFlags.update(set, unset);
+inline Builder& Builder::update_flags(InstanceFlags set, InstanceFlags unset) {
+	m_create_info.instance_flags.update(set, unset);
 	return *this;
 }
 
-inline Builder& Builder::setFlag(WindowFlag flag, bool set) {
-	m_createInfo.windowFlags.assign(flag, set);
+inline Builder& Builder::set_flag(WindowFlag flag, bool set) {
+	m_create_info.window_flags.assign(flag, set);
 	return *this;
 }
 
-inline Builder& Builder::setFlag(InstanceFlag flag, bool set) {
-	m_createInfo.instanceFlags.assign(flag, set);
+inline Builder& Builder::set_flag(InstanceFlag flag, bool set) {
+	m_create_info.instance_flags.assign(flag, set);
 	return *this;
 }
 
-inline Builder& Builder::setAntiAliasing(AntiAliasing aa) {
-	m_createInfo.desiredAA = aa;
+inline Builder& Builder::set_anti_aliasing(AntiAliasing aa) {
+	m_create_info.desired_aa = aa;
 	return *this;
 }
 
-inline Builder& Builder::setSelectGpu(SelectGpu selectGpu) {
-	m_selectGpu = std::move(selectGpu);
+inline Builder& Builder::set_select_gpu(SelectGpu selectGpu) {
+	m_selec_gGpu = std::move(selectGpu);
 	return *this;
 }
 
-inline Builder& Builder::setVsyncs(std::vector<VSync> desired) {
-	m_createInfo.desiredVsyncs = std::move(desired);
+inline Builder& Builder::set_vsyncs(std::vector<VSync> desired) {
+	m_create_info.desired_vsyncs = std::move(desired);
 	return *this;
 }
 } // namespace vf

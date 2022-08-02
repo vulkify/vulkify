@@ -3,7 +3,7 @@
 
 namespace vf {
 namespace {
-vk::UniqueRenderPass makeRenderPass(vk::Device device, vk::Format format, vk::SampleCountFlagBits samples) {
+vk::UniqueRenderPass make_render_pass(vk::Device device, vk::Format format, vk::SampleCountFlagBits samples) {
 	auto attachments = ktl::fixed_vector<vk::AttachmentDescription, 2>{};
 	auto colour = vk::AttachmentReference{};
 	auto resolve = vk::AttachmentReference{};
@@ -52,15 +52,15 @@ vk::UniqueRenderPass makeRenderPass(vk::Device device, vk::Format format, vk::Sa
 
 Renderer Renderer::make(vk::Device device, vk::Format format, vk::SampleCountFlagBits samples) {
 	if (!device) { return {}; }
-	return {makeRenderPass(device, format, samples), device};
+	return {make_render_pass(device, format, samples), device};
 }
 
-vk::UniqueFramebuffer Renderer::makeFramebuffer(RenderTarget const& target) const {
+vk::UniqueFramebuffer Renderer::make_framebuffer(RenderTarget const& target) const {
 	if (!target.colour.view) { return {}; }
 	auto attachments = ktl::fixed_vector<vk::ImageView, 2>{target.colour.view};
 	if (target.resolve.view) { attachments.push_back(target.resolve.view); }
 	auto const extent = target.extent;
-	auto fci = vk::FramebufferCreateInfo({}, *renderPass, static_cast<std::uint32_t>(attachments.size()), attachments.data(), extent.width, extent.height, 1U);
+	auto fci = vk::FramebufferCreateInfo({}, *render_pass, static_cast<std::uint32_t>(attachments.size()), attachments.data(), extent.width, extent.height, 1U);
 	return device.createFramebufferUnique(fci);
 }
 
@@ -71,7 +71,7 @@ void Renderer::Frame::render(Rgba clear, std::span<vk::CommandBuffer const> reco
 	auto const c = clear.normalize();
 	vk::ClearValue const cvs[] = {vk::ClearColorValue(std::array{c.x, c.y, c.z, c.w})};
 	auto const cvsize = static_cast<std::uint32_t>(std::size(cvs));
-	cmd.beginRenderPass({*renderer.renderPass, framebuffer, renderArea, cvsize, cvs}, vk::SubpassContents::eSecondaryCommandBuffers);
+	cmd.beginRenderPass({*renderer.render_pass, framebuffer, renderArea, cvsize, cvs}, vk::SubpassContents::eSecondaryCommandBuffers);
 	cmd.executeCommands(static_cast<std::uint32_t>(recorded.size()), recorded.data());
 	cmd.endRenderPass();
 }
@@ -82,21 +82,21 @@ void Renderer::Frame::blit(VKImage const& src, VKImage const& dst) const {
 	Vram::blit(cmd, src.image, dst.image, {srcExtent}, {dstExtent}, vk::Filter::eLinear);
 }
 
-void Renderer::Frame::undefToColour(std::span<VKImage const> images) const {
+void Renderer::Frame::undef_to_colour(std::span<VKImage const> images) const {
 	auto barrier = ImageBarrier{};
 	barrier.access = {{}, vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eColorAttachmentRead};
 	barrier.stages = {vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eColorAttachmentOutput};
 	for (auto const image : images) { barrier(cmd, image.image, vk::ImageLayout::eColorAttachmentOptimal); }
 }
 
-void Renderer::Frame::colourToPresent(VKImage const& image) const {
+void Renderer::Frame::colour_to_present(VKImage const& image) const {
 	auto barrier = ImageBarrier{};
 	barrier.access = {vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite, {}};
 	barrier.stages = {vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eBottomOfPipe};
 	barrier(cmd, image.image, {vk::ImageLayout::eColorAttachmentOptimal, vk::ImageLayout::ePresentSrcKHR});
 }
 
-void Renderer::Frame::colourToTfr(VKImage const& src, VKImage const& dst) const {
+void Renderer::Frame::colour_to_tfr(VKImage const& src, VKImage const& dst) const {
 	auto barrier = ImageBarrier{};
 	barrier.access = {vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite,
 					  vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eTransferWrite};
@@ -105,7 +105,7 @@ void Renderer::Frame::colourToTfr(VKImage const& src, VKImage const& dst) const 
 	barrier(cmd, dst.image, {vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal});
 }
 
-void Renderer::Frame::tfrToPresent(VKImage const& image) const {
+void Renderer::Frame::tfr_to_present(VKImage const& image) const {
 	auto barrier = ImageBarrier{};
 	barrier.access = {vk::AccessFlagBits::eTransferRead | vk::AccessFlagBits::eTransferWrite, {}};
 	barrier.stages = {vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eBottomOfPipe};

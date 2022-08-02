@@ -36,7 +36,7 @@ void Atlas::clear(Rgba const rgba) {
 	m_state = {};
 }
 
-void Atlas::nextLine() {
+void Atlas::next_line() {
 	m_state.head.x = pad_v.x;
 	m_state.head.y += m_state.nextY;
 	m_state.nextY = 0;
@@ -46,7 +46,7 @@ static constexpr bool in(glm::uvec2 extent, glm::uvec2 point) { return point.x <
 
 bool Atlas::prepare(GfxCommandBuffer& cb, Extent const extent) {
 	if (auto end = m_state.head + extent + pad_v; in(m_texture.extent(), end)) { return true; }
-	nextLine();
+	next_line();
 	auto end = m_state.head + extent + pad_v;
 	if (in(m_texture.extent(), end)) { return true; }
 	auto const target = Extent(std::max(m_texture.extent().x, end.x), std::max(m_texture.extent().y, end.y));

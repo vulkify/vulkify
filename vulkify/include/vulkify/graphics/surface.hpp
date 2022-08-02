@@ -20,10 +20,10 @@ class Surface {
 	static constexpr std::size_t small_buffer_v = 8;
 
 	template <std::output_iterator<DrawModel> Out>
-	static void addDrawModels(std::span<DrawInstance const> instances, Out out);
+	static void add_draw_models(std::span<DrawInstance const> instances, Out out);
 
 	Surface() noexcept;
-	Surface(RenderPass renderPass);
+	Surface(RenderPass render_pass);
 	Surface(Surface&&) noexcept;
 	Surface& operator=(Surface&&) noexcept;
 	~Surface();
@@ -36,13 +36,13 @@ class Surface {
 	bool bind(RenderState const& state) const;
 	bool draw(std::span<DrawModel const> models, Drawable const& drawable, RenderState const& state) const;
 
-	ktl::fixed_pimpl<RenderPass, 256> m_renderPass;
+	ktl::fixed_pimpl<RenderPass, 256> m_render_pass;
 };
 
 // impl
 
 template <std::output_iterator<DrawModel> Out>
-void Surface::addDrawModels(std::span<DrawInstance const> instances, Out out) {
-	for (auto const& instance : instances) { *out++ = instance.drawModel(); }
+void Surface::add_draw_models(std::span<DrawInstance const> instances, Out out) {
+	for (auto const& instance : instances) { *out++ = instance.draw_model(); }
 }
 } // namespace vf

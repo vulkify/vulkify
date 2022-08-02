@@ -3,13 +3,13 @@
 
 namespace vf {
 namespace {
-constexpr bool validOffset(Extent view, Extent offset, Extent extent) { return view.x + offset.x < extent.x && view.y + offset.y < extent.y; }
+constexpr bool valid_offset(Extent view, Extent offset, Extent extent) { return view.x + offset.x < extent.x && view.y + offset.y < extent.y; }
 } // namespace
 
 Image Bitmap::View::image() const {
 	auto bytes = std::make_unique<std::byte[]>(data.size_bytes() * Image::channels_v);
 	auto head = bytes.get();
-	for (auto const pixel : data) { head = rgbaToByte(pixel, head); }
+	for (auto const pixel : data) { head = rgba_to_byte(pixel, head); }
 	auto ret = Image{};
 	ret.replace({std::move(bytes), extent});
 	return ret;
@@ -28,7 +28,7 @@ Bitmap::Bitmap(View bitmap) {
 
 bool Bitmap::overwrite(View view, TopLeft const offset) {
 	if (!valid(view)) { return false; }
-	if (!validOffset(view.extent, offset, m_extent)) { return false; }
+	if (!valid_offset(view.extent, offset, m_extent)) { return false; }
 	for (std::uint32_t row = 0; row < view.extent.x; ++row) {
 		for (std::uint32_t col{}; col < view.extent.y; ++col) {
 			auto const r = row + offset.x;

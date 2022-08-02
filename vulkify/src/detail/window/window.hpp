@@ -49,19 +49,19 @@ struct Window {
 
 	EventsStorage events{};
 	ScancodeStorage scancodes{};
-	FileDropStorage fileDrops{};
+	FileDropStorage file_drops{};
 
 	bool operator==(Window const& rhs) const { return win == rhs.win; }
 
-	bool makeSurface(void* p_instance, void* p_surface) const;
+	bool make_surface(void* p_instance, void* p_surface) const;
 
 	bool closing() const;
-	glm::ivec2 framebufferSize() const;
-	glm::ivec2 windowSize() const;
+	glm::ivec2 framebuffer_size() const;
+	glm::ivec2 window_size() const;
 	glm::ivec2 position() const;
-	glm::vec2 cursorPos() const;
-	glm::vec2 contentScale() const;
-	CursorMode cursorMode() const;
+	glm::vec2 cursor_position() const;
+	glm::vec2 content_scale() const;
+	CursorMode cursor_mode() const;
 	MonitorList monitors() const;
 	WindowFlags flags() const;
 
@@ -71,23 +71,23 @@ struct Window {
 	void poll();
 
 	void position(glm::ivec2 pos);
-	void windowSize(glm::ivec2 size);
-	void cursorMode(CursorMode mode);
+	void set_window_size(glm::ivec2 size);
+	void set_cursor_mode(CursorMode mode);
 	void update(WindowFlags set, WindowFlags unset);
 
-	Cursor makeCursor(Icon icon);
-	void destroyCursor(Cursor cursor);
-	bool setCursor(Cursor cursor);
+	Cursor make_cursor(Icon icon);
+	void destroy_cursor(Cursor cursor);
+	bool set_cursor(Cursor cursor);
 
-	void setIcons(std::span<Icon const> icons);
-	void setWindowed(Extent extent);
-	void setFullscreen(Monitor const& monitor, Extent resolution);
+	void set_icons(std::span<Icon const> icons);
+	void set_windowed(Extent extent);
+	void set_fullscreen(Monitor const& monitor, Extent resolution);
 
 	static GamepadMap gamepads();
-	static void updateGamepadMappings(char const* text);
-	static bool isGamepad(int id);
-	static char const* gamepadName(int id);
-	static bool isPressed(int id, Gamepad::Button button);
+	static void update_gamepad_mappings(char const* text);
+	static bool is_gamepad(int id);
+	static char const* gamepad_name(int id);
+	static bool is_pressed(int id, Gamepad::Button button);
 	static float value(int id, Gamepad::Axis axis);
 
 	struct Deleter {
@@ -97,7 +97,7 @@ struct Window {
 };
 
 using UniqueWindow = Unique<Window, Window::Deleter>;
-UniqueWindow makeWindow(InstanceCreateInfo const& info, Window::Instance& instance);
+UniqueWindow make_window(InstanceCreateInfo const& info, Window::Instance& instance);
 
 struct Window::Instance {
 	CursorStorage cursors{};
@@ -112,15 +112,15 @@ struct Window::Instance {
 };
 
 using UniqueWindowInstance = Unique<Window::Instance, Window::Deleter>;
-Result<std::shared_ptr<UniqueWindowInstance>> getOrMakeWindowInstance();
+Result<std::shared_ptr<UniqueWindowInstance>> get_or_make_window_instance();
 
 struct WindowView {
 	void* window{};
 	EventsStorage* events{};
 	ScancodeStorage* scancodes{};
-	FileDropStorage* fileDrops{};
+	FileDropStorage* file_drops{};
 
-	bool match(void const* w) const { return w == window && events && scancodes && fileDrops; }
+	bool match(void const* w) const { return w == window && events && scancodes && file_drops; }
 };
 
 inline WindowView g_window{};

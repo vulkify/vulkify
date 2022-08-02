@@ -56,7 +56,7 @@ struct Gamepad {
 	using Map = GamepadMap;
 
 	static Map map();
-	static void updateMappings(char const* sdlGameControllerDb);
+	static void update_mappings(char const* sdl_game_controller_db);
 
 	Id id{};
 

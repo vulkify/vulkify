@@ -2,10 +2,10 @@
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/graphics/image.hpp>
+#include <concepts>
 #include <limits>
 #include <utility>
 #include <vector>
-#include <concepts>
 
 namespace vf {
 ///
@@ -32,7 +32,7 @@ class Bitmap {
 	};
 
 	template <std::output_iterator<std::byte> Out>
-	static constexpr Out rgbaToByte(Rgba const rgba, Out out);
+	static constexpr Out rgba_to_byte(Rgba const rgba, Out out);
 
 	Bitmap() = default;
 
@@ -61,11 +61,11 @@ class Bitmap {
 // impl
 
 constexpr bool Bitmap::valid(Bitmap::View const& bitmap) {
-	return bitmap.extent.x > 0 && bitmap.extent.y > 0 && Image::sizeBytes(bitmap.extent) == bitmap.data.size_bytes();
+	return bitmap.extent.x > 0 && bitmap.extent.y > 0 && Image::size_bytes(bitmap.extent) == bitmap.data.size_bytes();
 }
 
 template <std::output_iterator<std::byte> Out>
-constexpr Out Bitmap::rgbaToByte(Rgba const rgba, Out out) {
+constexpr Out Bitmap::rgba_to_byte(Rgba const rgba, Out out) {
 	auto add = [&out](Rgba::Channel const channel) { *out++ = static_cast<std::byte>(channel); };
 	add(rgba.channels[0]);
 	add(rgba.channels[1]);

@@ -3,15 +3,10 @@
 #include <utility>
 
 namespace vf {
-template <typename T>
-concept EqualityComparable = requires(T a, T b) {
-	{ a == b } -> std::convertible_to<bool>;
-};
-
 ///
 /// \brief Optional unique owned instance of Type and a custom Deleter
 ///
-template <EqualityComparable Type, typename Deleter = void>
+template <std::equality_comparable Type, typename Deleter = void>
 class Unique {
   public:
 	constexpr Unique(Type t = {}, Deleter deleter = {}) : m_t(std::move(t)), m_del(std::move(deleter)) {}
@@ -49,7 +44,7 @@ class Unique {
 ///
 /// \brief Optional unique owned instance of Type
 ///
-template <EqualityComparable Type>
+template <std::equality_comparable Type>
 class Unique<Type, void> {
   public:
 	constexpr Unique(Type t = {}) : m_t(std::move(t)) {}

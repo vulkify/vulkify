@@ -7,6 +7,6 @@ namespace vf {
 struct EventQueue {
 	std::span<Event const> events{};
 	std::span<std::uint32_t const> scancodes{};
-	std::span<std::string const> fileDrops{};
+	std::span<std::string const> file_drops{};
 };
 } // namespace vf

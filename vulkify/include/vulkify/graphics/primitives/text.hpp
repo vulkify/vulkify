@@ -31,12 +31,12 @@ class Text : public Primitive {
 	Align align() const { return m_align; }
 	Height height() const { return m_height; }
 
-	Text& setFont(ktl::not_null<Ttf*> ttf);
-	Text& setString(std::string string);
+	Text& set_font(ktl::not_null<Ttf*> ttf);
+	Text& set_string(std::string string);
 	Text& append(std::string string);
 	Text& append(char ch);
-	Text& setAlign(Align align);
-	Text& setHeight(Height height);
+	Text& set_align(Align align);
+	Text& set_height(Height height);
 
 	void draw(Surface const& surface, RenderState const& state = {}) const override;
 

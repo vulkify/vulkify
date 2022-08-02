@@ -53,13 +53,14 @@ class Ttf {
 		ktl::hash_table<Codepoint, Entry> map{};
 	};
 
-	void onLoaded();
-	Font& getOrMake(Height height);
+	void on_loaded();
+	Font& get_or_make(Height height);
 	Entry& insert(Font& out_font, Codepoint codepoint, Atlas::Bulk* bulk);
 
 	std::string m_name{};
 	ktl::hash_table<Height, Font> m_fonts{};
 	ktl::fixed_pimpl<Face, 64> m_face;
+	std::unique_ptr<std::byte[]> m_file_data{};
 
 	friend struct Scribe;
 };

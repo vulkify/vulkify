@@ -5,7 +5,7 @@
 
 namespace vf {
 namespace {
-constexpr char prefixChar(trace::Type type) {
+constexpr char prefix_char(trace::Type type) {
 	switch (type) {
 	case trace::Type::eError: return 'E';
 	case trace::Type::eWarn: return 'W';
@@ -14,7 +14,7 @@ constexpr char prefixChar(trace::Type type) {
 	}
 }
 
-void addTimestamp(std::string& out) {
+void add_timestamp(std::string& out) {
 	std::time_t time = std::time(nullptr);
 	char buf[16]{};
 	std::strftime(buf, sizeof(buf), " [%H:%M:%S]", std::localtime(&time));
@@ -23,8 +23,8 @@ void addTimestamp(std::string& out) {
 } // namespace
 
 void trace::log(Payload payload) {
-	payload.message = ktl::kformat("[{}] [{}] {}", prefixChar(payload.type), payload.prefix, payload.message);
-	addTimestamp(payload.message);
+	payload.message = ktl::kformat("[{}] [{}] {}", prefix_char(payload.type), payload.prefix, payload.message);
+	add_timestamp(payload.message);
 	if (payload.type == Type::eError) {
 		std::fprintf(stderr, "%s\n", payload.message.c_str());
 	} else {

@@ -53,7 +53,7 @@ class PerThread {
 	}
 
 	template <typename F>
-	void forEach(F&& f) {
+	void for_each(F&& f) {
 		auto lock = ktl::klock(m_map);
 		for (auto& [_, t] : *lock) { f(t); }
 	}

@@ -6,7 +6,7 @@
 
 namespace vf {
 namespace {
-constexpr vk::SamplerAddressMode getMode(AddressMode const mode) {
+constexpr vk::SamplerAddressMode get_mode(AddressMode const mode) {
 	switch (mode) {
 	case AddressMode::eRepeat: return vk::SamplerAddressMode::eRepeat;
 	case AddressMode::eClampBorder: return vk::SamplerAddressMode::eClampToBorder;
@@ -15,11 +15,11 @@ constexpr vk::SamplerAddressMode getMode(AddressMode const mode) {
 	}
 }
 
-constexpr vk::Filter getFilter(Filtering const filtering) { return filtering == Filtering::eLinear ? vk::Filter::eLinear : vk::Filter::eNearest; }
+constexpr vk::Filter get_filter(Filtering const filtering) { return filtering == Filtering::eLinear ? vk::Filter::eLinear : vk::Filter::eNearest; }
 
-constexpr std::array<std::byte, Image::channels_v> rgbaBytes(Rgba rgba) {
+constexpr std::array<std::byte, Image::channels_v> rgba_bytes(Rgba rgba) {
 	auto ret = std::array<std::byte, Image::channels_v>{};
-	Bitmap::rgbaToByte(rgba, ret.data());
+	Bitmap::rgba_to_byte(rgba, ret.data());
 	return ret;
 }
 
@@ -28,7 +28,7 @@ void blit(ImageCache& in_cache, ImageCache& out_cache, Filtering filtering) {
 	auto cb = GfxCommandBuffer(in_cache.info.vram);
 	auto inr = TRect<std::uint32_t>{{in_cache.image->extent.width, in_cache.image->extent.height}};
 	auto outr = TRect<std::uint32_t>{{out_cache.image->extent.width, out_cache.image->extent.height}};
-	cb.writer.blit(in_cache.image, out_cache.image, inr, outr, getFilter(filtering), {layout, layout});
+	cb.writer.blit(in_cache.image, out_cache.image, inr, outr, get_filter(filtering), {layout, layout});
 }
 } // namespace
 
@@ -41,7 +41,7 @@ Texture::Texture(Context const& context, std::string name, Image::View image, Cr
 Result<void> Texture::create(Image::View image) {
 	if (!m_allocation || !m_allocation->vram) { return Error::eInactiveInstance; }
 	if (!Image::valid(image)) {
-		setInvalid();
+		set_invalid();
 		return Error::eInvalidArgument;
 	}
 
@@ -77,7 +77,7 @@ Result<void> Texture::rescale(float scale) {
 }
 
 Texture Texture::clone(std::string name) const {
-	auto ret = cloneImage(std::move(name));
+	auto ret = clone_image(std::move(name));
 	if (!ret.m_allocation->image.cache.image) { return ret; }
 
 	blit(m_allocation->image.cache, ret.m_allocation->image.cache, m_filtering);
@@ -95,16 +95,16 @@ TextureHandle Texture::handle() const {
 }
 
 Texture::Texture(Vram const& vram, std::string name, CreateInfo const& createInfo)
-	: GfxResource(vram, std::move(name)), m_addressMode(createInfo.addressMode), m_filtering(createInfo.filtering) {
+	: GfxResource(vram, std::move(name)), m_address_mode(createInfo.addressMode), m_filtering(createInfo.filtering) {
 	if (!m_allocation || !m_allocation->vram) { return; }
-	m_allocation->image.sampler = vram.device.device.createSamplerUnique(samplerInfo(vram, getMode(m_addressMode), getFilter(m_filtering)));
-	m_allocation->image.cache.setTexture(true);
+	m_allocation->image.sampler = vram.device.device.createSamplerUnique(sampler_info(vram, get_mode(m_address_mode), get_filter(m_filtering)));
+	m_allocation->image.cache.set_texture(true);
 }
 
-Texture Texture::cloneImage(std::string name) const {
+Texture Texture::clone_image(std::string name) const {
 	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return {}; }
 
-	auto ret = Texture(m_allocation->vram, std::move(name), {m_addressMode, m_filtering});
+	auto ret = Texture(m_allocation->vram, std::move(name), {m_address_mode, m_filtering});
 	if (!ret.m_allocation) { return ret; }
 
 	auto const ext = extent();
@@ -127,9 +127,9 @@ void Texture::write(Image::View const image, Rect const& region) {
 	cb.writer.write(m_allocation->image.cache.image, image.data, region, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
-void Texture::setInvalid() {
+void Texture::set_invalid() {
 	VF_TRACEW("vf::Texture", "[{}] Invalid bitmap", m_allocation->name);
-	static constexpr auto magenta_bytes_v = rgbaBytes(magenta_v);
+	static constexpr auto magenta_bytes_v = rgba_bytes(magenta_v);
 	m_allocation->image.cache.refresh({1, 1});
 	write({magenta_bytes_v, {1, 1}}, {{1, 1}});
 }

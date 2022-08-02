@@ -8,7 +8,7 @@
 
 namespace vf {
 namespace {
-void attachCallbacks(GLFWwindow* w) {
+void attach_callbacks(GLFWwindow* w) {
 	glfwSetWindowCloseCallback(w, [](GLFWwindow* w) {
 		if (g_window.match(w)) {
 			glfwSetWindowShouldClose(w, GLFW_TRUE);
@@ -62,13 +62,13 @@ void attachCallbacks(GLFWwindow* w) {
 	glfwSetDropCallback(w, [](GLFWwindow* w, int count, char const** paths) {
 		if (g_window.match(w)) {
 			for (int i = 0; i < count; ++i) {
-				if (auto const path = paths[i]) { g_window.fileDrops->push_back(path); }
+				if (auto const path = paths[i]) { g_window.file_drops->push_back(path); }
 			}
 		}
 	});
 }
 
-void detachCallbacks(GLFWwindow* w) {
+void detach_callbacks(GLFWwindow* w) {
 	glfwSetWindowCloseCallback(w, {});
 	glfwSetWindowIconifyCallback(w, {});
 	glfwSetWindowFocusCallback(w, {});
@@ -87,13 +87,13 @@ void detachCallbacks(GLFWwindow* w) {
 }
 
 template <typename T, typename F, typename U = GLFWwindow*>
-glm::tvec2<T> getGlfwVec(U w, F f) {
+glm::tvec2<T> get_glfw_vec(U w, F f) {
 	T x, y;
 	f(w, &x, &y);
 	return {x, y};
 }
 
-constexpr CursorMode castCursorMode(int mode) {
+constexpr CursorMode to_cursor_mode(int mode) {
 	switch (mode) {
 	case GLFW_CURSOR_DISABLED: return CursorMode::eDisabled;
 	case GLFW_CURSOR_HIDDEN: return CursorMode::eHidden;
@@ -102,7 +102,7 @@ constexpr CursorMode castCursorMode(int mode) {
 	}
 }
 
-constexpr int cast(CursorMode mode) {
+constexpr int from(CursorMode mode) {
 	switch (mode) {
 	case CursorMode::eDisabled: return GLFW_CURSOR_DISABLED;
 	case CursorMode::eHidden: return GLFW_CURSOR_HIDDEN;
@@ -111,26 +111,26 @@ constexpr int cast(CursorMode mode) {
 	}
 }
 
-VideoMode makeVideoMode(GLFWvidmode const* mode) {
+VideoMode make_video_mode(GLFWvidmode const* mode) {
 	auto const bitDepth = glm::ivec3(mode->redBits, mode->greenBits, mode->blueBits);
 	auto const extent = glm::ivec2(mode->width, mode->height);
 	return {extent, bitDepth, static_cast<std::uint32_t>(mode->refreshRate)};
 }
 
-std::vector<VideoMode> makeVideoModes(GLFWvidmode const* modes, int count) {
+std::vector<VideoMode> make_video_modes(GLFWvidmode const* modes, int count) {
 	auto ret = std::vector<VideoMode>{};
 	ret.reserve(static_cast<std::size_t>(count));
-	for (int i = 0; i < count; ++i) { ret.push_back(makeVideoMode(&modes[i])); }
+	for (int i = 0; i < count; ++i) { ret.push_back(make_video_mode(&modes[i])); }
 	return ret;
 }
 
-Monitor makeMonitor(GLFWmonitor* monitor) {
+Monitor make_monitor(GLFWmonitor* monitor) {
 	int count;
 	auto supported = glfwGetVideoModes(monitor, &count);
-	auto position = getGlfwVec<int>(monitor, &glfwGetMonitorPos);
+	auto position = get_glfw_vec<int>(monitor, &glfwGetMonitorPos);
 	auto szName = glfwGetMonitorName(monitor);
 	auto name = szName ? std::string(szName) : std::string();
-	return {std::move(name), makeVideoMode(glfwGetVideoMode(monitor)), makeVideoModes(supported, count), position, monitor};
+	return {std::move(name), make_video_mode(glfwGetVideoMode(monitor)), make_video_modes(supported, count), position, monitor};
 }
 } // namespace
 
@@ -148,24 +148,24 @@ void GamepadStorage::operator()() {
 }
 
 void Window::Deleter::operator()(Window const& window) const {
-	detachCallbacks(static_cast<GLFWwindow*>(window.win));
+	detach_callbacks(static_cast<GLFWwindow*>(window.win));
 	glfwDestroyWindow(static_cast<GLFWwindow*>(window.win));
 }
 
 void Window::Deleter::operator()(Instance const&) const { glfwTerminate(); }
 
-UniqueWindow makeWindow(InstanceCreateInfo const& info, Window::Instance& instance) {
+UniqueWindow make_window(InstanceCreateInfo const& info, Window::Instance& instance) {
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_DECORATED, info.windowFlags.test(WindowFlag::eBorderless) ? GLFW_FALSE : GLFW_TRUE);
-	glfwWindowHint(GLFW_VISIBLE, info.instanceFlags.test(InstanceFlag::eAutoShow) ? GLFW_TRUE : GLFW_FALSE);
-	glfwWindowHint(GLFW_MAXIMIZED, info.windowFlags.test(WindowFlag::eMaximized) ? GLFW_TRUE : GLFW_FALSE);
-	glfwWindowHint(GLFW_RESIZABLE, info.windowFlags.test(WindowFlag::eResizable) ? GLFW_TRUE : GLFW_FALSE);
+	glfwWindowHint(GLFW_DECORATED, info.window_flags.test(WindowFlag::eBorderless) ? GLFW_FALSE : GLFW_TRUE);
+	glfwWindowHint(GLFW_VISIBLE, info.instance_flags.test(InstanceFlag::eAutoShow) ? GLFW_TRUE : GLFW_FALSE);
+	glfwWindowHint(GLFW_MAXIMIZED, info.window_flags.test(WindowFlag::eMaximized) ? GLFW_TRUE : GLFW_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, info.window_flags.test(WindowFlag::eResizable) ? GLFW_TRUE : GLFW_FALSE);
 	auto ret = glfwCreateWindow(static_cast<int>(info.extent.x), static_cast<int>(info.extent.y), info.title, nullptr, nullptr);
-	attachCallbacks(ret);
+	attach_callbacks(ret);
 	return Window{ret, &instance};
 }
 
-Result<std::shared_ptr<UniqueWindowInstance>> getOrMakeWindowInstance() {
+Result<std::shared_ptr<UniqueWindowInstance>> get_or_make_window_instance() {
 	static std::weak_ptr<UniqueWindowInstance> s_ret{};
 	if (auto lock = s_ret.lock()) { return lock; }
 	if (!glfwInit()) { return Error::eGlfwFailure; }
@@ -191,7 +191,7 @@ std::vector<char const*> Window::Instance::extensions() {
 	return ret;
 }
 
-bool Window::makeSurface(void* p_inst, void* p_surface) const {
+bool Window::make_surface(void* p_inst, void* p_surface) const {
 	auto ret = false;
 	auto* inst = static_cast<VkInstance*>(p_inst);
 	auto* surface = static_cast<VkSurfaceKHR*>(p_surface);
@@ -207,39 +207,39 @@ bool Window::closing() const {
 	return ret;
 }
 
-glm::ivec2 Window::framebufferSize() const {
+glm::ivec2 Window::framebuffer_size() const {
 	auto ret = glm::ivec2{};
-	ret = getGlfwVec<int>(static_cast<GLFWwindow*>(win), &glfwGetFramebufferSize);
+	ret = get_glfw_vec<int>(static_cast<GLFWwindow*>(win), &glfwGetFramebufferSize);
 	return ret;
 }
 
-glm::ivec2 Window::windowSize() const {
+glm::ivec2 Window::window_size() const {
 	auto ret = glm::ivec2{};
-	ret = getGlfwVec<int>(static_cast<GLFWwindow*>(win), &glfwGetWindowSize);
+	ret = get_glfw_vec<int>(static_cast<GLFWwindow*>(win), &glfwGetWindowSize);
 	return ret;
 }
 
 glm::ivec2 Window::position() const {
 	auto ret = glm::ivec2{};
-	ret = getGlfwVec<int>(static_cast<GLFWwindow*>(win), &glfwGetWindowPos);
+	ret = get_glfw_vec<int>(static_cast<GLFWwindow*>(win), &glfwGetWindowPos);
 	return ret;
 }
 
-glm::vec2 Window::cursorPos() const {
+glm::vec2 Window::cursor_position() const {
 	auto ret = glm::vec2{};
-	ret = getGlfwVec<double>(static_cast<GLFWwindow*>(win), &glfwGetCursorPos);
+	ret = get_glfw_vec<double>(static_cast<GLFWwindow*>(win), &glfwGetCursorPos);
 	return ret;
 }
 
-glm::vec2 Window::contentScale() const {
+glm::vec2 Window::content_scale() const {
 	auto ret = glm::vec2{};
-	ret = getGlfwVec<float>(static_cast<GLFWwindow*>(win), &glfwGetWindowContentScale);
+	ret = get_glfw_vec<float>(static_cast<GLFWwindow*>(win), &glfwGetWindowContentScale);
 	return ret;
 }
 
-CursorMode Window::cursorMode() const {
+CursorMode Window::cursor_mode() const {
 	auto ret = CursorMode{};
-	ret = castCursorMode(glfwGetInputMode(static_cast<GLFWwindow*>(win), GLFW_CURSOR));
+	ret = to_cursor_mode(glfwGetInputMode(static_cast<GLFWwindow*>(win), GLFW_CURSOR));
 	return ret;
 }
 
@@ -248,9 +248,9 @@ MonitorList Window::monitors() const {
 	int count;
 	auto monitors = glfwGetMonitors(&count);
 	if (count <= 0) { return {}; }
-	ret.primary = makeMonitor(monitors[0]);
+	ret.primary = make_monitor(monitors[0]);
 	ret.others.reserve(static_cast<std::size_t>(count - 1));
-	for (int i = 1; i < count; ++i) { ret.others.push_back(makeMonitor(monitors[i])); }
+	for (int i = 1; i < count; ++i) { ret.others.push_back(make_monitor(monitors[i])); }
 	return ret;
 }
 
@@ -269,18 +269,18 @@ void Window::hide() { glfwHideWindow(static_cast<GLFWwindow*>(win)); }
 void Window::close() { glfwSetWindowShouldClose(static_cast<GLFWwindow*>(win), GLFW_TRUE); }
 void Window::poll() { glfwPollEvents(); }
 void Window::position(glm::ivec2 pos) { glfwSetWindowPos(static_cast<GLFWwindow*>(win), pos.x, pos.y); }
-void Window::windowSize(glm::ivec2 size) { glfwSetWindowSize(static_cast<GLFWwindow*>(win), size.x, size.y); }
-void Window::cursorMode(CursorMode mode) { glfwSetInputMode(static_cast<GLFWwindow*>(win), GLFW_CURSOR, cast(mode)); }
+void Window::set_window_size(glm::ivec2 size) { glfwSetWindowSize(static_cast<GLFWwindow*>(win), size.x, size.y); }
+void Window::set_cursor_mode(CursorMode mode) { glfwSetInputMode(static_cast<GLFWwindow*>(win), GLFW_CURSOR, from(mode)); }
 
 void Window::update(WindowFlags set, WindowFlags unset) {
-	auto updateAttrib = [&](WindowFlag flag, int attrib, bool ifSet) {
-		if (set.test(flag)) { glfwSetWindowAttrib(static_cast<GLFWwindow*>(win), attrib, ifSet ? GLFW_TRUE : GLFW_FALSE); }
-		if (unset.test(flag)) { glfwSetWindowAttrib(static_cast<GLFWwindow*>(win), attrib, ifSet ? GLFW_FALSE : GLFW_TRUE); }
+	auto update_attrib = [&](WindowFlag flag, int attrib, bool if_set) {
+		if (set.test(flag)) { glfwSetWindowAttrib(static_cast<GLFWwindow*>(win), attrib, if_set ? GLFW_TRUE : GLFW_FALSE); }
+		if (unset.test(flag)) { glfwSetWindowAttrib(static_cast<GLFWwindow*>(win), attrib, if_set ? GLFW_FALSE : GLFW_TRUE); }
 	};
-	updateAttrib(WindowFlag::eBorderless, GLFW_DECORATED, false);
-	updateAttrib(WindowFlag::eFloating, GLFW_FLOATING, true);
-	updateAttrib(WindowFlag::eResizable, GLFW_RESIZABLE, true);
-	updateAttrib(WindowFlag::eAutoIconify, GLFW_AUTO_ICONIFY, true);
+	update_attrib(WindowFlag::eBorderless, GLFW_DECORATED, false);
+	update_attrib(WindowFlag::eFloating, GLFW_FLOATING, true);
+	update_attrib(WindowFlag::eResizable, GLFW_RESIZABLE, true);
+	update_attrib(WindowFlag::eAutoIconify, GLFW_AUTO_ICONIFY, true);
 	auto const maximized = glfwGetWindowAttrib(static_cast<GLFWwindow*>(win), GLFW_MAXIMIZED);
 	if (maximized) {
 		if (unset.test(WindowFlag::eMaximized)) { glfwRestoreWindow(static_cast<GLFWwindow*>(win)); }
@@ -289,22 +289,22 @@ void Window::update(WindowFlags set, WindowFlags unset) {
 	}
 }
 
-Cursor Window::makeCursor(Icon icon) {
+Cursor Window::make_cursor(Icon icon) {
 	auto const extent = glm::ivec2(icon.bitmap.extent);
 	auto const pixels = const_cast<unsigned char*>(reinterpret_cast<unsigned char const*>(icon.bitmap.data.data()));
 	auto const img = GLFWimage{extent.x, extent.y, pixels};
-	auto const glfwCursor = glfwCreateCursor(&img, icon.hotspot.x, icon.hotspot.y);
-	if (glfwCursor) {
+	auto const glfw_cursor = glfwCreateCursor(&img, icon.hotspot.x, icon.hotspot.y);
+	if (glfw_cursor) {
 		auto const ret = Cursor{++instance->cursors.next};
-		instance->cursors.cursors.insert_or_assign(ret, glfwCursor);
+		instance->cursors.cursors.insert_or_assign(ret, glfw_cursor);
 		return ret;
 	}
 	return {};
 }
 
-void Window::destroyCursor(Cursor cursor) { instance->cursors.cursors.erase(cursor); }
+void Window::destroy_cursor(Cursor cursor) { instance->cursors.cursors.erase(cursor); }
 
-bool Window::setCursor(Cursor cursor) {
+bool Window::set_cursor(Cursor cursor) {
 	if (cursor == Cursor{}) {
 		glfwSetCursor(static_cast<GLFWwindow*>(win), {});
 		return true;
@@ -315,7 +315,7 @@ bool Window::setCursor(Cursor cursor) {
 	return true;
 }
 
-void Window::setIcons(std::span<Icon const> icons) {
+void Window::set_icons(std::span<Icon const> icons) {
 	if (icons.empty()) {
 		glfwSetWindowIcon(static_cast<GLFWwindow*>(win), 0, {});
 		return;
@@ -330,12 +330,12 @@ void Window::setIcons(std::span<Icon const> icons) {
 	glfwSetWindowIcon(static_cast<GLFWwindow*>(win), static_cast<int>(vec.size()), vec.data());
 }
 
-void Window::setWindowed(Extent extent) {
+void Window::set_windowed(Extent extent) {
 	auto const ext = glm::ivec2(extent);
 	glfwSetWindowMonitor(static_cast<GLFWwindow*>(win), nullptr, 0, 0, ext.x, ext.y, 0);
 }
 
-void Window::setFullscreen(Monitor const& monitor, Extent resolution) {
+void Window::set_fullscreen(Monitor const& monitor, Extent resolution) {
 	auto gmonitor = reinterpret_cast<GLFWmonitor*>(monitor.handle);
 	auto const vmode = glfwGetVideoMode(gmonitor);
 	if (!vmode) { return; }
@@ -350,21 +350,21 @@ GamepadMap Window::gamepads() {
 	return ret;
 }
 
-void Window::updateGamepadMappings(char const* text) { glfwUpdateGamepadMappings(text); }
+void Window::update_gamepad_mappings(char const* text) { glfwUpdateGamepadMappings(text); }
 
-bool Window::isGamepad(int id) {
+bool Window::is_gamepad(int id) {
 	auto ret = false;
 	ret = glfwJoystickIsGamepad(GLFW_JOYSTICK_1 + id) == GLFW_TRUE;
 	return ret;
 }
 
-char const* Window::gamepadName(int id) {
+char const* Window::gamepad_name(int id) {
 	auto ret = glfwGetGamepadName(id);
 	if (!ret) { ret = glfwGetJoystickName(id); }
 	return ret ? ret : "";
 }
 
-bool Window::isPressed(int id, Gamepad::Button button) {
+bool Window::is_pressed(int id, Gamepad::Button button) {
 	auto const& buttons = g_gamepads.states[id].buttons;
 	auto const index = static_cast<int>(button);
 	if (index >= static_cast<int>(std::size(buttons))) { return false; }

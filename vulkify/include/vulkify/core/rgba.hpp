@@ -45,7 +45,7 @@ struct Rgba {
 	///
 	/// \brief Obtain channels as packed 32 bit unsigned int
 	///
-	constexpr std::uint32_t toU32() const;
+	constexpr std::uint32_t to_u32() const;
 	///
 	/// \brief Obtain channels as normalized floats
 	///
@@ -75,7 +75,7 @@ constexpr Rgba Rgba::make(std::uint32_t mask) {
 	return ret;
 }
 
-constexpr std::uint32_t Rgba::toU32() const {
+constexpr std::uint32_t Rgba::to_u32() const {
 	using u32 = std::uint32_t;
 	return (u32(channels[0]) << 24) | (u32(channels[1]) << 16) | (u32(channels[2]) << 8) | u32(channels[3]);
 }

@@ -19,8 +19,8 @@ class CircleShape : public Shape {
 	std::uint32_t points() const { return m_state.points; }
 	Texture const& texture() const { return m_texture; }
 
-	CircleShape& setState(State state);
-	CircleShape& setTexture(Texture texture, bool resizeToMatch);
+	CircleShape& set_state(State state);
+	CircleShape& set_texture(Texture texture, bool resizeToMatch);
 
   protected:
 	CircleShape& refresh();

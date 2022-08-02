@@ -15,10 +15,10 @@ using Extent = glm::uvec2;
 struct View {
 	ktl::either<glm::vec2, Extent> value{glm::vec2(1.0f)};
 
-	void setScale(glm::vec2 scale) { value = scale; }
-	void setExtent(Extent extent) { value = extent; }
+	void set_scale(glm::vec2 scale) { value = scale; }
+	void set_extent(Extent extent) { value = extent; }
 
-	glm::vec2 getScale(Extent framebuffer, glm::vec2 fallback = glm::vec2(1.0f)) const;
+	glm::vec2 get_scale(Extent framebuffer, glm::vec2 fallback = glm::vec2(1.0f)) const;
 };
 
 ///
@@ -41,7 +41,7 @@ struct Camera {
 
 // impl
 
-inline glm::vec2 View::getScale(Extent framebuffer, glm::vec2 fallback) const {
+inline glm::vec2 View::get_scale(Extent framebuffer, glm::vec2 fallback) const {
 	return value.visit(ktl::koverloaded{
 		[fallback](glm::vec2 scale) {
 			if (scale.x == 0.0f || scale.y == 0.0f) { return fallback; }

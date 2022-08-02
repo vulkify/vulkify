@@ -45,22 +45,22 @@ struct RenderCam {
 
 struct RenderPass {
 	ktl::unique_val<Instance*> instance{};
-	PipelineFactory* pipelineFactory{};
-	DescriptorSetFactory* setFactory{};
-	vk::RenderPass renderPass{};
-	vk::CommandBuffer commandBuffer{};
-	ShaderInput shaderInput{};
+	PipelineFactory* pipeline_factory{};
+	DescriptorSetFactory* set_factory{};
+	vk::RenderPass render_pass{};
+	vk::CommandBuffer command_buffer{};
+	ShaderInput shader_input{};
 	RenderCam cam{};
-	TPair<float> lineWidthLimit{};
-	std::mutex* renderMutex;
+	TPair<float> line_width_limit{};
+	std::mutex* render_mutex;
 
 	mutable vk::PipelineLayout bound{};
 
-	HTexture whiteTexture() const;
-	void writeView(SetWriter& set) const;
-	void writeModels(SetWriter& set, std::span<DrawModel const> instances, TextureHandle const& texture) const;
-	void writeCustom(SetWriter& set, std::span<std::byte const> ubo, TextureHandle const& texture) const;
+	HTexture white_texture() const;
+	void write_view(SetWriter& set) const;
+	void write_models(SetWriter& set, std::span<DrawModel const> instances, TextureHandle const& texture) const;
+	void write_custom(SetWriter& set, std::span<std::byte const> ubo, TextureHandle const& texture) const;
 	void bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const;
-	void setViewport() const;
+	void set_viewport() const;
 };
 } // namespace vf

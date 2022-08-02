@@ -35,7 +35,7 @@ class Atlas {
 
 	Atlas(Vram const& vram, std::string name, Extent initial = initial_v, Rgba rgba = clear_v);
 
-	void nextLine();
+	void next_line();
 	bool prepare(struct GfxCommandBuffer& cb, Extent extent);
 	bool resize(GfxCommandBuffer& cb, Extent extent);
 	bool overwrite(GfxCommandBuffer& cb, Image::View image, Texture::Rect const& region);

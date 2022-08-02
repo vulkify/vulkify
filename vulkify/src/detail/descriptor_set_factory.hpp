@@ -14,7 +14,7 @@ struct DescriptorAllocator {
 	};
 	struct Pool {
 		std::vector<Set> sets{};
-		std::vector<vk::UniqueDescriptorPool> descriptorPools{};
+		std::vector<vk::UniqueDescriptorPool> descriptor_pools{};
 	};
 
 	static constexpr std::size_t block_size_v = 64;
@@ -30,24 +30,24 @@ struct DescriptorAllocator {
 		auto ret = DescriptorAllocator{vram, layout, number};
 		for (std::size_t i = 0; i < vram.buffering; ++i) {
 			auto pool = Pool{};
-			pool.descriptorPools.push_back(ret.makeDescriptorPool());
+			pool.descriptor_pools.push_back(ret.make_descriptor_pool());
 			ret.pools.push(std::move(pool));
 		}
 		return ret;
 	}
 
-	vk::UniqueDescriptorPool makeDescriptorPool() const {
+	vk::UniqueDescriptorPool make_descriptor_pool() const {
 		if (!vram) { return {}; }
-		vk::DescriptorPoolSize const poolSizes[] = {
+		static constexpr vk::DescriptorPoolSize pool_sizes_v[] = {
 			{vk::DescriptorType::eUniformBuffer, block_size_v},
 			{vk::DescriptorType::eStorageBuffer, block_size_v},
 			{vk::DescriptorType::eCombinedImageSampler, block_size_v},
 		};
-		auto dpci = vk::DescriptorPoolCreateInfo({}, block_size_v, static_cast<std::uint32_t>(std::size(poolSizes)), poolSizes);
+		auto dpci = vk::DescriptorPoolCreateInfo({}, block_size_v, static_cast<std::uint32_t>(std::size(pool_sizes_v)), pool_sizes_v);
 		return vram.device.device.createDescriptorPoolUnique(dpci);
 	}
 
-	bool tryAllocate(vk::DescriptorPool pool, Pool& out) const {
+	bool try_allocate(vk::DescriptorPool pool, Pool& out) const {
 		vk::DescriptorSetLayout layouts[block_size_v]{};
 		std::fill(std::begin(layouts), std::end(layouts), layout);
 		auto dsai = vk::DescriptorSetAllocateInfo(pool, static_cast<std::uint32_t>(std::size(layouts)), layouts);
@@ -61,12 +61,12 @@ struct DescriptorAllocator {
 
 	void allocate() {
 		auto& storage = pools.get();
-		assert(!storage.descriptorPools.empty());
-		auto pool = &storage.descriptorPools.back();
-		if (!tryAllocate(pool->get(), storage)) {
-			storage.descriptorPools.push_back(makeDescriptorPool());
-			pool = &storage.descriptorPools.back();
-			[[maybe_unused]] auto const res = tryAllocate(pool->get(), storage);
+		assert(!storage.descriptor_pools.empty());
+		auto pool = &storage.descriptor_pools.back();
+		if (!try_allocate(pool->get(), storage)) {
+			storage.descriptor_pools.push_back(make_descriptor_pool());
+			pool = &storage.descriptor_pools.back();
+			[[maybe_unused]] auto const res = try_allocate(pool->get(), storage);
 			assert(res);
 		}
 	}

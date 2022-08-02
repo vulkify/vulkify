@@ -4,7 +4,7 @@
 
 namespace vf {
 namespace {
-Geometry fromBytes(std::span<std::byte const> verts, std::span<std::byte const> idxs) {
+Geometry from_bytes(std::span<std::byte const> verts, std::span<std::byte const> idxs) {
 	auto ret = Geometry{};
 	if (verts.size() > 1) {
 		assert(verts.size() % sizeof(decltype(ret.vertices[0])) == 0);
@@ -19,7 +19,7 @@ Geometry fromBytes(std::span<std::byte const> verts, std::span<std::byte const> 
 	return ret;
 }
 
-void writeGeometry(BufferCache& vbo, BufferCache& ibo, Geometry const& geometry) {
+void write_geometry(BufferCache& vbo, BufferCache& ibo, Geometry const& geometry) {
 	assert(!geometry.vertices.empty());
 	vbo.data.resize(geometry.vertices.size() * sizeof(decltype(geometry.vertices[0])));
 	std::memcpy(vbo.data.data(), geometry.vertices.data(), vbo.data.size());
@@ -39,14 +39,14 @@ GeometryBuffer::GeometryBuffer(Context const& context, std::string name) : GfxRe
 
 Geometry GeometryBuffer::geometry() const {
 	if (!m_allocation || !m_allocation->vram) { return {}; }
-	return fromBytes(m_allocation->buffers[0].data, m_allocation->buffers[1].data);
+	return from_bytes(m_allocation->buffers[0].data, m_allocation->buffers[1].data);
 }
 
 Result<void> GeometryBuffer::write(Geometry geometry) {
 	if (!m_allocation || !m_allocation->vram) { return Error::eInactiveInstance; }
 	if (geometry.vertices.empty()) { return Error::eInvalidArgument; }
 
-	writeGeometry(m_allocation->buffers[0], m_allocation->buffers[1], geometry);
+	write_geometry(m_allocation->buffers[0], m_allocation->buffers[1], geometry);
 	m_counts.vertices = static_cast<std::uint32_t>(geometry.vertices.size());
 	m_counts.indices = static_cast<std::uint32_t>(geometry.indices.size());
 
