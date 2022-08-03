@@ -29,7 +29,7 @@
 
 #include <ktl/ktl_version.hpp>
 
-static_assert(ktl::version_v >= ktl::kversion{1, 4, 0});
+static_assert(ktl::version_v >= ktl::kversion{1, 4, 2});
 
 namespace vf {
 namespace {

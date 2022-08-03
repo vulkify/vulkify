@@ -7,6 +7,7 @@
 #include <vulkify/core/unique.hpp>
 #include <vulkify/ttf/glyph.hpp>
 #include <span>
+#include <vector>
 
 namespace vf {
 struct FtLib {
