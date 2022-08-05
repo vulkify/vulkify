@@ -5,6 +5,7 @@ namespace vf {
 struct TextureHandle {
 	ktl::fixed_any<2 * sizeof(void*)> handle{};
 
-	explicit operator bool() const { return !handle.empty(); }
+	bool operator==(TextureHandle const& rhs) const;
+	explicit operator bool() const;
 };
 } // namespace vf

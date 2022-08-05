@@ -26,7 +26,7 @@ QuadShape& QuadShape::set_silhouette(float extrude, vf::Rgba tint) {
 	if (extrude > 0.0f) {
 		auto state = m_state;
 		state.size += extrude;
-		m_silhouette.gbo.write(Geometry::make_quad(state));
+		m_silhouette.buffer.write(Geometry::make_quad(state));
 		m_silhouette.tint = tint;
 		m_silhouette.draw = true;
 	}
@@ -35,7 +35,7 @@ QuadShape& QuadShape::set_silhouette(float extrude, vf::Rgba tint) {
 
 QuadShape& QuadShape::refresh() {
 	if (m_state.size.x <= 0.0f || m_state.size.y <= 0.0f) { return *this; }
-	m_geometry.write(Geometry::make_quad(m_state));
+	m_buffer.write(Geometry::make_quad(m_state));
 	return *this;
 }
 } // namespace vf

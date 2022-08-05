@@ -80,6 +80,8 @@ struct GfxShaderModule {
 struct HTexture {
 	vk::ImageView view{};
 	vk::Sampler sampler{};
+
+	constexpr bool operator==(HTexture const& rhs) const { return view == rhs.view && sampler == rhs.sampler; }
 };
 
 struct Inactive {

@@ -83,7 +83,7 @@ class Shader : public Base {
 
 	ShadedMesh& make_quad(vf::Geometry geometry) {
 		auto& ret = scene.add(ShadedMesh(vf::Mesh(context(), "shader_quad"), m_shader));
-		ret.get().gbo.write(std::move(geometry));
+		ret.get().buffer.write(std::move(geometry));
 		ret.get().texture = m_textures.crate.handle();
 		return ret;
 	}
@@ -101,8 +101,8 @@ class Shader : public Base {
 		auto& centre = make_quad(geometry);
 		auto& right = make_quad(geometry);
 
-		left.get().instance.transform.position.x -= dx;
-		right.get().instance.transform.position.x += dx;
+		left.get().storage.transform.position.x -= dx;
+		right.get().storage.transform.position.x += dx;
 
 		centre.blend_texture = right.blend_texture = m_textures.overlay.handle();
 		right.uniform.alpha = 1.0f;

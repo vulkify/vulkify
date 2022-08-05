@@ -45,8 +45,8 @@ struct Helper {
 		geometry.vertices.push_back(vf::Vertex::make({50.0f, -50.0f}));
 		geometry.vertices.push_back(vf::Vertex::make({0.0f, 50.0f}));
 		auto ret = vf::Mesh(context, "triangle");
-		ret.gbo.write(std::move(geometry));
-		ret.instance.transform.position = area.top_left() + glm::vec2(padding_v.x, -padding_v.y);
+		ret.buffer.write(std::move(geometry));
+		ret.storage.transform.position = area.top_left() + glm::vec2(padding_v.x, -padding_v.y);
 		return ret;
 	}
 
@@ -84,10 +84,10 @@ struct Helper {
 		auto span = std::span<vf::Vertex>(geometry.vertices).subspan(1); // exclude centre
 		interpolate_rgba(span.subspan(0, span.size() / 2), circleRgbaStart, circleRgbaEnd);
 		interpolate_rgba(span.subspan(span.size() / 2), circleRgbaEnd, circleRgbaStart);
-		circle.gbo.write(std::move(geometry));
-		circle.instance.transform.position = area.bottom_right() + glm::vec2(-padding_v.x, padding_v.y);
+		circle.buffer.write(std::move(geometry));
+		circle.storage.transform.position = area.bottom_right() + glm::vec2(-padding_v.x, padding_v.y);
 		auto iris = vf::CircleShape(context, "iris", vf::CircleShape::State{50.0f});
-		iris.transform().position = circle.instance.transform.position;
+		iris.transform().position = circle.storage.transform.position;
 		iris.tint() = vf::black_v;
 		return {std::move(circle), std::move(iris)};
 	}
@@ -105,10 +105,10 @@ struct Helper {
 
 	InstancedMesh make_stars() {
 		auto stars = InstancedMesh(context, "stars");
-		stars.gbo.write(make_star(100.0f));
-		stars.instances[0].transform.position = {+(area.extent.x * 0.5f - padding_v.x), 0.0f};
-		stars.instances[1].transform.position = {0.0f, -(area.extent.y * 0.5f - padding_v.y)};
-		stars.instances[2].transform.position = {-(area.extent.x * 0.5f - padding_v.x), 0.0f};
+		stars.buffer.write(make_star(100.0f));
+		stars.storage[0].transform.position = {+(area.extent.x * 0.5f - padding_v.x), 0.0f};
+		stars.storage[1].transform.position = {0.0f, -(area.extent.y * 0.5f - padding_v.y)};
+		stars.storage[2].transform.position = {-(area.extent.x * 0.5f - padding_v.x), 0.0f};
 		return stars;
 	}
 
@@ -147,7 +147,7 @@ void test(vf::Context context) {
 		float drot{};
 	};
 
-	static constexpr StarOffset starOffsets[stars.instances.size()] = {{-0.5f, 2.0f}, {0.25f, 5.0f}, {0.75f, 3.0f}};
+	static constexpr StarOffset starOffsets[stars.storage.size()] = {{-0.5f, 2.0f}, {0.25f, 5.0f}, {0.75f, 3.0f}};
 	static constexpr auto clearA = vf::Rgba::make(0xfff000ff);
 	static constexpr auto clearB = vf::Rgba::make(0x000fffff);
 
@@ -176,14 +176,14 @@ void test(vf::Context context) {
 			context.camera().position.x += dx;
 		}
 
-		for (auto [star, index] : ktl::enumerate(stars.instances)) {
+		for (auto [star, index] : ktl::enumerate(stars.storage)) {
 			auto const ds = std::cos(elapsed.count() + starOffsets[index].dscale) * 0.5f;
 			star.transform.scale = glm::vec2(1.0f) + ds;
 			auto const dr = frame.dt().count() * 50.0f * starOffsets[index].drot;
-			stars.instances[index].transform.orientation.rotate(vf::Degree{dr});
+			stars.storage[index].transform.orientation.rotate(vf::Degree{dr});
 		}
 
-		circle.instance.transform.orientation.rotate(vf::Radian{frame.dt().count()});
+		circle.storage.transform.orientation.rotate(vf::Radian{frame.dt().count()});
 		auto const textDy = std::abs(std::sin(elapsed.count()) * 3.0f);
 		text.transform().position.y = text_y - (textDy * 10.0f);
 

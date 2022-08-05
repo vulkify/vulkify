@@ -23,10 +23,10 @@ class Text : public Primitive {
 
 	explicit operator bool() const;
 
-	Rgba& tint() { return m_mesh.t.instance.tint; }
-	Rgba const& tint() const { return m_mesh.get().instance.tint; }
-	Transform& transform() { return m_mesh.get().instance.transform; }
-	Transform const& transform() const { return m_mesh.get().instance.transform; }
+	Rgba& tint() { return m_mesh.t.storage.tint; }
+	Rgba const& tint() const { return m_mesh.get().storage.tint; }
+	Transform& transform() { return m_mesh.get().storage.transform; }
+	Transform const& transform() const { return m_mesh.get().storage.transform; }
 	std::string const& string() const& { return m_text; }
 	Align align() const { return m_align; }
 	Height height() const { return m_height; }

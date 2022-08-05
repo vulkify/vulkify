@@ -14,6 +14,7 @@ struct DrawInstance {
 	Rgba tint = white_v;
 
 	DrawModel draw_model() const;
+	operator std::span<DrawInstance const>() const { return {this, 1}; }
 };
 
 ///
@@ -21,7 +22,7 @@ struct DrawInstance {
 ///
 struct Drawable {
 	std::span<DrawInstance const> instances{};
-	GeometryBuffer const& gbo;
+	GeometryBuffer const& buffer;
 	TextureHandle texture{};
 };
 

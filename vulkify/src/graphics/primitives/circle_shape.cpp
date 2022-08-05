@@ -27,7 +27,7 @@ CircleShape& CircleShape::set_silhouette(float extrude, vf::Rgba tint) {
 	if (extrude > 0.0f) {
 		auto state = m_state;
 		state.diameter += extrude;
-		m_silhouette.gbo.write(Geometry::make_regular_polygon(state));
+		m_silhouette.buffer.write(Geometry::make_regular_polygon(state));
 		m_silhouette.tint = tint;
 		m_silhouette.draw = true;
 	}
@@ -36,7 +36,7 @@ CircleShape& CircleShape::set_silhouette(float extrude, vf::Rgba tint) {
 
 CircleShape& CircleShape::refresh() {
 	if (m_state.diameter <= 0.0f) { return *this; }
-	m_geometry.write(Geometry::make_regular_polygon(m_state));
+	m_buffer.write(Geometry::make_regular_polygon(m_state));
 	return *this;
 }
 } // namespace vf

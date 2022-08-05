@@ -32,6 +32,14 @@ void blit(ImageCache& in_cache, ImageCache& out_cache, Filtering filtering) {
 }
 } // namespace
 
+TextureHandle::operator bool() const { return handle.contains<HTexture>(); }
+
+bool TextureHandle::operator==(TextureHandle const& rhs) const {
+	if (!*this && !rhs) { return true; }
+	if (!!*this ^ !!rhs) { return false; }
+	return handle.get<HTexture>() == rhs.handle.get<HTexture>();
+}
+
 Texture::Texture(Context const& context, std::string name, Image::View image, CreateInfo const& createInfo)
 	: Texture(context.vram(), std::move(name), createInfo) {
 	if (!m_allocation || !m_allocation->vram) { return; }

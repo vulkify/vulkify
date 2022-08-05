@@ -72,7 +72,7 @@ void Text::rebuild() const {
 	scribe.write(Scribe::Block{m_text}, pivot(m_align));
 	if (auto const* texture = m_ttf->texture(m_height)) {
 		m_mesh.get().texture = texture->handle();
-		m_mesh.get().gbo.write(std::move(scribe.geometry));
+		m_mesh.get().buffer.write(std::move(scribe.geometry));
 		m_mesh.set_clean();
 	}
 }
