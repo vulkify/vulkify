@@ -16,11 +16,11 @@ class QuadShape : public Shape {
 
 	State const& state() const { return m_state; }
 	glm::vec2 size() const { return m_state.size; }
-	Texture const& texture() const { return m_texture; }
 	vf::Rect rect() const { return {{size() * transform().scale, transform().position}}; }
 
 	QuadShape& set_state(State state);
-	QuadShape& set_texture(Texture texture, bool resizeToMatch);
+	QuadShape& set_texture(Ptr<Texture const> texture, bool resize_to_match = false);
+	QuadShape& set_silhouette(float extrude, vf::Rgba tint);
 
   protected:
 	QuadShape& refresh();

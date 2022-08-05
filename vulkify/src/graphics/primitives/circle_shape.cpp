@@ -9,11 +9,27 @@ CircleShape& CircleShape::set_state(State state) {
 	return refresh();
 }
 
-CircleShape& CircleShape::set_texture(Texture texture, bool resizeToMatch) {
-	m_texture = std::move(texture);
-	if (resizeToMatch) {
-		m_state.diameter = static_cast<float>(std::max(m_texture.extent().x, m_texture.extent().y));
+CircleShape& CircleShape::set_texture(Ptr<Texture const> texture, bool resize_to_match) {
+	if (!texture) {
+		m_texture = {};
+		return *this;
+	}
+	m_texture = texture->handle();
+	if (resize_to_match) {
+		auto const extent = texture->extent();
+		m_state.diameter = static_cast<float>(std::max(extent.x, extent.y));
 		refresh();
+	}
+	return *this;
+}
+
+CircleShape& CircleShape::set_silhouette(float extrude, vf::Rgba tint) {
+	if (extrude > 0.0f) {
+		auto state = m_state;
+		state.diameter += extrude;
+		m_silhouette.gbo.write(Geometry::make_regular_polygon(state));
+		m_silhouette.tint = tint;
+		m_silhouette.draw = true;
 	}
 	return *this;
 }

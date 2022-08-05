@@ -17,10 +17,10 @@ class CircleShape : public Shape {
 	State const& state() const { return m_state; }
 	float diameter() const { return m_state.diameter; }
 	std::uint32_t points() const { return m_state.points; }
-	Texture const& texture() const { return m_texture; }
 
 	CircleShape& set_state(State state);
-	CircleShape& set_texture(Texture texture, bool resizeToMatch);
+	CircleShape& set_texture(Ptr<Texture const> texture, bool resize_to_match = false);
+	CircleShape& set_silhouette(float extrude, vf::Rgba tint);
 
   protected:
 	CircleShape& refresh();

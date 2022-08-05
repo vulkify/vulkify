@@ -11,7 +11,7 @@ class Shaded : public vf::Primitive {
 	};
 
 	Uniform uniform{};
-	vf::TextureHandle blendTexture{};
+	vf::TextureHandle blend_texture{};
 
 	Shaded() = default;
 	Shaded(T&& t, vf::Shader const& shader) : m_t(std::move(t)), m_shader(&shader) {}
@@ -23,7 +23,7 @@ class Shaded : public vf::Primitive {
 		auto copy = state;
 		auto set = vf::DescriptorSet(*m_shader);
 		set.write(uniform);
-		set.write(blendTexture);
+		set.write(blend_texture);
 		copy.descriptor_set = &set;
 		m_t.draw(surface, copy);
 	}
@@ -38,7 +38,7 @@ using ShadedMesh = Shaded<vf::Mesh>;
 class Shader : public Base {
 	std::string title() const override { return "Shaders"; }
 
-	bool loadShader() {
+	bool load_shader() {
 		auto path = std::string_view("shaders/texture_mask.frag");
 		if (env.args.size() > 1) { path = env.args[1]; }
 		m_shader = vf::Shader(context());
@@ -49,7 +49,7 @@ class Shader : public Base {
 		return true;
 	}
 
-	bool loadTexture(vf::Texture& out, std::string_view uri) const {
+	bool load_texture(vf::Texture& out, std::string_view uri) const {
 		auto image = vf::Image{};
 		if (!image.load(env.dataPath(uri).c_str())) {
 			log.error("Failed to load image [{}]", uri);
@@ -63,32 +63,32 @@ class Shader : public Base {
 		return true;
 	}
 
-	bool loadTextures() {
-		if (!loadTexture(m_textures.crate, "textures/crate.png")) { return false; }
-		if (!loadTexture(m_textures.overlay, "textures/overlay.jpg")) { return false; }
+	bool load_textures() {
+		if (!load_texture(m_textures.crate, "textures/crate.png")) { return false; }
+		if (!load_texture(m_textures.overlay, "textures/overlay.jpg")) { return false; }
 		return true;
 	}
 
-	bool loadAssets() {
-		if (!loadShader()) { return false; }
-		if (!loadTextures()) { return false; }
+	bool load_assets() {
+		if (!load_shader()) { return false; }
+		if (!load_textures()) { return false; }
 		return true;
 	}
 
-	glm::vec2 quadSize() const {
+	glm::vec2 quad_size() const {
 		glm::vec2 const extent = context().framebuffer_extent();
 		auto const side = extent.y * 0.8f;
 		return {side, side};
 	}
 
-	ShadedMesh& makeQuad(vf::Geometry geometry) {
+	ShadedMesh& make_quad(vf::Geometry geometry) {
 		auto& ret = scene.add(ShadedMesh(vf::Mesh(context(), "shader_quad"), m_shader));
 		ret.get().gbo.write(std::move(geometry));
 		ret.get().texture = m_textures.crate.handle();
 		return ret;
 	}
 
-	void makeQuads() {
+	void make_quads() {
 		glm::vec2 const extent = context().framebuffer_extent();
 		auto const maxWidth = extent.x * 0.33f;
 		auto const maxHeight = extent.y;
@@ -97,28 +97,28 @@ class Shader : public Base {
 		auto const dx = side + gap;
 		auto geometry = vf::Geometry::make_quad({{side, side}});
 
-		auto& left = makeQuad(geometry);
-		auto& centre = makeQuad(geometry);
-		auto& right = makeQuad(geometry);
+		auto& left = make_quad(geometry);
+		auto& centre = make_quad(geometry);
+		auto& right = make_quad(geometry);
 
 		left.get().instance.transform.position.x -= dx;
 		right.get().instance.transform.position.x += dx;
 
-		centre.blendTexture = right.blendTexture = m_textures.overlay.handle();
+		centre.blend_texture = right.blend_texture = m_textures.overlay.handle();
 		right.uniform.alpha = 1.0f;
 
-		m_blendQuad = &centre;
+		m_blend_quad = &centre;
 	}
 
 	bool setup() override {
-		if (!loadAssets()) { return false; }
-		makeQuads();
+		if (!load_assets()) { return false; }
+		make_quads();
 		return true;
 	}
 
 	void tick(vf::Time dt) override {
 		m_elapsed += dt;
-		m_blendQuad->uniform.alpha = (std::sin(m_elapsed.count()) + 1.0f) * 0.5f;
+		m_blend_quad->uniform.alpha = (std::sin(m_elapsed.count()) + 1.0f) * 0.5f;
 	}
 
 	struct {
@@ -126,7 +126,7 @@ class Shader : public Base {
 		vf::Texture overlay{};
 	} m_textures{};
 	vf::Shader m_shader{};
-	vf::Ptr<ShadedMesh> m_blendQuad{};
+	vf::Ptr<ShadedMesh> m_blend_quad{};
 
 	vf::Time m_elapsed{};
 };

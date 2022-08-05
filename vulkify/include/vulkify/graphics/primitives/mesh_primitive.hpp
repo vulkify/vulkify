@@ -6,7 +6,7 @@
 
 namespace vf {
 ///
-/// \brief Abstract Primitive owning GeometryBuffer and pointer to const Texture
+/// \brief Abstract Primitive owning GeometryBuffer and TextureHandle
 ///
 class MeshPrimitive : public Primitive {
   public:

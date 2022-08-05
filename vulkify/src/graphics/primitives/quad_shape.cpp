@@ -9,11 +9,26 @@ QuadShape& QuadShape::set_state(State state) {
 	return refresh();
 }
 
-QuadShape& QuadShape::set_texture(Texture texture, bool resizeToMatch) {
-	m_texture = std::move(texture);
-	if (resizeToMatch) {
-		m_state.size = m_texture.extent();
+QuadShape& QuadShape::set_texture(Ptr<Texture const> texture, bool resize_to_match) {
+	if (!texture) {
+		m_texture = {};
+		return *this;
+	}
+	m_texture = texture->handle();
+	if (resize_to_match) {
+		m_state.size = texture->extent();
 		refresh();
+	}
+	return *this;
+}
+
+QuadShape& QuadShape::set_silhouette(float extrude, vf::Rgba tint) {
+	if (extrude > 0.0f) {
+		auto state = m_state;
+		state.size += extrude;
+		m_silhouette.gbo.write(Geometry::make_quad(state));
+		m_silhouette.tint = tint;
+		m_silhouette.draw = true;
 	}
 	return *this;
 }
