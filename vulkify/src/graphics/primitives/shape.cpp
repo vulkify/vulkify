@@ -9,8 +9,8 @@ void Shape::draw(Surface const& surface, RenderState const& state) const {
 	if (m_silhouette.draw) {
 		auto instance = m_instance;
 		instance.tint = m_silhouette.tint;
-		surface.draw(Drawable{{&instance, 1}, m_silhouette.buffer}, state);
+		surface.draw(Drawable{instance, m_silhouette.buffer}, state);
 	}
-	surface.draw(Drawable{{&m_instance, 1}, m_buffer, m_texture}, state);
+	surface.draw(Drawable{m_instance, m_buffer, m_texture}, state);
 }
 } // namespace vf

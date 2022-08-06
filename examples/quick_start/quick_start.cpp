@@ -92,10 +92,10 @@ struct Helper {
 		return {std::move(circle), std::move(iris)};
 	}
 
-	vf::QuadShape make_textured_quad(vf::Texture& out_texture, char const* imagePath) {
+	vf::QuadShape make_textured_quad(vf::Texture& out_texture, char const* image_path) {
 		auto image = vf::Image{};
-		auto loadResult = image.load(imagePath);
-		if (loadResult) { std::cout << imagePath << " [" << loadResult->x << 'x' << loadResult->y << "] loaded sucessfully\n"; }
+		auto load_result = image.load(image_path);
+		if (load_result) { std::cout << image_path << " [" << load_result->x << 'x' << load_result->y << "] loaded sucessfully\n"; }
 
 		auto ret = vf::QuadShape(context, {{200.0f, 200.0f}});
 		out_texture = vf::Texture(context, image);
@@ -125,7 +125,7 @@ void test(vf::Context context) {
 	std::cout << "using GPU: " << context.gpu().name << '\n';
 
 	auto ttf = vf::Ttf{context};
-	if (ttf.load("test_font.ttf")) { std::cout << "[" << ttf.name() << "] loaded successfully\n"; }
+	if (ttf.load("test_font.ttf")) { std::cout << "[test_font.ttf] loaded successfully\n"; }
 
 	auto helper = Helper{context};
 

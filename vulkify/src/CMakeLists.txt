@@ -26,6 +26,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/command_pool.hpp
   detail/defer_queue.hpp
   detail/descriptor_set_factory.hpp
+  detail/gfx_font.hpp
   detail/pipeline_factory.cpp
   detail/pipeline_factory.hpp
   detail/render_pass.hpp

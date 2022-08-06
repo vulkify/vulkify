@@ -6,6 +6,7 @@
 
 namespace vf {
 class Ttf;
+class GfxFont;
 
 class Text : public Primitive {
   public:
@@ -32,6 +33,7 @@ class Text : public Primitive {
 	Height height() const { return m_height; }
 
 	Text& set_font(ktl::not_null<Ttf*> ttf);
+	Text& set_font(ktl::not_null<GfxFont*> font);
 	Text& set_string(std::string string);
 	Text& append(std::string string);
 	Text& append(char ch);
@@ -47,6 +49,6 @@ class Text : public Primitive {
 	std::string m_text{};
 	Align m_align{};
 	Height m_height{60};
-	Ttf* m_ttf{};
+	Ptr<GfxFont> m_font{};
 };
 } // namespace vf
