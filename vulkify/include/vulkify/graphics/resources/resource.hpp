@@ -19,11 +19,10 @@ class GfxResource {
 	GfxResource(GfxResource const&) = delete;
 	GfxResource& operator=(GfxResource const&) = delete;
 
-	GfxResource(Vram const& vram, std::string name);
+	explicit GfxResource(Vram const& vram);
 
 	explicit operator bool() const;
 	GfxAllocation const& resource() const;
-	std::string const& name() const;
 
 	void release() &&;
 

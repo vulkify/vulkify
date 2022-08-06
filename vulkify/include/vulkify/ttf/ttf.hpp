@@ -26,7 +26,8 @@ class Ttf {
 	Ttf& operator=(Ttf&&) noexcept;
 	~Ttf() noexcept;
 
-	Ttf(Context const& context, std::string name);
+	explicit Ttf(Context const& context);
+
 	explicit operator bool() const;
 
 	bool load(std::span<std::byte const> bytes);

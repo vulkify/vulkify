@@ -9,7 +9,6 @@ struct ImageCache {
 
 	struct Info {
 		Vram vram{};
-		std::string name{};
 		vk::ImageCreateInfo info{};
 		vk::ImageAspectFlags aspect{};
 		bool prefer_host{false};
@@ -63,7 +62,7 @@ struct ImageCache {
 		info.info.extent = vk::Extent3D(extent.x, extent.y, 1);
 		info.info.format = format;
 		info.vram.device.defer(std::move(image), std::move(view));
-		image = info.vram.make_image(info.info, info.prefer_host, info.name.c_str());
+		image = info.vram.make_image(info.info, info.prefer_host);
 		if (!image) { return false; }
 		view = info.vram.device.make_image_view(image->resource, format, info.aspect);
 		return *view;
@@ -79,7 +78,6 @@ struct ImageCache {
 };
 
 struct BufferCache {
-	std::string name{};
 	mutable vk::BufferCreateInfo info{};
 	mutable Rotator<UniqueBuffer, 4> buffers{};
 	std::vector<std::byte> data{std::byte{}};
@@ -90,7 +88,7 @@ struct BufferCache {
 	BufferCache(Vram const& vram, vk::BufferUsageFlagBits usage) : vram(&vram) {
 		info.usage = usage;
 		info.size = 1;
-		for (std::size_t i = 0; i < vram.buffering; ++i) { buffers.push(vram.make_buffer(info, true, this->name.c_str())); }
+		for (std::size_t i = 0; i < vram.buffering; ++i) { buffers.push(vram.make_buffer(info, true)); }
 	}
 
 	explicit operator bool() const { return vram && !buffers.storage.empty(); }
@@ -102,7 +100,7 @@ struct BufferCache {
 		if (buffer->size < data.size()) {
 			info.size = data.size();
 			vram->device.defer(std::move(buffer));
-			buffer = vram->make_buffer(info, true, name.c_str());
+			buffer = vram->make_buffer(info, true);
 		}
 		buffer->write(data.data(), data.size());
 		if (next) { buffers.next(); }

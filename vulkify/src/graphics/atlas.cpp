@@ -12,9 +12,9 @@ constexpr std::uint32_t pot(std::uint32_t const in) {
 }
 } // namespace
 
-Atlas::Atlas(Context const& context, std::string name, Extent const initial, Rgba const rgba) : Atlas(context.vram(), std::move(name), initial, rgba) {}
+Atlas::Atlas(Context const& context, Extent const initial, Rgba const rgba) : Atlas(context.vram(), initial, rgba) {}
 
-Atlas::Atlas(Vram const& vram, std::string name, Extent const initial, Rgba const rgba) : m_texture(vram, std::move(name), {}) {
+Atlas::Atlas(Vram const& vram, Extent const initial, Rgba const rgba) : m_texture(vram, {}) {
 	if (m_texture.m_allocation) { m_texture.create(Bitmap(rgba, initial).image()); }
 }
 
@@ -55,7 +55,7 @@ bool Atlas::prepare(GfxCommandBuffer& cb, Extent const extent) {
 
 bool Atlas::resize(GfxCommandBuffer& cb, Extent const target) {
 	auto const& vram = m_texture.vram();
-	auto texture = Texture(vram, m_texture.name(), {});
+	auto texture = Texture(vram, {});
 	texture.refresh({pot(target.x), pot(target.y)});
 	static constexpr auto layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 	auto rect = TRect<std::uint32_t>{m_texture.extent()};

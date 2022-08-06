@@ -9,10 +9,8 @@ class CircleShape : public Shape {
   public:
 	using State = PolygonCreateInfo;
 
-	static constexpr auto name_v = "circle";
-
 	CircleShape() = default;
-	CircleShape(Context const& context, std::string name = name_v, State initial = {});
+	explicit CircleShape(Context const& context, State initial = {});
 
 	State const& state() const { return m_state; }
 	float diameter() const { return m_state.diameter; }

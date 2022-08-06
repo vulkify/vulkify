@@ -137,7 +137,7 @@ Ttf::Ttf(Ttf&&) noexcept = default;
 Ttf& Ttf::operator=(Ttf&&) noexcept = default;
 Ttf::~Ttf() noexcept = default;
 
-Ttf::Ttf(Context const& context, std::string name) : m_name(std::move(name)) {
+Ttf::Ttf(Context const& context) {
 	if (!context.vram().ftlib) { return; }
 	m_face->vram = &context.vram();
 }
@@ -227,14 +227,9 @@ void Ttf::on_loaded() {
 }
 
 Ttf::Font& Ttf::get_or_make(Height height) {
-	auto atlasName = [](std::string ttfName, Ttf::Height const height) {
-		auto str = std::stringstream{};
-		str << ttfName << '_' << height;
-		return str.str();
-	};
 	auto it = m_fonts.find(height);
 	if (it == m_fonts.end()) {
-		auto [i, _] = m_fonts.insert_or_assign(height, Font{Atlas(*m_face->vram, atlasName(m_name, height), initial_extent_v)});
+		auto [i, _] = m_fonts.insert_or_assign(height, Font{Atlas(*m_face->vram, initial_extent_v)});
 		it = i;
 		insert(it->second, {}, nullptr);
 	}

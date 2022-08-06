@@ -21,7 +21,7 @@ constexpr Scribe::Pivot pivot(Text::Align align) {
 }
 } // namespace
 
-Text::Text(Context const& context, std::string name) { m_mesh.get() = {context, std::move(name)}; }
+Text::Text(Context const& context) { m_mesh.get() = vf::Mesh{context}; }
 
 Text::operator bool() const { return m_ttf && *m_ttf && m_mesh.get(); }
 

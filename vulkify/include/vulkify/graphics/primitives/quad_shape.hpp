@@ -12,7 +12,7 @@ class QuadShape : public Shape {
 	static constexpr auto name_v = "quad";
 
 	QuadShape() = default;
-	QuadShape(Context const& context, std::string name = name_v, State initial = {});
+	explicit QuadShape(Context const& context, State initial = {});
 
 	State const& state() const { return m_state; }
 	glm::vec2 size() const { return m_state.size; }

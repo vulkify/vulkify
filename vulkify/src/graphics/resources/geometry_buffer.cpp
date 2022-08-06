@@ -30,7 +30,7 @@ void write_geometry(BufferCache& vbo, BufferCache& ibo, Geometry const& geometry
 }
 } // namespace
 
-GeometryBuffer::GeometryBuffer(Context const& context, std::string name) : GfxResource(context.vram(), std::move(name)) {
+GeometryBuffer::GeometryBuffer(Context const& context) : GfxResource(context.vram()) {
 	auto& bufs = m_allocation->buffers;
 	auto const& vram = context.vram();
 	bufs[0] = BufferCache(vram, vk::BufferUsageFlagBits::eVertexBuffer);

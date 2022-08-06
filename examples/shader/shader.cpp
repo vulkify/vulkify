@@ -55,7 +55,7 @@ class Shader : public Base {
 			log.error("Failed to load image [{}]", uri);
 			return false;
 		}
-		out = vf::Texture(context(), std::string(uri), image);
+		out = vf::Texture(context(), image);
 		if (!out) {
 			log.error("Failed to load texture [{}]", uri);
 			return false;
@@ -82,7 +82,7 @@ class Shader : public Base {
 	}
 
 	ShadedMesh& make_quad(vf::Geometry geometry) {
-		auto& ret = scene.add(ShadedMesh(vf::Mesh(context(), "shader_quad"), m_shader));
+		auto& ret = scene.add(ShadedMesh(vf::Mesh(context()), m_shader));
 		ret.get().buffer.write(std::move(geometry));
 		ret.get().texture = m_textures.crate.handle();
 		return ret;

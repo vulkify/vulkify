@@ -13,7 +13,7 @@ class Context;
 class Shape : public Primitive {
   public:
 	Shape() = default;
-	Shape(Context const& context, std::string name);
+	explicit Shape(Context const& context);
 
 	Transform const& transform() const { return m_instance.transform; }
 	Transform& transform() { return m_instance.transform; }

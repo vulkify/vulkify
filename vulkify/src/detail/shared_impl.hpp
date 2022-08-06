@@ -50,10 +50,9 @@ struct GfxAllocation {
 	BufferCache buffers[2]{};
 	ImageSampler image{};
 	Vram vram{};
-	std::string name{};
 
 	GfxAllocation() = default;
-	GfxAllocation(Vram const& vram, std::string name) : image{{{vram, name}}}, vram(vram), name(std::move(name)) {}
+	GfxAllocation(Vram const& vram) : image{{{vram}}}, vram(vram) {}
 
 	bool operator==(GfxAllocation const& rhs) const { return !image.sampler && !rhs.image.sampler; }
 

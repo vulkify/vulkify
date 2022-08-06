@@ -19,7 +19,7 @@ class Text : public Primitive {
 	};
 
 	Text() = default;
-	Text(Context const& context, std::string name);
+	explicit Text(Context const& context);
 
 	explicit operator bool() const;
 

@@ -78,9 +78,9 @@ struct DescriptorAllocator {
 		return storage.sets[index];
 	}
 
-	SetWriter descriptorSet(char const* name) {
+	SetWriter descriptorSet() {
 		auto& set = this->set();
-		return {&vram, set.buffers, set.set, name, number};
+		return {&vram, set.buffers, set.set, number};
 	}
 
 	void next() {
@@ -102,10 +102,10 @@ struct DescriptorSetFactory {
 
 	explicit operator bool() const { return !allocators[0].pools.storage.empty(); }
 
-	SetWriter postInc(std::uint32_t set, char const* name) {
+	SetWriter postInc(std::uint32_t set) {
 		assert(set < sets_v);
 		auto& rot = allocators[set];
-		auto ret = rot.descriptorSet(name);
+		auto ret = rot.descriptorSet();
 		++rot.index;
 		return ret;
 	}

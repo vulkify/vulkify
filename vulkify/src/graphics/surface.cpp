@@ -135,12 +135,12 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, 
 	auto lock = std::scoped_lock(*m_render_pass->render_mutex);
 	if (!bind(state)) { return false; }
 
-	auto set = m_render_pass->set_factory->postInc(m_render_pass->shader_input.one.set, "UBO:V,SSBO:M");
+	auto set = m_render_pass->set_factory->postInc(m_render_pass->shader_input.one.set);
 	if (!set) { return false; }
 	m_render_pass->write_view(set);
 	m_render_pass->write_models(set, models, drawable.texture);
 	if (state.descriptor_set) {
-		set = m_render_pass->set_factory->postInc(m_render_pass->shader_input.two.set, "Custom");
+		set = m_render_pass->set_factory->postInc(m_render_pass->shader_input.two.set);
 		if (!set) { return false; }
 		m_render_pass->write_custom(set, state.descriptor_set->m_data.bytes, state.descriptor_set->m_data.texture);
 	}

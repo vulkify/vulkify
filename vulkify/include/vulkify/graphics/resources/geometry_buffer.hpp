@@ -17,7 +17,7 @@ class GeometryBuffer : public GfxResource {
 	};
 
 	GeometryBuffer() = default;
-	GeometryBuffer(Context const& context, std::string name);
+	explicit GeometryBuffer(Context const& context);
 
 	Result<void> write(Geometry geometry);
 

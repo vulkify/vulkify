@@ -15,7 +15,7 @@ class Atlas {
 	class Bulk;
 
 	Atlas() = default;
-	Atlas(Context const& context, std::string name, Extent initial = initial_v, Rgba rgba = clear_v);
+	explicit Atlas(Context const& context, Extent initial = initial_v, Rgba rgba = clear_v);
 
 	///
 	/// \brief Add image to atlas and obtain associated texture coordinates
@@ -33,7 +33,7 @@ class Atlas {
   private:
 	static constexpr glm::uvec2 pad_v = {1, 1};
 
-	Atlas(Vram const& vram, std::string name, Extent initial = initial_v, Rgba rgba = clear_v);
+	Atlas(Vram const& vram, Extent initial = initial_v, Rgba rgba = clear_v);
 
 	void next_line();
 	bool prepare(struct GfxCommandBuffer& cb, Extent extent);

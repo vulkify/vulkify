@@ -2,7 +2,7 @@
 #include <vulkify/graphics/primitives/quad_shape.hpp>
 
 namespace vf {
-QuadShape::QuadShape(Context const& context, std::string name, State initial) : Shape(context, std::move(name)) { set_state(std::move(initial)); }
+QuadShape::QuadShape(Context const& context, State initial) : Shape(context) { set_state(std::move(initial)); }
 
 QuadShape& QuadShape::set_state(State state) {
 	m_state = std::move(state);
