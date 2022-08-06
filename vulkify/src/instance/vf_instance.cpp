@@ -345,7 +345,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 	if (!vram) { return Error::eVulkanInitFailure; }
 	vram.vram->ftlib = freetype.lib;
 
-	auto impl = ktl::make_unique<Impl>(std::move(*win_inst), std::move(window), std::move(vulkan), std::move(vram));
+	auto impl = ktl::make_unique<Impl>(Impl{std::move(*win_inst), std::move(window), std::move(vulkan), std::move(vram)});
 	bool const linear = create_info.instance_flags.test(InstanceFlag::eLinearSwapchain);
 	auto const extent = impl->window->framebuffer_size();
 	auto const mode = selectMode(impl->vulkan.gpu, create_info.desired_vsyncs);
