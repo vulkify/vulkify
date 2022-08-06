@@ -2,7 +2,6 @@
 #include <ktl/not_null.hpp>
 #include <vulkify/core/dirty_flag.hpp>
 #include <vulkify/graphics/primitives/mesh.hpp>
-#include <vulkify/graphics/resources/geometry_buffer.hpp>
 
 namespace vf {
 class Ttf;

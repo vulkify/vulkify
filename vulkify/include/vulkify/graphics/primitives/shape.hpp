@@ -1,8 +1,8 @@
 #pragma once
 #include <vulkify/graphics/drawable.hpp>
+#include <vulkify/graphics/geometry_buffer.hpp>
 #include <vulkify/graphics/primitive.hpp>
-#include <vulkify/graphics/resources/geometry_buffer.hpp>
-#include <vulkify/graphics/resources/texture.hpp>
+#include <vulkify/graphics/texture.hpp>
 
 namespace vf {
 class Context;

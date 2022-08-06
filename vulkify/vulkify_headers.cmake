@@ -22,7 +22,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/atlas.hpp
   include/vulkify/graphics/bitmap.hpp
   include/vulkify/graphics/camera.hpp
-  include/vulkify/graphics/draw_model.hpp
   include/vulkify/graphics/descriptor_set.hpp
   include/vulkify/graphics/drawable.hpp
   include/vulkify/graphics/geometry.hpp
@@ -32,10 +31,9 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/shader.hpp
   include/vulkify/graphics/surface.hpp
 
-  include/vulkify/graphics/resources/geometry_buffer.hpp
-  include/vulkify/graphics/resources/resource.hpp
-  include/vulkify/graphics/resources/texture_handle.hpp
-  include/vulkify/graphics/resources/texture.hpp
+  include/vulkify/graphics/geometry_buffer.hpp
+  include/vulkify/graphics/texture_handle.hpp
+  include/vulkify/graphics/texture.hpp
 
   include/vulkify/graphics/primitives/all.hpp
   include/vulkify/graphics/primitives/circle_shape.hpp
@@ -43,6 +41,9 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/primitives/quad_shape.hpp
   include/vulkify/graphics/primitives/shape.hpp
   include/vulkify/graphics/primitives/text.hpp
+
+  include/vulkify/graphics/detail/draw_model.hpp
+  include/vulkify/graphics/detail/resource.hpp
 
   include/vulkify/instance/cursor.hpp
   include/vulkify/instance/event_queue.hpp

@@ -2,7 +2,7 @@
 #include <detail/trace.hpp>
 #include <vulkify/context/context.hpp>
 #include <vulkify/core/float_eq.hpp>
-#include <vulkify/graphics/resources/texture.hpp>
+#include <vulkify/graphics/texture.hpp>
 
 namespace vf {
 namespace {

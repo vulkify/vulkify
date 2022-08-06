@@ -1,5 +1,5 @@
 #include <detail/shared_impl.hpp>
-#include <vulkify/graphics/resources/resource.hpp>
+#include <vulkify/graphics/detail/resource.hpp>
 
 namespace vf {
 namespace {

@@ -4,16 +4,16 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   core/rgba.cpp
 
+  graphics/detail/resource.cpp
+
   graphics/atlas.cpp
   graphics/bitmap.cpp
+  graphics/geometry_buffer.cpp
   graphics/geometry.cpp
   graphics/image.cpp
   graphics/shader.cpp
   graphics/surface.cpp
-
-  graphics/resources/geometry_buffer.cpp
-  graphics/resources/resource.cpp
-  graphics/resources/texture.cpp
+  graphics/texture.cpp
 
   graphics/primitives/circle_shape.cpp
   graphics/primitives/quad_shape.cpp

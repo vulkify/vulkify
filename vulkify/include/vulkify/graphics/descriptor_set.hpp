@@ -1,6 +1,6 @@
 #pragma once
 #include <vulkify/core/ptr.hpp>
-#include <vulkify/graphics/resources/texture_handle.hpp>
+#include <vulkify/graphics/texture_handle.hpp>
 #include <cstring>
 #include <span>
 #include <vector>

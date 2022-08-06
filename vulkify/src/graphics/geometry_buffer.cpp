@@ -1,6 +1,6 @@
 #include <detail/shared_impl.hpp>
 #include <vulkify/context/context.hpp>
-#include <vulkify/graphics/resources/geometry_buffer.hpp>
+#include <vulkify/graphics/geometry_buffer.hpp>
 
 namespace vf {
 namespace {

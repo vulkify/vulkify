@@ -5,9 +5,9 @@
 #include <detail/trace.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/graphics/drawable.hpp>
-#include <vulkify/graphics/resources/geometry_buffer.hpp>
-#include <vulkify/graphics/resources/texture.hpp>
+#include <vulkify/graphics/geometry_buffer.hpp>
 #include <vulkify/graphics/shader.hpp>
+#include <vulkify/graphics/texture.hpp>
 #include <vulkify/instance/instance.hpp>
 
 namespace vf {

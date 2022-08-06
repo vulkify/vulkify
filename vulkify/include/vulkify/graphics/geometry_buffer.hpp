@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkify/core/result.hpp>
+#include <vulkify/graphics/detail/resource.hpp>
 #include <vulkify/graphics/geometry.hpp>
-#include <vulkify/graphics/resources/resource.hpp>
 
 namespace vf {
 class Context;

@@ -3,8 +3,8 @@
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/result.hpp>
 #include <vulkify/graphics/bitmap.hpp>
-#include <vulkify/graphics/resources/resource.hpp>
-#include <vulkify/graphics/resources/texture_handle.hpp>
+#include <vulkify/graphics/detail/resource.hpp>
+#include <vulkify/graphics/texture_handle.hpp>
 
 namespace vf {
 class Context;
