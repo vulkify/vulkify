@@ -38,8 +38,10 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/primitives/all.hpp
   include/vulkify/graphics/primitives/circle_shape.hpp
   include/vulkify/graphics/primitives/mesh.hpp
+  include/vulkify/graphics/primitives/prop.hpp
   include/vulkify/graphics/primitives/quad_shape.hpp
   include/vulkify/graphics/primitives/shape.hpp
+  include/vulkify/graphics/primitives/sprite.hpp
   include/vulkify/graphics/primitives/text.hpp
 
   include/vulkify/graphics/detail/draw_model.hpp

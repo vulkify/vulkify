@@ -1,6 +1,7 @@
 #include <base.hpp>
 #include <vulkify/graphics/primitives/all.hpp>
 #include <vulkify/graphics/shader.hpp>
+#include <vulkify/graphics/texture.hpp>
 
 namespace example {
 template <std::derived_from<vf::Primitive> T>

@@ -17,6 +17,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   graphics/primitives/circle_shape.cpp
   graphics/primitives/quad_shape.cpp
+  graphics/primitives/sprite.cpp
   graphics/primitives/shape.cpp
   graphics/primitives/text.cpp
 

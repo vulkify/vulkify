@@ -1,5 +1,5 @@
-#include <vulkify/context/context.hpp>
 #include <vulkify/graphics/primitives/circle_shape.hpp>
+#include <vulkify/graphics/texture.hpp>
 
 namespace vf {
 CircleShape::CircleShape(Context const& context, State initial) : Shape(context) { set_state(std::move(initial)); }

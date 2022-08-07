@@ -1,5 +1,5 @@
-#include <vulkify/context/context.hpp>
 #include <vulkify/graphics/primitives/quad_shape.hpp>
+#include <vulkify/graphics/texture.hpp>
 
 namespace vf {
 QuadShape::QuadShape(Context const& context, State initial) : Shape(context) { set_state(std::move(initial)); }

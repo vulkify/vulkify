@@ -26,7 +26,10 @@ Text::Text(Context const& context) { m_mesh.get() = vf::Mesh{context}; }
 
 Text::operator bool() const { return m_font && *m_font && m_mesh.get(); }
 
-Text& Text::set_font(ktl::not_null<Ttf*> ttf) { return set_font(ttf->font()); }
+Text& Text::set_font(ktl::not_null<Ttf*> ttf) {
+	if (*ttf) { return set_font(ttf->font()); }
+	return *this;
+}
 
 Text& Text::set_font(ktl::not_null<GfxFont*> glyph_factory) {
 	m_font = glyph_factory;

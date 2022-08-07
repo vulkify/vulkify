@@ -194,7 +194,7 @@ Ttf::Ttf(Context const& context) : m_font(std::make_unique<GfxFont>(context)) {}
 Ttf::operator bool() const { return m_font && *m_font; }
 
 bool Ttf::load(std::span<std::byte const> bytes) {
-	if (!*this) { return false; }
+	if (!m_font || !m_font->m_face.vram) { return false; }
 	auto data = std::make_unique<std::byte[]>(bytes.size());
 	std::memcpy(data.get(), bytes.data(), bytes.size());
 	if (auto face = FtFace::make(m_font->m_face.vram->ftlib, {data.get(), bytes.size()})) {
@@ -207,7 +207,7 @@ bool Ttf::load(std::span<std::byte const> bytes) {
 }
 
 bool Ttf::load(char const* path) {
-	if (!*this) { return false; }
+	if (!m_font || !m_font->m_face.vram) { return false; }
 	if (auto face = FtFace::make(m_font->m_face.vram->ftlib, path)) {
 		m_font->m_face.face = face;
 		on_loaded();
