@@ -14,16 +14,16 @@ jobs:
       - uses: actions/checkout@v2
       - name: init
         run: sudo apt install -yqq ninja-build xorg-dev g++-11
-      - name: configure clang
-        run: cp cmake/CMakePresets.json . && cmake -S . --preset=nc-release -DVULKIFY_DEBUG_TRACE=OFF -B build
       - name: configure gcc
-        run: cmake -S . -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++-11 -B plain_build
-      - name: build clang
-        run: cmake --build build
+        run: ln -s cmake/CMakePresets.json . && cmake -S . --preset=default -B build -DCMAKE_CXX_COMPILER=g++-11
+      - name: configure clang
+        run: cmake -S . --preset=ninja-clang -B clang
       - name: build gcc
-        run: cmake --build plain_build
+        run: cmake --build build --config=Release
+      - name: build clang
+        run: cmake --build clang --config=Release
       - name: test
-        run: cd build && ctest
+        run: cd build && ctest -C Release
   build-windows:
     runs-on: windows-latest
     steps:
