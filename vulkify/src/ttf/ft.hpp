@@ -7,6 +7,7 @@
 #include <vulkify/core/unique.hpp>
 #include <vulkify/ttf/glyph.hpp>
 #include <span>
+#include <vector>
 
 namespace vf {
 struct FtLib {
@@ -22,7 +23,7 @@ struct FtSlot {
 	Glyph::Metrics metrics{};
 	std::vector<std::byte> pixmap{};
 
-	bool hasBitmap() const noexcept { return !pixmap.empty(); }
+	bool has_bitmap() const noexcept { return !pixmap.empty(); }
 };
 
 struct FtFace {

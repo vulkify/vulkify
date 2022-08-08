@@ -1,3 +1,4 @@
+#include <detail/gfx_font.hpp>
 #include <vulkify/graphics/primitives/text.hpp>
 #include <vulkify/graphics/surface.hpp>
 #include <vulkify/ttf/scribe.hpp>
@@ -21,12 +22,17 @@ constexpr Scribe::Pivot pivot(Text::Align align) {
 }
 } // namespace
 
-Text::Text(Context const& context, std::string name) { m_mesh.get() = {context, std::move(name)}; }
+Text::Text(Context const& context) { m_mesh.get() = vf::Mesh{context}; }
 
-Text::operator bool() const { return m_ttf && *m_ttf && m_mesh.get(); }
+Text::operator bool() const { return m_font && *m_font && m_mesh.get(); }
 
 Text& Text::set_font(ktl::not_null<Ttf*> ttf) {
-	m_ttf = ttf;
+	if (*ttf) { return set_font(ttf->font()); }
+	return *this;
+}
+
+Text& Text::set_font(ktl::not_null<GfxFont*> glyph_factory) {
+	m_font = glyph_factory;
 	m_mesh.set_dirty();
 	return *this;
 }
@@ -62,17 +68,17 @@ Text& Text::set_height(Height height) {
 }
 
 void Text::draw(Surface const& surface, RenderState const& state) const {
-	if (m_text.empty() || !m_ttf) { return; }
+	if (m_text.empty() || !m_font || !*m_font) { return; }
 	if (m_mesh.dirty) { rebuild(); }
 	surface.draw(m_mesh.get().drawable(), state);
 }
 
 void Text::rebuild() const {
-	auto scribe = Scribe{*m_ttf, m_height};
+	auto scribe = Scribe{*m_font, m_height};
 	scribe.write(Scribe::Block{m_text}, pivot(m_align));
-	if (auto const* texture = m_ttf->texture(m_height)) {
+	if (auto const* texture = m_font->texture(m_height)) {
 		m_mesh.get().texture = texture->handle();
-		m_mesh.get().gbo.write(std::move(scribe.geometry));
+		m_mesh.get().buffer.write(std::move(scribe.geometry));
 		m_mesh.set_clean();
 	}
 }

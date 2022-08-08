@@ -1,6 +1,6 @@
 #include <detail/shared_impl.hpp>
 #include <vulkify/context/context.hpp>
-#include <vulkify/graphics/resources/geometry_buffer.hpp>
+#include <vulkify/graphics/geometry_buffer.hpp>
 
 namespace vf {
 namespace {
@@ -30,7 +30,7 @@ void write_geometry(BufferCache& vbo, BufferCache& ibo, Geometry const& geometry
 }
 } // namespace
 
-GeometryBuffer::GeometryBuffer(Context const& context, std::string name) : GfxResource(context.vram(), std::move(name)) {
+GeometryBuffer::GeometryBuffer(Context const& context) : GfxResource(context.vram()) {
 	auto& bufs = m_allocation->buffers;
 	auto const& vram = context.vram();
 	bufs[0] = BufferCache(vram, vk::BufferUsageFlagBits::eVertexBuffer);

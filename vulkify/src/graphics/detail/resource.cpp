@@ -1,5 +1,5 @@
 #include <detail/shared_impl.hpp>
-#include <vulkify/graphics/resources/resource.hpp>
+#include <vulkify/graphics/detail/resource.hpp>
 
 namespace vf {
 namespace {
@@ -16,12 +16,11 @@ GfxResource::GfxResource(GfxResource&&) noexcept = default;
 GfxResource& GfxResource::operator=(GfxResource&&) noexcept = default;
 GfxResource::~GfxResource() { defer_alloc(std::move(m_allocation)); }
 
-GfxResource::GfxResource(Vram const& vram, std::string name) : m_allocation(ktl::make_unique<GfxAllocation>(vram, std::move(name))) {}
+GfxResource::GfxResource(Vram const& vram) : m_allocation(ktl::make_unique<GfxAllocation>(vram)) {}
 
 GfxResource::operator bool() const { return m_allocation && m_allocation->vram; }
 
 GfxAllocation const& GfxResource::resource() const { return m_allocation ? *m_allocation : g_inactive.alloc; }
-std::string const& GfxResource::name() const { return m_allocation ? m_allocation->name : g_inactive.name; }
 
 Vram const& GfxResource::vram() const { return m_allocation ? m_allocation->vram : g_inactive.vram; }
 

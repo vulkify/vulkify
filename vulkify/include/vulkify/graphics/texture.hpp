@@ -3,18 +3,20 @@
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/result.hpp>
 #include <vulkify/graphics/bitmap.hpp>
-#include <vulkify/graphics/resources/resource.hpp>
-#include <vulkify/graphics/resources/texture_handle.hpp>
+#include <vulkify/graphics/detail/resource.hpp>
+#include <vulkify/graphics/texture_handle.hpp>
 
 namespace vf {
 class Context;
 
 enum class AddressMode { eClampEdge, eClampBorder, eRepeat };
 enum class Filtering { eNearest, eLinear };
+enum class ImageFormat { eSrgb, eLinear };
 
 struct TextureCreateInfo {
-	AddressMode addressMode{AddressMode::eClampEdge};
+	AddressMode address_mode{AddressMode::eClampEdge};
 	Filtering filtering{Filtering::eNearest};
+	ImageFormat format{ImageFormat::eSrgb};
 };
 
 ///
@@ -41,13 +43,13 @@ class Texture : public GfxResource {
 	using Handle = TextureHandle;
 
 	Texture() = default;
-	Texture(Context const& context, std::string name, Image::View image, CreateInfo const& create_info = {});
+	explicit Texture(Context const& context, Image::View image = {}, CreateInfo const& create_info = {});
 
 	Result<void> create(Image::View image);
 	Result<void> overwrite(Image::View image, Rect const& region);
 	Result<void> rescale(float scale);
 
-	Texture clone(std::string name) const;
+	Texture clone() const;
 
 	Extent extent() const;
 	AddressMode address_mode() const { return m_address_mode; }
@@ -56,8 +58,8 @@ class Texture : public GfxResource {
 	Handle handle() const;
 
   private:
-	Texture(Vram const& vram, std::string name, CreateInfo const& info);
-	Texture clone_image(std::string name) const;
+	Texture(Vram const& vram, CreateInfo const& info);
+	Texture clone_image() const;
 
 	void refresh(Extent extent);
 	void write(Image::View image, Rect const& region);

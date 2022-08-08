@@ -1,4 +1,5 @@
 set(ext_targets "")
+set(BUILD_SHARED_LIBS OFF)
 
 file(ARCHIVE_EXTRACT
   INPUT "${CMAKE_CURRENT_SOURCE_DIR}/src.zip"

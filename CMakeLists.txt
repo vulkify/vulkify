@@ -54,7 +54,7 @@ endif()
 include(FetchContent)
 FetchContent_Declare(ktl
   GIT_REPOSITORY https://github.com/karnkaul/ktl
-  GIT_TAG v1.4.1
+  GIT_TAG f4d88f2 # manually update this to keep commits pinned
   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext/src/ktl"
 )
 FetchContent_MakeAvailable(ktl)

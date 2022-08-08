@@ -2,8 +2,8 @@
 #include <vulkify/core/ptr.hpp>
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/core/transform.hpp>
-#include <vulkify/graphics/draw_model.hpp>
-#include <vulkify/graphics/resources/texture_handle.hpp>
+#include <vulkify/graphics/detail/draw_model.hpp>
+#include <vulkify/graphics/texture_handle.hpp>
 #include <cstring>
 
 namespace vf {
@@ -14,6 +14,7 @@ struct DrawInstance {
 	Rgba tint = white_v;
 
 	DrawModel draw_model() const;
+	operator std::span<DrawInstance const>() const { return {this, 1}; }
 };
 
 ///
@@ -21,7 +22,7 @@ struct DrawInstance {
 ///
 struct Drawable {
 	std::span<DrawInstance const> instances{};
-	GeometryBuffer const& gbo;
+	GeometryBuffer const& buffer;
 	TextureHandle texture{};
 };
 

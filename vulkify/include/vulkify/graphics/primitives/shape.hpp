@@ -1,43 +1,26 @@
 #pragma once
-#include <vulkify/graphics/drawable.hpp>
-#include <vulkify/graphics/primitive.hpp>
-#include <vulkify/graphics/resources/geometry_buffer.hpp>
-#include <vulkify/graphics/resources/texture.hpp>
+#include <vulkify/graphics/primitives/prop.hpp>
 
 namespace vf {
-class Context;
+class Texture;
 
 ///
-/// \brief Base Primitive with protected GeometryBufer, Texture, and DrawInstance
+/// \brief Base Primitive for shapes
 ///
-/// Note: The Texture member is not exposed to the public interface, but is referenecd in draw().
-/// Derived types may use it as desired.
-///
-class Shape : public Primitive {
+class Shape : public Prop {
   public:
-	struct Silhouette {
-		float scale{};
-		Rgba tint{white_v};
-
-		void draw(Shape const& shape, Surface const& surface, RenderState const& state) const;
-	};
-
 	Shape() = default;
-	Shape(Context const& context, std::string name);
+	explicit Shape(Context const& context);
 
-	Transform const& transform() const { return m_instance.transform; }
-	Transform& transform() { return m_instance.transform; }
-	Rgba const& tint() const { return m_instance.tint; }
-	Rgba& tint() { return m_instance.tint; }
-	GeometryBuffer const& geometry() const { return m_geometry; }
+	void unset_silhouette() { m_silhouette.draw = false; }
 
 	void draw(Surface const& surface, RenderState const& state = {}) const override;
 
-	Silhouette silhouette{};
-
   protected:
-	GeometryBuffer m_geometry{};
-	Texture m_texture{};
-	DrawInstance m_instance{};
+	struct {
+		GeometryBuffer buffer{};
+		vf::Rgba tint{};
+		bool draw{};
+	} m_silhouette{};
 };
 } // namespace vf

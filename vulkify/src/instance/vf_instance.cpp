@@ -29,7 +29,7 @@
 
 #include <ktl/ktl_version.hpp>
 
-static_assert(ktl::version_v >= ktl::kversion{1, 4, 0});
+static_assert(ktl::version_v >= ktl::kversion{1, 4, 2});
 
 namespace vf {
 namespace {
@@ -166,7 +166,7 @@ struct SwapchainRenderer {
 		if (vram.colour_samples > vk::SampleCountFlagBits::e1) {
 			ret.msaa = true;
 			auto& image = ret.msaa_image;
-			image = {{vram, "render_pass_msaa_image"}};
+			image = {{vram}};
 			image.set_colour();
 			image.info.info.samples = vram.colour_samples;
 			image.info.info.format = format;
@@ -233,8 +233,8 @@ ShaderInput::Textures make_shader_textures(Vram const& vram) {
 	auto ret = ShaderInput::Textures{};
 	auto sci = sampler_info(vram, vk::SamplerAddressMode::eClampToBorder, vk::Filter::eNearest);
 	ret.sampler = vram.device.device.createSamplerUnique(sci);
-	ret.white = {{vram, "white"}};
-	ret.magenta = {{vram, "magenta"}};
+	ret.white = {{vram}};
+	ret.magenta = {{vram}};
 	ret.white.set_texture(false);
 	ret.magenta.set_texture(false);
 
@@ -345,7 +345,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 	if (!vram) { return Error::eVulkanInitFailure; }
 	vram.vram->ftlib = freetype.lib;
 
-	auto impl = ktl::make_unique<Impl>(std::move(*win_inst), std::move(window), std::move(vulkan), std::move(vram));
+	auto impl = ktl::make_unique<Impl>(Impl{std::move(*win_inst), std::move(window), std::move(vulkan), std::move(vram)});
 	bool const linear = create_info.instance_flags.test(InstanceFlag::eLinearSwapchain);
 	auto const extent = impl->window->framebuffer_size();
 	auto const mode = selectMode(impl->vulkan.gpu, create_info.desired_vsyncs);
@@ -461,7 +461,7 @@ Surface VulkifyInstance::begin_pass(Rgba clear) {
 	m_impl->vulkan.util->defer.decrement();
 	m_impl->renderer.clear = clear;
 
-	auto proj = m_impl->set_factory.postInc(0, "UBO:P");
+	auto proj = m_impl->set_factory.postInc(0);
 	auto const mat_p = projection(extent);
 	proj.write(0, &mat_p, sizeof(mat_p));
 

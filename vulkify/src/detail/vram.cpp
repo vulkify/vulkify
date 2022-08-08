@@ -2,19 +2,10 @@
 #include <detail/trace.hpp>
 #include <detail/vram.hpp>
 #include <ktl/fixed_vector.hpp>
-#include <ktl/kformat.hpp>
 #include <atomic>
 
 namespace vf {
 namespace {
-char const* get_name(char const* name, std::string& fallback, std::atomic<int>& count) {
-	if (!name) {
-		fallback = ktl::kformat("unnamed_{}", count++);
-		name = fallback.c_str();
-	}
-	return name;
-}
-
 vk::SampleCountFlagBits get_samples(vk::SampleCountFlags supported, int desired) {
 	if (desired >= 16 && (supported & vk::SampleCountFlagBits::e16)) { return vk::SampleCountFlagBits::e16; }
 	if (desired >= 8 && (supported & vk::SampleCountFlagBits::e8)) { return vk::SampleCountFlagBits::e8; }
@@ -107,17 +98,7 @@ void Vram::Deleter::operator()(Vram const& vram) const {
 	vmaDestroyAllocator(vram.allocator);
 }
 
-template <vk::ObjectType T, typename U>
-void set_debug_name(VKDevice const& device, U handle, char const* name) {
-	if (device.flags.test(VKDevice::Flag::eDebugMsgr)) {
-		static auto count = std::atomic<int>{};
-		auto name_fallback = std::string{};
-		name = get_name(name, name_fallback, count);
-		device.set_debug_name(T, handle, name);
-	}
-}
-
-UniqueImage Vram::make_image(vk::ImageCreateInfo info, bool host, char const* name, bool linear) const {
+UniqueImage Vram::make_image(vk::ImageCreateInfo info, bool host, bool linear) const {
 	if (!allocator || !command_factory) { return {}; }
 	if (info.extent.width > device_limits.maxImageDimension2D || info.extent.height > device_limits.maxImageDimension2D) {
 		VF_TRACEW(name_v, "Invalid image extent: [{}, {}]", info.extent.width, info.extent.height);
@@ -138,12 +119,10 @@ UniqueImage Vram::make_image(vk::ImageCreateInfo info, bool host, char const* na
 	auto handle = VmaAllocation{};
 	if (auto res = vmaCreateImage(allocator, &imageInfo, &vaci, &ret, &handle, nullptr); res != VK_SUCCESS) { return {}; }
 
-	set_debug_name<vk::ObjectType::eImage>(device, ret, name);
-
 	return VmaImage{{vk::Image(ret), allocator, handle}, info.initialLayout, info.extent, info.tiling, BlitCaps::make(device.gpu, info.format)};
 }
 
-UniqueBuffer Vram::make_buffer(vk::BufferCreateInfo info, bool host, char const* name) const {
+UniqueBuffer Vram::make_buffer(vk::BufferCreateInfo info, bool host) const {
 	if (!command_factory || !allocator) { return {}; }
 	info.sharingMode = vk::SharingMode::eExclusive;
 	info.queueFamilyIndexCount = 1U;
@@ -159,8 +138,6 @@ UniqueBuffer Vram::make_buffer(vk::BufferCreateInfo info, bool host, char const*
 	void* map{};
 	if (host) { vmaMapMemory(allocator, handle, &map); }
 
-	set_debug_name<vk::ObjectType::eBuffer>(device, ret, name);
-
 	return VmaBuffer{{vk::Buffer(ret), allocator, handle}, info.size, map};
 }
 
@@ -172,24 +149,11 @@ void Vram::blit(vk::CommandBuffer cmd, vk::Image in, vk::Image out, TRect<std::i
 	cmd.blitImage(in, vk::ImageLayout::eTransferSrcOptimal, out, vk::ImageLayout::eTransferDstOptimal, ib, filter);
 }
 
-template <typename Span, std::output_iterator<UniqueBuffer> Out>
-static void copy(Vram const& vram, VmaBuffer dst, vk::CommandBuffer cmd, Span const& data, char const* name, Out out) {
-	auto const size = sizeof(decltype(data[0])) * std::size(data);
-	if (!dst.resource || size == 0) { return; }
-	auto bci = vk::BufferCreateInfo({}, static_cast<vk::DeviceSize>(size), vk::BufferUsageFlagBits::eTransferSrc);
-	auto str = ktl::kformat("{}_staging", name);
-	auto stage = vram.make_buffer(bci, true, str.c_str());
-	assert(stage);
-	stage->write(data.data(), data.size());
-	cmd.copyBuffer(stage->resource, dst.resource, vk::BufferCopy({}, {}, bci.size));
-	*out++ = std::move(stage);
-}
-
 bool ImageWriter::can_blit(VmaImage const& src, VmaImage const& dst) { return src.blit_flags().test(BlitFlag::eSrc) && dst.blit_flags().test(BlitFlag::eDst); }
 
 bool ImageWriter::write(VmaImage& out, std::span<std::byte const> data, URegion region, vk::ImageLayout il) {
 	auto bci = vk::BufferCreateInfo({}, data.size(), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eTransferDst);
-	auto buffer = vram->make_buffer(bci, true, "image_copy_staging");
+	auto buffer = vram->make_buffer(bci, true);
 	if (!buffer || !buffer->write(data.data(), data.size())) { return false; }
 
 	if (region.extent.x == 0 && region.extent.x == 0) {

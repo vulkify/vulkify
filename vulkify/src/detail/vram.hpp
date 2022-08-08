@@ -122,8 +122,8 @@ struct Vram {
 	bool operator==(Vram const& rhs) const { return command_factory == rhs.command_factory && allocator == rhs.allocator; }
 	explicit operator bool() const { return command_factory && allocator; }
 
-	UniqueImage make_image(vk::ImageCreateInfo info, bool host, char const* name, bool linear = false) const;
-	UniqueBuffer make_buffer(vk::BufferCreateInfo info, bool host, char const* name) const;
+	UniqueImage make_image(vk::ImageCreateInfo info, bool host, bool linear = false) const;
+	UniqueBuffer make_buffer(vk::BufferCreateInfo info, bool host) const;
 
 	static void blit(vk::CommandBuffer cmd, vk::Image in, vk::Image out, TRect<std::int32_t> inr, TRect<std::int32_t> outr, vk::Filter filter);
 

@@ -4,7 +4,7 @@
 #include <glm/vec2.hpp>
 #include <ktl/unique_val.hpp>
 #include <vulkify/graphics/camera.hpp>
-#include <vulkify/graphics/resources/texture_handle.hpp>
+#include <vulkify/graphics/texture_handle.hpp>
 #include <mutex>
 
 namespace vf {

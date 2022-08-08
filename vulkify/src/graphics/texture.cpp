@@ -2,7 +2,7 @@
 #include <detail/trace.hpp>
 #include <vulkify/context/context.hpp>
 #include <vulkify/core/float_eq.hpp>
-#include <vulkify/graphics/resources/texture.hpp>
+#include <vulkify/graphics/texture.hpp>
 
 namespace vf {
 namespace {
@@ -17,6 +17,7 @@ constexpr vk::SamplerAddressMode get_mode(AddressMode const mode) {
 
 constexpr vk::Filter get_filter(Filtering const filtering) { return filtering == Filtering::eLinear ? vk::Filter::eLinear : vk::Filter::eNearest; }
 
+constexpr vk::Format get_format(ImageFormat const format) { return format == ImageFormat::eLinear ? vk::Format::eR8G8B8A8Unorm : vk::Format::eR8G8B8A8Srgb; }
 constexpr std::array<std::byte, Image::channels_v> rgba_bytes(Rgba rgba) {
 	auto ret = std::array<std::byte, Image::channels_v>{};
 	Bitmap::rgba_to_byte(rgba, ret.data());
@@ -32,8 +33,15 @@ void blit(ImageCache& in_cache, ImageCache& out_cache, Filtering filtering) {
 }
 } // namespace
 
-Texture::Texture(Context const& context, std::string name, Image::View image, CreateInfo const& createInfo)
-	: Texture(context.vram(), std::move(name), createInfo) {
+TextureHandle::operator bool() const { return handle.contains<HTexture>(); }
+
+bool TextureHandle::operator==(TextureHandle const& rhs) const {
+	if (!*this && !rhs) { return true; }
+	if (!!*this ^ !!rhs) { return false; }
+	return handle.get<HTexture>() == rhs.handle.get<HTexture>();
+}
+
+Texture::Texture(Context const& context, Image::View image, CreateInfo const& createInfo) : Texture(context.vram(), createInfo) {
 	if (!m_allocation || !m_allocation->vram) { return; }
 	create(image);
 }
@@ -76,8 +84,8 @@ Result<void> Texture::rescale(float scale) {
 	return Result<void>::success();
 }
 
-Texture Texture::clone(std::string name) const {
-	auto ret = clone_image(std::move(name));
+Texture Texture::clone() const {
+	auto ret = clone_image();
 	if (!ret.m_allocation->image.cache.image) { return ret; }
 
 	blit(m_allocation->image.cache, ret.m_allocation->image.cache, m_filtering);
@@ -94,17 +102,18 @@ TextureHandle Texture::handle() const {
 	return {HTexture{*m_allocation->image.cache.view, *m_allocation->image.sampler}};
 }
 
-Texture::Texture(Vram const& vram, std::string name, CreateInfo const& createInfo)
-	: GfxResource(vram, std::move(name)), m_address_mode(createInfo.addressMode), m_filtering(createInfo.filtering) {
+Texture::Texture(Vram const& vram, CreateInfo const& createInfo)
+	: GfxResource(vram), m_address_mode(createInfo.address_mode), m_filtering(createInfo.filtering) {
 	if (!m_allocation || !m_allocation->vram) { return; }
 	m_allocation->image.sampler = vram.device.device.createSamplerUnique(sampler_info(vram, get_mode(m_address_mode), get_filter(m_filtering)));
 	m_allocation->image.cache.set_texture(true);
+	m_allocation->image.cache.info.info.format = get_format(createInfo.format);
 }
 
-Texture Texture::clone_image(std::string name) const {
+Texture Texture::clone_image() const {
 	if (!m_allocation || !m_allocation->vram || !m_allocation->image.cache.image) { return {}; }
 
-	auto ret = Texture(m_allocation->vram, std::move(name), {m_address_mode, m_filtering});
+	auto ret = Texture(m_allocation->vram, {m_address_mode, m_filtering});
 	if (!ret.m_allocation) { return ret; }
 
 	auto const ext = extent();
@@ -128,7 +137,7 @@ void Texture::write(Image::View const image, Rect const& region) {
 }
 
 void Texture::set_invalid() {
-	VF_TRACEW("vf::Texture", "[{}] Invalid bitmap", m_allocation->name);
+	VF_TRACE("vf::Texture", vf::trace::Type::eWarn, "Invalid bitmap");
 	static constexpr auto magenta_bytes_v = rgba_bytes(magenta_v);
 	m_allocation->image.cache.refresh({1, 1});
 	write({magenta_bytes_v, {1, 1}}, {{1, 1}});
