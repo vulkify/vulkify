@@ -63,12 +63,15 @@ struct GfxAllocation {
 };
 
 struct GfxCommandBuffer {
-	CommandPool& pool;
+	Vram vram;
+	CommandFactory::Scoped pool;
 	vk::CommandBuffer cmd;
 	ImageWriter writer;
 
-	GfxCommandBuffer(Vram const& vram) : pool(vram.command_factory->get()), cmd(pool.acquire()), writer(vram, cmd) {}
-	~GfxCommandBuffer() { pool.release(std::move(cmd), true); }
+	GfxCommandBuffer(Vram const& vram) : vram(vram), pool(*vram.command_factory), cmd(pool.get().acquire()), writer(vram, cmd) {}
+	~GfxCommandBuffer() { pool.get().release(std::move(cmd), true); }
+
+	GfxCommandBuffer& operator=(GfxCommandBuffer&&) = delete;
 };
 
 struct GfxShaderModule {

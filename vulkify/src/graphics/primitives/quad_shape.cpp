@@ -22,7 +22,7 @@ QuadShape& QuadShape::set_texture(Ptr<Texture const> texture, bool resize_to_mat
 	return *this;
 }
 
-QuadShape& QuadShape::set_silhouette(float extrude, vf::Rgba tint) {
+QuadShape& QuadShape::set_silhouette(float extrude, Rgba tint) {
 	if (extrude > 0.0f) {
 		auto state = m_state;
 		state.size += extrude;

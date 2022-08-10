@@ -14,13 +14,13 @@ class QuadShape : public Shape {
 	QuadShape() = default;
 	explicit QuadShape(Context const& context, State initial = {});
 
+	Rect bounds() const override { return {{size() * transform().scale, transform().position}}; }
 	State const& state() const { return m_state; }
 	glm::vec2 size() const { return m_state.size; }
-	vf::Rect rect() const { return {{size() * transform().scale, transform().position}}; }
 
 	QuadShape& set_state(State state);
 	QuadShape& set_texture(Ptr<Texture const> texture, bool resize_to_match = false);
-	QuadShape& set_silhouette(float extrude, vf::Rgba tint);
+	QuadShape& set_silhouette(float extrude, Rgba tint);
 
   protected:
 	QuadShape& refresh();

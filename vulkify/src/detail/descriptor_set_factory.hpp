@@ -78,7 +78,7 @@ struct DescriptorAllocator {
 		return storage.sets[index];
 	}
 
-	SetWriter descriptorSet() {
+	SetWriter descriptor_set() {
 		auto& set = this->set();
 		return {&vram, set.buffers, set.set, number};
 	}
@@ -105,7 +105,7 @@ struct DescriptorSetFactory {
 	SetWriter postInc(std::uint32_t set) {
 		assert(set < sets_v);
 		auto& rot = allocators[set];
-		auto ret = rot.descriptorSet();
+		auto ret = rot.descriptor_set();
 		++rot.index;
 		return ret;
 	}

@@ -84,8 +84,7 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples)
 		VF_TRACE(name_v, trace::Type::eError, "Failed to create Vram!");
 		return {};
 	}
-	auto factory = ktl::make_unique<CommandFactory>();
-	factory->command_pools.factory().device = device;
+	auto factory = ktl::make_unique<CommandFactory>(CommandPoolFactory{device});
 	vram.command_factory = factory.get();
 	vram.device_limits = limits;
 	vram.colour_samples = get_samples(limits.framebufferColorSampleCounts, samples);
@@ -94,7 +93,7 @@ UniqueVram UniqueVram::make(vk::Instance instance, VKDevice device, int samples)
 
 void Vram::Deleter::operator()(Vram const& vram) const {
 	vram.device.defer.queue->entries.clear();
-	vram.command_factory->command_pools.clear();
+	vram.command_factory->clear();
 	vmaDestroyAllocator(vram.allocator);
 }
 

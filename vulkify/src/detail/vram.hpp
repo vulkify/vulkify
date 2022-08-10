@@ -4,7 +4,7 @@
 #include <detail/vk_device.hpp>
 #include <ktl/enum_flags/enum_flags.hpp>
 #include <ktl/fixed_vector.hpp>
-#include <vulkify/core/per_thread.hpp>
+#include <vulkify/core/pool.hpp>
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/core/unique.hpp>
@@ -14,7 +14,6 @@ using FT_Library = FT_LibraryRec_*;
 
 namespace vf {
 class CommandPool;
-struct ShaderCache;
 
 enum class BlitFlag { eSrc, eDst, eLinearFilter };
 using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
@@ -97,15 +96,12 @@ struct VmaImage : VmaResource<vk::Image> {
 using UniqueImage = Unique<VmaImage, VmaImage::Deleter>;
 using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 
-struct CommandFactory {
-	struct Factory {
-		VKDevice device{};
-		CommandPool operator()() const { return device; }
-	};
-
-	PerThread<CommandPool, Factory> command_pools{};
-	CommandPool& get() const { return command_pools.get(); }
+struct CommandPoolFactory {
+	VKDevice device{};
+	CommandPool operator()() const { return device; }
 };
+
+using CommandFactory = Pool<CommandPool, CommandPoolFactory>;
 
 struct Vram {
 	VKDevice device{};
@@ -113,7 +109,6 @@ struct Vram {
 	FT_Library ftlib{};
 	std::size_t buffering{};
 	CommandFactory* command_factory{};
-	ShaderCache* shaderCache{};
 
 	vk::PhysicalDeviceLimits device_limits{};
 	vk::SampleCountFlagBits colour_samples{};

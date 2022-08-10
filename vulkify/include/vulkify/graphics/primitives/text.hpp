@@ -27,7 +27,7 @@ class Text : public Primitive {
 	Rgba const& tint() const { return m_mesh.get().storage.tint; }
 	Transform& transform() { return m_mesh.get().storage.transform; }
 	Transform const& transform() const { return m_mesh.get().storage.transform; }
-	std::string const& string() const& { return m_text; }
+	std::string_view string() const { return m_text; }
 	Align align() const { return m_align; }
 	Height height() const { return m_height; }
 
