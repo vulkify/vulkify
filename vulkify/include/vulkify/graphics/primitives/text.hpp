@@ -2,10 +2,10 @@
 #include <ktl/not_null.hpp>
 #include <vulkify/core/dirty_flag.hpp>
 #include <vulkify/graphics/primitives/mesh.hpp>
+#include <vulkify/ttf/ttf_handle.hpp>
 
 namespace vf {
 class Ttf;
-class GfxFont;
 
 class Text : public Primitive {
   public:
@@ -31,8 +31,8 @@ class Text : public Primitive {
 	Align align() const { return m_align; }
 	Height height() const { return m_height; }
 
-	Text& set_font(ktl::not_null<Ttf*> ttf);
-	Text& set_font(ktl::not_null<GfxFont*> font);
+	Text& set_ttf(ktl::not_null<Ttf*> ttf);
+	Text& set_ttf(TtfHandle ttf);
 	Text& set_string(std::string string);
 	Text& append(std::string string);
 	Text& append(char ch);
@@ -48,6 +48,6 @@ class Text : public Primitive {
 	std::string m_text{};
 	Align m_align{};
 	Height m_height{60};
-	Ptr<GfxFont> m_font{};
+	TtfHandle m_ttf{};
 };
 } // namespace vf

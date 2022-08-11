@@ -79,11 +79,11 @@ struct GfxShaderModule {
 	vk::Device device{};
 };
 
-struct HTexture {
+struct CombinedImageSampler {
 	vk::ImageView view{};
 	vk::Sampler sampler{};
 
-	constexpr bool operator==(HTexture const& rhs) const { return view == rhs.view && sampler == rhs.sampler; }
+	constexpr bool operator==(CombinedImageSampler const& rhs) const { return view == rhs.view && sampler == rhs.sampler; }
 };
 
 struct Inactive {

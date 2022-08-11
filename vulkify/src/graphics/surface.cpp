@@ -35,7 +35,11 @@ constexpr vk::PrimitiveTopology topology(Topology topo) {
 [[maybe_unused]] constexpr auto name_v = "vf::(internal)";
 } // namespace
 
-HTexture RenderPass::white_texture() const { return HTexture{*shader_input.textures->white.view, *shader_input.textures->sampler}; }
+CombinedImageSampler RenderPass::image_sampler(Ptr<GfxAllocation const> alloc) const {
+	return alloc && alloc->image.cache.view && alloc->image.sampler ? CombinedImageSampler{*alloc->image.cache.view, *alloc->image.sampler} : white_texture();
+}
+
+CombinedImageSampler RenderPass::white_texture() const { return CombinedImageSampler{*shader_input.textures->white.view, *shader_input.textures->sampler}; }
 
 void RenderPass::write_view(SetWriter& set) const {
 	if (!set) {
@@ -49,7 +53,7 @@ void RenderPass::write_view(SetWriter& set) const {
 }
 
 void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instances, TextureHandle const& texture) const {
-	auto const tex = texture.handle.contains<HTexture>() ? texture.handle.get<HTexture>() : white_texture();
+	auto const tex = image_sampler(texture.allocation);
 	if (!set || instances.empty() || !tex.sampler || !tex.view) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write models set");
 		return;
@@ -61,7 +65,7 @@ void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instanc
 }
 
 void RenderPass::write_custom(SetWriter& set, std::span<std::byte const> ubo, TextureHandle const& texture) const {
-	auto const tex = texture.handle.contains<HTexture>() ? texture.handle.get<HTexture>() : white_texture();
+	auto const tex = image_sampler(texture.allocation);
 	if (!set || !tex.sampler || !tex.view) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write custom set");
 		return;

@@ -24,15 +24,15 @@ constexpr Scribe::Pivot pivot(Text::Align align) {
 
 Text::Text(Context const& context) { m_mesh.get() = vf::Mesh{context}; }
 
-Text::operator bool() const { return m_font && *m_font && m_mesh.get(); }
+Text::operator bool() const { return m_ttf && *m_ttf.font && m_mesh.get(); }
 
-Text& Text::set_font(ktl::not_null<Ttf*> ttf) {
-	if (*ttf) { return set_font(ttf->font()); }
+Text& Text::set_ttf(ktl::not_null<Ttf*> ttf) {
+	if (*ttf) { return set_ttf(ttf->handle()); }
 	return *this;
 }
 
-Text& Text::set_font(ktl::not_null<GfxFont*> glyph_factory) {
-	m_font = glyph_factory;
+Text& Text::set_ttf(TtfHandle ttf) {
+	m_ttf = ttf;
 	m_mesh.set_dirty();
 	return *this;
 }
@@ -68,15 +68,15 @@ Text& Text::set_height(Height height) {
 }
 
 void Text::draw(Surface const& surface, RenderState const& state) const {
-	if (m_text.empty() || !m_font || !*m_font) { return; }
+	if (m_text.empty() || !m_ttf || !*m_ttf.font) { return; }
 	if (m_mesh.dirty) { rebuild(); }
 	surface.draw(m_mesh.get().drawable(), state);
 }
 
 void Text::rebuild() const {
-	auto scribe = Scribe{*m_font, m_height};
+	auto scribe = Scribe{*m_ttf.font, m_height};
 	scribe.write(Scribe::Block{m_text}, pivot(m_align));
-	if (auto const* texture = m_font->texture(m_height)) {
+	if (auto const* texture = m_ttf.font->texture(m_height)) {
 		m_mesh.get().texture = texture->handle();
 		m_mesh.get().buffer.write(std::move(scribe.geometry));
 		m_mesh.set_clean();

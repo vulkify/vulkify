@@ -1,11 +1,13 @@
 #pragma once
-#include <ktl/fixed_any.hpp>
+#include <vulkify/core/ptr.hpp>
 
 namespace vf {
-struct TextureHandle {
-	ktl::fixed_any<2 * sizeof(void*)> handle{};
+struct GfxAllocation;
 
-	bool operator==(TextureHandle const& rhs) const;
-	explicit operator bool() const;
+struct TextureHandle {
+	Ptr<GfxAllocation const> allocation{};
+
+	bool operator==(TextureHandle const& rhs) const = default;
+	explicit constexpr operator bool() const { return allocation != nullptr; }
 };
 } // namespace vf

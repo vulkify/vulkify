@@ -66,5 +66,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/ttf/character.hpp
   include/vulkify/ttf/glyph.hpp
   include/vulkify/ttf/scribe.hpp
+  include/vulkify/ttf/ttf_handle.hpp
   include/vulkify/ttf/ttf.hpp
 )

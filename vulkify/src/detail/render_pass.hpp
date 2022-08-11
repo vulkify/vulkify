@@ -12,7 +12,7 @@ class Instance;
 struct DrawModel;
 struct PipelineFactory;
 struct DescriptorSetFactory;
-struct HTexture;
+struct CombinedImageSampler;
 
 struct SetBind {
 	std::uint32_t set{};
@@ -56,7 +56,8 @@ struct RenderPass {
 
 	mutable vk::PipelineLayout bound{};
 
-	HTexture white_texture() const;
+	CombinedImageSampler image_sampler(Ptr<GfxAllocation const> alloc) const;
+	CombinedImageSampler white_texture() const;
 	void write_view(SetWriter& set) const;
 	void write_models(SetWriter& set, std::span<DrawModel const> instances, TextureHandle const& texture) const;
 	void write_custom(SetWriter& set, std::span<std::byte const> ubo, TextureHandle const& texture) const;

@@ -1,12 +1,13 @@
 #pragma once
 #include <vulkify/graphics/atlas.hpp>
 #include <vulkify/ttf/character.hpp>
+#include <vulkify/ttf/ttf_handle.hpp>
 #include <memory>
 #include <span>
 
 namespace vf {
 class Context;
-class GfxFont;
+struct GfxFont;
 
 ///
 /// \brief TrueType Font
@@ -36,7 +37,7 @@ class Ttf {
 
 	Ptr<Atlas const> atlas(Height height = height_v) const;
 	Ptr<Texture const> texture(Height height = height_v) const;
-	Ptr<GfxFont> font() const { return m_font.get(); }
+	TtfHandle handle() const { return {m_font.get()}; }
 
   private:
 	void on_loaded();

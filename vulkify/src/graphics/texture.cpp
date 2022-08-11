@@ -33,14 +33,6 @@ void blit(ImageCache& in_cache, ImageCache& out_cache, Filtering filtering) {
 }
 } // namespace
 
-TextureHandle::operator bool() const { return handle.contains<HTexture>(); }
-
-bool TextureHandle::operator==(TextureHandle const& rhs) const {
-	if (!*this && !rhs) { return true; }
-	if (!!*this ^ !!rhs) { return false; }
-	return handle.get<HTexture>() == rhs.handle.get<HTexture>();
-}
-
 Texture::Texture(Context const& context, Image::View image, CreateInfo const& createInfo) : Texture(context.vram(), createInfo) {
 	if (!m_allocation || !m_allocation->vram) { return; }
 	create(image);
@@ -97,10 +89,7 @@ Extent Texture::extent() const {
 	return {m_allocation->image.cache.info.info.extent.width, m_allocation->image.cache.info.info.extent.height};
 }
 
-TextureHandle Texture::handle() const {
-	if (!m_allocation || !m_allocation->image.cache || !m_allocation->image.sampler) { return {}; }
-	return {HTexture{*m_allocation->image.cache.view, *m_allocation->image.sampler}};
-}
+TextureHandle Texture::handle() const { return {m_allocation.get()}; }
 
 Texture::Texture(Vram const& vram, CreateInfo const& createInfo)
 	: GfxResource(vram), m_address_mode(createInfo.address_mode), m_filtering(createInfo.filtering) {

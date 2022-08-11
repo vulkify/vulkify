@@ -9,8 +9,7 @@
 namespace vf {
 struct Vram;
 
-class GfxFont {
-  public:
+struct GfxFont {
 	using Height = Glyph::Height;
 
 	GfxFont() = default;
@@ -39,7 +38,7 @@ class GfxFont {
 	Ptr<Atlas const> atlas(Height height) const;
 	Ptr<Texture const> texture(Height height) const;
 
-	ktl::hash_table<Height, Font> m_fonts{};
-	Face m_face{};
+	ktl::hash_table<Height, Font> fonts{};
+	Face face{};
 };
 } // namespace vf

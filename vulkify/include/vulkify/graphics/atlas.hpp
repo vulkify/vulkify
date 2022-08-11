@@ -48,7 +48,7 @@ class Atlas {
 		std::uint32_t nextY{};
 	} m_state{};
 
-	friend class GfxFont;
+	friend struct GfxFont;
 };
 
 ///

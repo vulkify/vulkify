@@ -24,10 +24,9 @@ class GfxResource {
 	explicit operator bool() const;
 	GfxAllocation const& resource() const;
 
-	void release() &&;
-
   protected:
 	Vram const& vram() const;
+	void release() &&;
 
 	ktl::kunique_ptr<GfxAllocation> m_allocation;
 };
