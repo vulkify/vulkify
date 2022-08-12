@@ -9,9 +9,9 @@
 namespace vf {
 class Context;
 
-enum class AddressMode { eClampEdge, eClampBorder, eRepeat };
-enum class Filtering { eNearest, eLinear };
-enum class ImageFormat { eSrgb, eLinear };
+enum class AddressMode : std::uint8_t { eClampEdge, eClampBorder, eRepeat };
+enum class Filtering : std::uint8_t { eNearest, eLinear };
+enum class ImageFormat : std::uint8_t { eSrgb, eLinear };
 
 struct TextureCreateInfo {
 	AddressMode address_mode{AddressMode::eClampEdge};
@@ -71,3 +71,49 @@ class Texture : public GfxResource {
 	friend class Atlas;
 };
 } // namespace vf
+
+#include <vulkify/core/handle.hpp>
+
+namespace vf::refactor {
+class GfxAllocation;
+/*
+///
+/// \brief GPU Texture (Image and sampler)
+///
+class Texture : public GfxResource {
+  public:
+	using CreateInfo = TextureCreateInfo;
+	using TopLeft = Bitmap::TopLeft;
+	using Rect = TRect<std::uint32_t>;
+
+	Texture() = default;
+	explicit Texture(Context const& context, Image::View image = {}, CreateInfo const& create_info = {});
+
+	Result<void> create(Image::View image);
+	Result<void> overwrite(Image::View image, Rect const& region);
+	Result<void> rescale(float scale);
+
+	Texture clone() const;
+
+	Extent extent() const;
+	AddressMode address_mode() const { return m_address_mode; }
+	Filtering filtering() const { return m_filtering; }
+	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
+
+	Handle<GfxAllocation> handle() const { return m_handle; }
+
+  private:
+	Texture(GfxDevice const& device, CreateInfo const& info);
+	Texture clone_image() const;
+
+	void refresh(Extent extent);
+	void write(Image::View image, Rect const& region);
+	void set_invalid();
+
+	Handle<GfxAllocation> m_handle{};
+	AddressMode m_address_mode{};
+	Filtering m_filtering{};
+
+	friend class Atlas;
+};*/
+} // namespace vf::refactor

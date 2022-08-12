@@ -38,3 +38,16 @@ inline DrawModel DrawInstance::draw_model() const {
 	return ret;
 }
 } // namespace vf
+
+namespace vf::refactor {
+class Texture;
+
+///
+/// \brief View to geometry, texture, and instances associated with a single draw call
+///
+struct Drawable {
+	std::span<DrawInstance const> instances{};
+	GeometryBuffer const& buffer;
+	Texture const& texture;
+};
+} // namespace vf::refactor

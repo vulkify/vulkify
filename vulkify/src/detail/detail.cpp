@@ -1,5 +1,6 @@
 #include <detail/command_pool.hpp>
 #include <detail/command_pool2.hpp>
+#include <detail/gfx_buffer_image.hpp>
 #include <detail/gfx_command_buffer.hpp>
 #include <detail/gfx_device.hpp>
 #include <detail/trace.hpp>
@@ -488,6 +489,81 @@ vk::SamplerCreateInfo GfxDevice::sampler_info(vk::SamplerAddressMode mode, vk::F
 	return ret;
 }
 /// /GfxDevice
+
+/// GfxBuffer/Image
+vk::ImageCreateInfo& ImageCache::set_depth() {
+	static constexpr auto flags = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransientAttachment;
+	info.info = vk::ImageCreateInfo();
+	info.info.usage = flags;
+	info.aspect |= vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+	return info.info;
+}
+
+vk::ImageCreateInfo& ImageCache::set_colour() {
+	static constexpr auto flags = vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc;
+	info.info = vk::ImageCreateInfo();
+	info.info.usage = flags;
+	info.aspect |= vk::ImageAspectFlagBits::eColor;
+	return info.info;
+}
+
+vk::ImageCreateInfo& ImageCache::set_texture(bool const transfer_src) {
+	static constexpr auto flags = vk::ImageUsageFlagBits::eSampled;
+	info.info = vk::ImageCreateInfo();
+	info.info.usage = flags;
+	info.info.format = device->texture_format;
+	info.info.usage |= vk::ImageUsageFlagBits::eTransferDst;
+	if (transfer_src) { info.info.usage |= vk::ImageUsageFlagBits::eTransferSrc; }
+	info.aspect |= vk::ImageAspectFlagBits::eColor;
+	return info.info;
+}
+
+bool ImageCache::ready(Extent const extent, vk::Format const format) const noexcept {
+	if (!image || info.info.format != format) { return false; }
+	return current() == extent;
+}
+
+bool ImageCache::make(Extent const extent, vk::Format const format) {
+	info.info.extent = vk::Extent3D(extent.x, extent.y, 1);
+	info.info.format = format;
+	device->device.defer(std::move(image), std::move(view));
+	image = device->make_image(info.info, info.prefer_host);
+	if (!image) { return false; }
+	view = device->device.make_image_view(image->resource, format, info.aspect);
+	return *view;
+}
+
+ImageView ImageCache::refresh(Extent const extent, vk::Format format) {
+	if (format == vk::Format()) { format = info.info.format; }
+	if (!ready(extent, format)) { make(extent, format); }
+	return peek();
+}
+
+BufferCache::BufferCache(GfxDevice const& device, vk::BufferUsageFlagBits usage) : device(device) {
+	info.usage = usage;
+	info.size = 1;
+	for (std::size_t i = 0; i < device.buffering; ++i) { buffers.push(device.make_buffer(info, true)); }
+}
+
+VmaBuffer const& BufferCache::get(bool next) const {
+	static auto const blank_v = VmaBuffer{};
+	if (!device) { return blank_v; }
+	auto& buffer = buffers.get();
+	if (buffer->size < data.size()) {
+		info.size = data.size();
+		device.device.defer(std::move(buffer));
+		buffer = device.make_buffer(info, true);
+	}
+	buffer->write(data.data(), data.size());
+	if (next) { buffers.next(); }
+	return buffer;
+}
+
+void GfxImage::replace(ImageCache&& cache) {
+	device().device.defer(std::move(image.cache));
+	image.cache = std::move(cache);
+}
+/// /GfxBuffer/Image
 
 /// GfxCommandBuffer
 void ImageWriter::blit(vk::CommandBuffer cmd, vk::Image in, vk::Image out, TRect<std::int32_t> inr, TRect<std::int32_t> outr, vk::Filter filter) {

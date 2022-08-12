@@ -1,6 +1,5 @@
 #pragma once
-#include <detail/gfx_allocation.hpp>
-#include <detail/handle_map.hpp>
+#include <detail/maps_decl.hpp>
 #include <detail/vulkan_device.hpp>
 #include <ktl/async/kfunction.hpp>
 #include <vulkify/core/defines.hpp>
@@ -11,7 +10,6 @@
 
 namespace vf::refactor {
 using MakeSurface = ktl::kfunction<vk::SurfaceKHR(vk::Instance)>;
-using GfxAllocationMap = HandleMap<ktl::kunique_ptr<GfxAllocation>>;
 
 struct GpuInfo {
 	vk::PhysicalDeviceProperties properties{};

@@ -50,6 +50,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/command_pool2.hpp
   detail/detail.cpp
   detail/gfx_allocation.hpp
+  detail/gfx_buffer_image.hpp
   detail/gfx_command_buffer.hpp
   detail/gfx_device.hpp
   detail/handle_map.hpp

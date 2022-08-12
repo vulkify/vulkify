@@ -532,7 +532,7 @@ float Gamepad::operator()(Axis axis) const {
 std::size_t GamepadMap::count() const { return static_cast<std::size_t>(std::count(std::begin(map), std::end(map), true)); }
 } // namespace vf
 
-#include <detail/cache2.hpp>
+#include <detail/gfx_buffer_image.hpp>
 #include <detail/gfx_device.hpp>
 #include <detail/vulkan_instance.hpp>
 #include <detail/vulkan_swapchain.hpp>
@@ -587,7 +587,7 @@ struct FrameSync {
 };
 
 struct SwapchainRenderer {
-	GfxDevice device{};
+	GfxDevice const* device{};
 
 	Renderer renderer{};
 	Rotator<FrameSync> frame_sync{};
@@ -599,32 +599,33 @@ struct SwapchainRenderer {
 	Rgba clear{};
 	bool msaa{};
 
-	static SwapchainRenderer make(GfxDevice const& device, vk::Format format) {
+	static SwapchainRenderer make(GfxDevice const* device, vk::Format format) {
+		assert(device);
 		auto ret = SwapchainRenderer{device};
-		auto renderer = Renderer::make(device.device.device, format, device.colour_samples);
+		auto renderer = Renderer::make(device->device.device, format, device->colour_samples);
 		if (!renderer.render_pass) { return {}; }
 		ret.renderer = std::move(renderer);
 
 		static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
-		auto cpci = vk::CommandPoolCreateInfo(flags, device.device.queue.family);
-		ret.command_pool = device.device.device.createCommandPoolUnique(cpci);
+		auto cpci = vk::CommandPoolCreateInfo(flags, device->device.queue.family);
+		ret.command_pool = device->device.device.createCommandPoolUnique(cpci);
 
-		auto const count = static_cast<std::uint32_t>(device.buffering);
-		auto primaries = device.device.device.allocateCommandBuffers({*ret.command_pool, vk::CommandBufferLevel::ePrimary, count});
-		auto secondaries = device.device.device.allocateCommandBuffers({*ret.command_pool, vk::CommandBufferLevel::eSecondary, count});
-		for (std::size_t i = 0; i < device.buffering; ++i) {
-			auto sync = FrameSync::make(device.device.device);
+		auto const count = static_cast<std::uint32_t>(device->buffering);
+		auto primaries = device->device.device.allocateCommandBuffers({*ret.command_pool, vk::CommandBufferLevel::ePrimary, count});
+		auto secondaries = device->device.device.allocateCommandBuffers({*ret.command_pool, vk::CommandBufferLevel::eSecondary, count});
+		for (std::size_t i = 0; i < device->buffering; ++i) {
+			auto sync = FrameSync::make(device->device.device);
 			sync.cmd.primary = std::move(primaries[i]);
 			sync.cmd.secondary = std::move(secondaries[i]);
 			ret.frame_sync.push(std::move(sync));
 		}
 
-		if (device.colour_samples > vk::SampleCountFlagBits::e1) {
+		if (device->colour_samples > vk::SampleCountFlagBits::e1) {
 			ret.msaa = true;
 			auto& image = ret.msaa_image;
 			image = {.device = device};
 			image.set_colour();
-			image.info.info.samples = device.colour_samples;
+			image.info.info.samples = device->colour_samples;
 			image.info.info.format = format;
 			VF_TRACE("vf::(internal)", trace::Type::eInfo, "Using custom MSAA render target");
 		}
@@ -640,7 +641,7 @@ struct SwapchainRenderer {
 
 		auto& sync = frame_sync.get();
 		auto const extent = Extent{acquired.extent.width, acquired.extent.height};
-		device.device.reset(*sync.drawn);
+		device->device.reset(*sync.drawn);
 		// TODO: fixup
 		{
 			framebuffer.colour = {acquired.image, acquired.view, acquired.extent};
@@ -735,18 +736,15 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 	if (!builder) { return builder.error(); }
 	if (builder->devices.empty()) { return Error::eNoVulkanSupport; }
 	auto selected = select_device(builder->devices, create_info.gpu_selector);
-	auto instance = builder.value()(std::move(selected));
-	if (!instance) { return instance.error(); }
+	auto vulkan = builder.value()(std::move(selected));
+	if (!vulkan) { return vulkan.error(); }
 
-	auto impl = ktl::kunique_ptr<Impl>{};
+	auto impl = ktl::make_unique<Impl>(Impl{std::move(*win_inst), std::move(window), std::move(*vulkan)});
 	{
-		auto vulkan = std::move(instance.value());
-		auto vk_device = VulkanDevice::make(vulkan);
-		auto gfx_device = UniqueGfxDevice::make(*vulkan.instance, vk_device, freetype->lib, get_samples(create_info.desired_aa));
-		if (!gfx_device) { return Error::eVulkanInitFailure; }
-		gfx_device.device->buffering = 2;
-
-		impl = ktl::make_unique<Impl>(Impl{std::move(*win_inst), std::move(window), std::move(vulkan), std::move(gfx_device)});
+		impl->device = UniqueGfxDevice::make(*impl->vulkan.instance, VulkanDevice::make(impl->vulkan), freetype->lib, get_samples(create_info.desired_aa));
+		if (!impl->device) { return Error::eVulkanInitFailure; }
+		impl->device.device->buffering = 2;
+		impl->device.device->allocations = &impl->vulkan.util->allocations;
 	}
 	{
 		bool const linear = create_info.instance_flags.test(InstanceFlag::eLinearSwapchain);
@@ -758,7 +756,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 		impl->device.device->device.flags.assign(VulkanDevice::Flag::eLinearSwp, impl->swapchain.linear);
 	}
 	{
-		auto renderer = SwapchainRenderer::make(impl->device.device, impl->swapchain.info.imageFormat);
+		auto renderer = SwapchainRenderer::make(&impl->device.device.get(), impl->swapchain.info.imageFormat);
 		if (!renderer) { return Error::eVulkanInitFailure; }
 		impl->renderer = std::move(renderer);
 		impl->device.device->texture_format = texture_format(impl->swapchain.info.imageFormat);
@@ -890,7 +888,8 @@ Surface VulkifyInstance::begin_pass2(Rgba clear) {
 	auto const cam = RenderCam{extent, &m_impl->camera};
 	auto const lwl = std::pair(m_impl->device.device->device_limits->lineWidthRange[0], m_impl->device.device->device_limits->lineWidthRange[1]);
 	auto* mutex = &m_impl->vulkan.util->mutex.render;
-	return RenderPass{this, &m_impl->pipeline_factory, &m_impl->set_factory, *sr.renderer.render_pass, std::move(cmd), input, cam, lwl, mutex};
+	auto const& device = m_impl->device.device.get();
+	return RenderPass{this, &device, &m_impl->pipeline_factory, &m_impl->set_factory, *sr.renderer.render_pass, std::move(cmd), input, cam, lwl, mutex};
 }
 
 bool VulkifyInstance::end_pass() {

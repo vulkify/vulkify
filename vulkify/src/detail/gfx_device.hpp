@@ -1,6 +1,7 @@
 #pragma once
 #include <vk_mem_alloc.h>
 #include <detail/command_pool2.hpp>
+#include <detail/handle_map.hpp>
 #include <detail/vulkan_device.hpp>
 #include <vulkify/core/pool.hpp>
 #include <vulkify/core/rect.hpp>
@@ -95,12 +96,16 @@ using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 struct CommandPoolFactory;
 using CommandFactory = Pool<CommandPool, CommandPoolFactory>;
 
+class GfxAllocation;
+using GfxAllocationMap = HandleMap<ktl::kunique_ptr<GfxAllocation>>;
+
 struct GfxDevice {
 	VulkanDevice device{};
 	VmaAllocator allocator{};
 	FT_Library ftlib{};
 	std::size_t buffering{};
 	CommandFactory* command_factory{};
+	GfxAllocationMap* allocations{};
 
 	vk::PhysicalDeviceLimits const* device_limits{};
 	vk::SampleCountFlagBits colour_samples{};
@@ -119,10 +124,10 @@ struct GfxDevice {
 };
 
 struct UniqueGfxDevice {
-	ktl::kunique_ptr<CommandFactory> commandFactory{};
+	ktl::kunique_ptr<CommandFactory> command_factory{};
 	Unique<GfxDevice, GfxDevice::Deleter> device{};
 
-	explicit operator bool() const { return device && commandFactory; }
+	explicit operator bool() const { return device && command_factory; }
 
 	static UniqueGfxDevice make(vk::Instance instance, VulkanDevice device, FT_Library ft, int samples);
 };

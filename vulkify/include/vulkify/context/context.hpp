@@ -35,6 +35,7 @@ class Context {
 	VSync vsync() const { return m_instance->vsync(); }
 
 	Frame frame(Rgba clear = {});
+	// TODO: fixup
 	refactor::Frame frame2(Rgba clear = {});
 
 	void set_position(glm::ivec2 xy) { m_instance->set_position(xy); }
@@ -51,6 +52,7 @@ class Context {
 	glm::mat3 unprojection() const;
 	glm::vec2 unproject(glm::vec2 point) const { return unprojection() * glm::vec3(point, 1.0f); }
 
+	refactor::GfxDevice const& device() const { return m_instance->gfx_device(); }
 	Vram const& vram() const { return m_instance->vram(); }
 
   private:

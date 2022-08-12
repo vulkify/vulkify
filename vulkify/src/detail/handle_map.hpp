@@ -27,7 +27,12 @@ struct HandleMap {
 	void remove(Lock const&, Handle<Type> handle) { map.erase(handle); }
 	bool contains(Lock const&, Handle<Type> const handle) const { return map.find(handle) != map.end(); }
 
-	Ptr<Type> find(Lock const&, Handle<Type> handle) const {
+	Ptr<Type const> find(Lock const&, Handle<Type> handle) const {
+		if (auto it = map.find(handle); it != map.end()) { return &it->second; }
+		return {};
+	}
+
+	Ptr<Type> find(Lock const&, Handle<Type> handle) {
 		if (auto it = map.find(handle); it != map.end()) { return &it->second; }
 		return {};
 	}

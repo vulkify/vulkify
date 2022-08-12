@@ -1,6 +1,7 @@
 #include <detail/shared_impl.hpp>
 #include <vulkify/context/context.hpp>
 
+#include <detail/gfx_device.hpp>
 #include <vulkify/instance/vf_instance.hpp>
 
 namespace vf {

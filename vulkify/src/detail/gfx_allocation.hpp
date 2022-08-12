@@ -1,5 +1,4 @@
 #pragma once
-#include <ktl/kunique_ptr.hpp>
 
 namespace vf::refactor {
 struct GfxDevice;
@@ -21,9 +20,4 @@ class GfxAllocation {
 	GfxDevice const* m_device{};
 	Type m_type{};
 };
-
-template <std::derived_from<GfxAllocation> T>
-ktl::kunique_ptr<T> make_allocation(GfxDevice const& device) {
-	return ktl::make_unique<T>(device);
-}
 } // namespace vf::refactor
