@@ -47,6 +47,15 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/vram.cpp
   detail/vram.hpp
 
+  detail/command_pool2.hpp
+  detail/detail.cpp
+  detail/gfx_command_buffer.hpp
+  detail/gfx_device.hpp
+  detail/vulkan_device.hpp
+  detail/vulkan_instance.hpp
+  detail/vulkan_swapchain.cpp
+  detail/vulkan_swapchain.hpp
+
   detail/window/window.hpp
   detail/window/window.cpp
 
