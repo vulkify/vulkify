@@ -4,7 +4,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/core/defines.hpp
   include/vulkify/core/dirty_flag.hpp
   include/vulkify/core/float_eq.hpp
-  include/vulkify/core/handle.hpp
   include/vulkify/core/nvec.hpp
   include/vulkify/core/pool.hpp
   include/vulkify/core/ptr.hpp

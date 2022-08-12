@@ -171,8 +171,9 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, 
 
 namespace vf::refactor {
 CombinedImageSampler RenderPass::image_sampler(Handle<Texture> texture) const {
-	auto const image = device->as<GfxImage>({texture.value});
+	auto const image = static_cast<GfxImage const*>(texture.allocation);
 	if (!image) { return white_texture(); }
+	assert(image->type() == GfxAllocation::Type::eImage);
 	if (image->image.cache.view && image->image.sampler) { return CombinedImageSampler{*image->image.cache.view, *image->image.sampler}; }
 	return white_texture();
 }

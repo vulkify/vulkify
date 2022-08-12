@@ -1,5 +1,5 @@
 #pragma once
-#include <detail/maps_decl.hpp>
+#include <detail/defer_queue.hpp>
 #include <detail/vulkan_device.hpp>
 #include <ktl/async/kfunction.hpp>
 #include <vulkify/core/defines.hpp>
@@ -31,7 +31,6 @@ struct VulkanInstance {
 	struct Util {
 		vk::PhysicalDeviceLimits device_limits{};
 		DeferQueue defer{};
-		GfxAllocationMap allocations{};
 		struct {
 			std::mutex queue{};
 			std::mutex render{};

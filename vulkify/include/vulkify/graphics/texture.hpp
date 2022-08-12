@@ -72,10 +72,10 @@ class Texture : public GfxResource {
 };
 } // namespace vf
 
-#include <vulkify/core/handle.hpp>
+#include <vulkify/graphics/detail/resource.hpp>
+#include <vulkify/graphics/handle.hpp>
 
 namespace vf::refactor {
-class GfxAllocation;
 class GfxImage;
 
 ///
@@ -101,7 +101,7 @@ class Texture : public GfxResource {
 	Filtering filtering() const { return m_filtering; }
 	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
 
-	Handle<Texture> handle() const { return {m_allocation.value.value}; }
+	Handle<Texture> handle() const { return {m_allocation.get()}; }
 
   private:
 	Texture(GfxDevice const* device, CreateInfo const& info);

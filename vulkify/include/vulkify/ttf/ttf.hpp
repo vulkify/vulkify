@@ -22,6 +22,9 @@ class Ttf {
 	Ttf& operator=(Ttf&&) noexcept;
 	~Ttf() noexcept;
 
+	Ttf(Ttf const&) = delete;
+	Ttf& operator=(Ttf const&) = delete;
+
 	explicit Ttf(Context const& context);
 
 	explicit operator bool() const;
@@ -47,20 +50,23 @@ class Ttf {
 };
 } // namespace vf
 
+#include <vulkify/graphics/handle.hpp>
+
 namespace vf::refactor {
 class GfxFont;
 
 ///
 /// \brief TrueType Font
 ///
-class Ttf : public GfxResource {
+class Ttf {
   public:
 	using Height = Glyph::Height;
 	static constexpr auto height_v = Glyph::height_v;
 
-	Ttf() = default;
-	Ttf(Ttf&&) = default;
-	Ttf& operator=(Ttf&&) = default;
+	Ttf() noexcept;
+	Ttf(Ttf&&) noexcept;
+	Ttf& operator=(Ttf&&) noexcept;
+	~Ttf() noexcept;
 
 	explicit Ttf(Context const& context);
 
@@ -77,11 +83,12 @@ class Ttf : public GfxResource {
 
 	Ptr<Atlas const> atlas(Height height = height_v) const;
 	Ptr<Texture const> texture(Height height = height_v) const;
-	Handle<Ttf> handle() const;
+	Handle<Ttf> handle() const { return {m_allocation.get()}; }
 
   private:
 	void on_loaded(GfxFont& out_font);
 
 	std::unique_ptr<std::byte[]> m_file_data{};
+	std::unique_ptr<GfxAllocation> m_allocation{};
 };
 } // namespace vf::refactor

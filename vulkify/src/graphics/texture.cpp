@@ -149,13 +149,14 @@ void blit(ImageCache& in_cache, ImageCache& out_cache, Filtering filtering) {
 } // namespace
 
 Texture::Texture(Context const& context, Image::View image, CreateInfo const& createInfo) : Texture(&context.device(), createInfo) {
-	if (!m_allocation.value) { return; }
+	if (!m_allocation) { return; }
 	create(image);
 }
 
 Result<void> Texture::create(Image::View image) {
-	auto* self = m_device ? m_device->as<GfxImage>({m_allocation.value}) : nullptr;
-	if (!self) { return Error::eInactiveInstance; }
+	if (!m_allocation || !m_allocation->device()) { return Error::eInactiveInstance; }
+	assert(m_allocation->type() == GfxAllocation::Type::eImage);
+	auto* self = static_cast<GfxImage*>(m_allocation.get());
 	if (!Image::valid(image)) {
 		set_invalid(*self);
 		return Error::eInvalidArgument;
@@ -167,8 +168,9 @@ Result<void> Texture::create(Image::View image) {
 }
 
 Result<void> Texture::overwrite(Image::View const image, Rect const& region) {
-	auto* self = m_device ? m_device->as<GfxImage>({m_allocation.value}) : nullptr;
-	if (!self) { return Error::eInactiveInstance; }
+	if (!m_allocation || !m_allocation->device()) { return Error::eInactiveInstance; }
+	assert(m_allocation->type() == GfxAllocation::Type::eImage);
+	auto* self = static_cast<GfxImage*>(m_allocation.get());
 	if (static_cast<std::uint32_t>(region.offset.x) + region.extent.x > extent().x ||
 		static_cast<std::uint32_t>(region.offset.y) + region.extent.y > extent().y) {
 		return Error::eInvalidArgument;
@@ -179,12 +181,13 @@ Result<void> Texture::overwrite(Image::View const image, Rect const& region) {
 }
 
 Result<void> Texture::rescale(float scale) {
-	if (!m_allocation.value) { return Error::eInactiveInstance; }
 	if (FloatEq{}(scale, 1.0f)) { return Result<void>::success(); }
 	auto const ext = Extent(glm::vec2(extent()) * scale);
 	if (ext.x == 0 || ext.y == 0) { return Error::eInvalidArgument; }
 
-	auto* self = m_device ? m_device->as<GfxImage>({m_allocation.value}) : nullptr;
+	if (!m_allocation || !m_allocation->device()) { return Error::eInactiveInstance; }
+	assert(m_allocation->type() == GfxAllocation::Type::eImage);
+	auto* self = static_cast<GfxImage*>(m_allocation.get());
 	if (!self) { return Error::eInactiveInstance; }
 
 	auto image = ImageCache{self->image.cache.info};
@@ -197,13 +200,15 @@ Result<void> Texture::rescale(float scale) {
 }
 
 Texture Texture::clone() const {
-	auto* self = m_device ? m_device->as<GfxImage>({m_allocation.value}) : nullptr;
-	if (!self) { return {}; }
+	if (!m_allocation || !m_allocation->device()) { return {}; }
+	assert(m_allocation->type() == GfxAllocation::Type::eImage);
+	auto* self = static_cast<GfxImage*>(m_allocation.get());
 
 	auto ret = clone_image(*self);
-	if (!ret.m_allocation.value) { return ret; }
+	if (!ret.m_allocation) { return ret; }
+	assert(ret.m_allocation->type() == GfxAllocation::Type::eImage);
 
-	auto* other = m_device->as<GfxImage>({ret.m_allocation.value});
+	auto* other = static_cast<GfxImage*>(ret.m_allocation.get());
 	if (!other) { return ret; }
 
 	blit(self->image.cache, other->image.cache, m_filtering);
@@ -211,8 +216,9 @@ Texture Texture::clone() const {
 }
 
 Extent Texture::extent() const {
-	auto* self = m_device ? m_device->as<GfxImage>({m_allocation.value}) : nullptr;
-	if (!self) { return {}; }
+	if (!m_allocation || !m_allocation->device()) { return {}; }
+	assert(m_allocation->type() == GfxAllocation::Type::eImage);
+	auto* self = static_cast<GfxImage*>(m_allocation.get());
 	return {self->image.cache.info.info.extent.width, self->image.cache.info.info.extent.height};
 }
 
@@ -223,13 +229,12 @@ Texture::Texture(GfxDevice const* device, CreateInfo const& createInfo)
 	image->image.sampler = device->device.device.createSamplerUnique(device->sampler_info(get_mode(m_address_mode), get_filter(m_filtering)));
 	image->image.cache.set_texture(true);
 	image->image.cache.info.info.format = get_format(createInfo.format);
-	auto lock = std::scoped_lock(device->allocations->mutex);
-	m_allocation.value.value = device->allocations->add(lock, std::move(image)).value;
+	m_allocation = std::move(image);
 }
 
 Texture Texture::clone_image(GfxImage& out_image) const {
 	auto ret = Texture{m_device, {m_address_mode, m_filtering}};
-	if (!ret.m_allocation.value) { return ret; }
+	if (!ret.m_allocation) { return ret; }
 
 	auto const ext = extent();
 	if (ext.x == 0 || ext.y == 0) { return ret; }

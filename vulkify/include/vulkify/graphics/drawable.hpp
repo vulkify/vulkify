@@ -39,7 +39,7 @@ inline DrawModel DrawInstance::draw_model() const {
 }
 } // namespace vf
 
-#include <vulkify/core/handle.hpp>
+#include <vulkify/graphics/handle.hpp>
 
 namespace vf::refactor {
 class Texture;

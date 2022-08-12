@@ -31,20 +31,18 @@ void GfxResource::release() && { defer_alloc(std::move(m_allocation)); }
 
 namespace vf::refactor {
 namespace {
-void defer_alloc(GfxDevice const* device, Handle<GfxAllocation> handle) {
-	if (!device || !handle) { return; }
-	auto lock = std::scoped_lock(device->allocations->mutex);
-	auto* alloc = device->allocations->find(lock, {handle.value});
-	if (!alloc) { return; }
-	device->defer->push(std::move(*alloc));
-	device->allocations->remove(lock, {handle.value});
+void defer_alloc(ktl::kunique_ptr<GfxAllocation>&& allocation) {
+	if (!allocation) { return; }
+	allocation->device()->defer->push(std::move(allocation));
 }
 } // namespace
 
-GfxResource::~GfxResource() { defer_alloc(m_device, m_allocation); }
+GfxResource::GfxResource() noexcept = default;
+GfxResource::GfxResource(GfxResource&&) noexcept = default;
+GfxResource& GfxResource::operator=(GfxResource&&) noexcept = default;
+GfxResource::~GfxResource() { std::move(*this).release(); }
 
-void GfxResource::release() && {
-	defer_alloc(m_device, m_allocation);
-	m_allocation = {};
-}
+GfxResource::GfxResource(GfxDevice const* device) noexcept : m_device(device) {}
+
+void GfxResource::release() && { defer_alloc(std::move(m_allocation)); }
 } // namespace vf::refactor

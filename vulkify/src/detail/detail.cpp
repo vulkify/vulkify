@@ -447,8 +447,6 @@ void GfxDevice::Deleter::operator()(GfxDevice const& device) const {
 	if (!device.device) { return; }
 	device.command_factory->clear();
 	device.defer->entries.clear();
-	auto lock = std::scoped_lock(device.allocations->mutex);
-	device.allocations->clear(lock);
 	vmaDestroyAllocator(device.allocator);
 }
 

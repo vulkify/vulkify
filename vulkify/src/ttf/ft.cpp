@@ -412,17 +412,20 @@ Ptr<Texture const> GfxFont::texture(Height height) const {
 	return {};
 }
 
-Ttf::Ttf(Context const& context) : GfxResource(&context.device()) {
-	if (!m_device) { return; }
-	auto font = ktl::make_unique<GfxFont>(m_device);
-	auto lock = std::scoped_lock(m_device->allocations->mutex);
-	m_allocation.value = {m_device->allocations->add(lock, std::move(font)).value};
+Ttf::Ttf() noexcept = default;
+Ttf::Ttf(Ttf&&) noexcept = default;
+Ttf& Ttf::operator=(Ttf&&) noexcept = default;
+Ttf::~Ttf() noexcept = default;
+
+Ttf::Ttf(Context const& context) {
+	if (!context.device()) { return; }
+	m_allocation = std::make_unique<GfxFont>(&context.device());
 }
 
-Ttf::operator bool() const { return m_device && m_allocation.value; }
+Ttf::operator bool() const { return m_allocation && m_allocation->device(); }
 
 bool Ttf::load(std::span<std::byte const> bytes) {
-	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
 	if (!font || !font->device()->ftlib) { return false; }
 	auto data = std::make_unique<std::byte[]>(bytes.size());
 	std::memcpy(data.get(), bytes.data(), bytes.size());
@@ -436,9 +439,9 @@ bool Ttf::load(std::span<std::byte const> bytes) {
 }
 
 bool Ttf::load(char const* path) {
-	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
-	if (!font) { return false; }
-	if (auto face = FtFace::make(m_device->ftlib, path)) {
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
+	if (!font || !font->device()->ftlib) { return false; }
+	if (auto face = FtFace::make(font->device()->ftlib, path)) {
 		font->face = face;
 		on_loaded(*font);
 		return true;
@@ -447,14 +450,14 @@ bool Ttf::load(char const* path) {
 }
 
 bool Ttf::contains(Codepoint codepoint, Height height) const {
-	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
 	if (!font) { return false; }
 	if (auto it = font->fonts.find(height); it != font->fonts.end()) { return it->second.map.contains(codepoint); }
 	return false;
 }
 
 Character Ttf::find(Codepoint codepoint, Height height) const {
-	auto* gfx_font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	auto* gfx_font = static_cast<GfxFont*>(m_allocation.get());
 	if (!gfx_font) { return {}; }
 	auto font_it = gfx_font->fonts.find(height);
 	if (font_it == gfx_font->fonts.end()) { return {}; }
@@ -468,13 +471,13 @@ Character Ttf::find(Codepoint codepoint, Height height) const {
 }
 
 Character Ttf::get(Codepoint codepoint, Height height) {
-	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
 	if (!font) { return {}; }
 	return font->get(codepoint, height);
 }
 
 std::size_t Ttf::preload(std::span<Codepoint const> codepoints, Height const height) {
-	auto* gfx_font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	auto* gfx_font = static_cast<GfxFont*>(m_allocation.get());
 	if (!gfx_font) { return {}; }
 	auto ret = std::size_t{};
 	auto& font = gfx_font->get_or_make(height);
@@ -488,16 +491,14 @@ std::size_t Ttf::preload(std::span<Codepoint const> codepoints, Height const hei
 }
 
 Ptr<Atlas const> Ttf::atlas(Height height) const {
-	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
 	return font ? font->atlas(height) : nullptr;
 }
 
 Ptr<Texture const> Ttf::texture(Height height) const {
-	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
 	return font ? font->texture(height) : nullptr;
 }
-
-Handle<Ttf> Ttf::handle() const { return {m_allocation.value.value}; }
 
 void Ttf::on_loaded(GfxFont& out_font) {
 	assert(out_font.device());

@@ -53,7 +53,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/gfx_buffer_image.hpp
   detail/gfx_command_buffer.hpp
   detail/gfx_device.hpp
-  detail/handle_map.hpp
   detail/vulkan_device.hpp
   detail/vulkan_instance.hpp
   detail/vulkan_swapchain.cpp

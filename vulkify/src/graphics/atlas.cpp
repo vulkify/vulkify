@@ -103,7 +103,7 @@ namespace vf::refactor {
 Atlas::Atlas(Context const& context, Extent const initial, Rgba const rgba) : Atlas(&context.device(), initial, rgba) {}
 
 Atlas::Atlas(GfxDevice const* device, Extent const initial, Rgba const rgba) : m_texture(device, {}) {
-	if (m_texture.m_allocation.value) { m_texture.create(Bitmap(rgba, initial).image()); }
+	if (m_texture.m_allocation) { m_texture.create(Bitmap(rgba, initial).image()); }
 }
 
 QuadTexCoords Atlas::add(Image::View const image) {
@@ -118,8 +118,8 @@ QuadTexCoords Atlas::add(Image::View const image) {
 }
 
 void Atlas::clear(Rgba const rgba) {
-	auto* image = m_texture.m_device ? m_texture.m_device->as<GfxImage>({m_texture.m_allocation.value}) : nullptr;
-	if (!image) { return; }
+	if (!m_texture.m_allocation) { return; }
+	auto* image = static_cast<GfxImage*>(m_texture.m_allocation.get());
 	auto cb = GfxCommandBuffer{m_texture.m_device};
 	cb.writer.clear(image->image.cache.image, rgba);
 	m_state = {};
@@ -144,8 +144,8 @@ bool Atlas::prepare(GfxCommandBuffer& cb, Extent const extent) {
 
 bool Atlas::resize(GfxCommandBuffer& cb, Extent const target) {
 	auto texture = Texture(m_texture.m_device, {});
-	auto* src = m_texture.m_device ? m_texture.m_device->as<GfxImage>({m_texture.m_allocation.value}) : nullptr;
-	auto* dst = texture.m_device ? texture.m_device->as<GfxImage>({texture.m_allocation.value}) : nullptr;
+	auto* src = static_cast<GfxImage*>(m_texture.m_allocation.get());
+	auto* dst = static_cast<GfxImage*>(texture.m_allocation.get());
 	if (!src || !dst) { return false; }
 	texture.refresh(*dst, {pot(target.x), pot(target.y)});
 	static constexpr auto layout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -160,7 +160,8 @@ bool Atlas::overwrite(GfxCommandBuffer& cb, Image::View image, Texture::Rect con
 		static_cast<std::uint32_t>(region.offset.y) + region.extent.y > extent().y) {
 		return false;
 	}
-	auto* self = m_texture.m_device ? m_texture.m_device->as<GfxImage>({m_texture.m_allocation.value}) : nullptr;
+	if (!m_texture.m_allocation) { return false; }
+	auto* self = static_cast<GfxImage*>(m_texture.m_allocation.get());
 	if (!self) { return false; }
 	return cb.writer.write(self->image.cache.image, image.data, region, vk::ImageLayout::eShaderReadOnlyOptimal);
 }

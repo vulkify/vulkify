@@ -66,6 +66,8 @@ struct RenderPass {
 };
 } // namespace vf
 
+#include <vulkify/graphics/handle.hpp>
+
 namespace vf::refactor {
 class Texture;
 

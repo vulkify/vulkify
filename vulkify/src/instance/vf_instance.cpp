@@ -744,7 +744,6 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 		impl->device = UniqueGfxDevice::make(impl->vulkan, freetype->lib, get_samples(create_info.desired_aa));
 		if (!impl->device) { return Error::eVulkanInitFailure; }
 		impl->device.device->buffering = 2;
-		impl->device.device->allocations = &impl->vulkan.util->allocations;
 	}
 	{
 		bool const linear = create_info.instance_flags.test(InstanceFlag::eLinearSwapchain);
