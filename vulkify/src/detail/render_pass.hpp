@@ -83,11 +83,11 @@ struct RenderPass {
 
 	mutable vk::PipelineLayout bound{};
 
-	CombinedImageSampler image_sampler(Handle<GfxAllocation> texture) const;
+	CombinedImageSampler image_sampler(Handle<Texture> texture) const;
 	CombinedImageSampler white_texture() const;
 	void write_view(SetWriter& set) const;
-	void write_models(SetWriter& set, std::span<DrawModel const> instances, Texture const& texture) const;
-	void write_custom(SetWriter& set, std::span<std::byte const> ubo, Texture const& texture) const;
+	void write_models(SetWriter& set, std::span<DrawModel const> instances, Handle<Texture> texture) const;
+	void write_custom(SetWriter& set, std::span<std::byte const> ubo, Handle<Texture> texture) const;
 	void bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const;
 	void set_viewport() const;
 };

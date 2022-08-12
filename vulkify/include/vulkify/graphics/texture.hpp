@@ -76,7 +76,8 @@ class Texture : public GfxResource {
 
 namespace vf::refactor {
 class GfxAllocation;
-/*
+class GfxImage;
+
 ///
 /// \brief GPU Texture (Image and sampler)
 ///
@@ -100,20 +101,19 @@ class Texture : public GfxResource {
 	Filtering filtering() const { return m_filtering; }
 	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
 
-	Handle<GfxAllocation> handle() const { return m_handle; }
+	Handle<Texture> handle() const { return {m_allocation.value.value}; }
 
   private:
-	Texture(GfxDevice const& device, CreateInfo const& info);
-	Texture clone_image() const;
+	Texture(GfxDevice const* device, CreateInfo const& info);
+	Texture clone_image(GfxImage& out_image) const;
 
-	void refresh(Extent extent);
-	void write(Image::View image, Rect const& region);
-	void set_invalid();
+	void refresh(GfxImage& out_image, Extent extent);
+	void write(GfxImage& out_image, Image::View image, Rect const& region);
+	void set_invalid(GfxImage& out_image);
 
-	Handle<GfxAllocation> m_handle{};
 	AddressMode m_address_mode{};
 	Filtering m_filtering{};
 
 	friend class Atlas;
-};*/
+};
 } // namespace vf::refactor

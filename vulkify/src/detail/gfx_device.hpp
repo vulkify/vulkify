@@ -1,6 +1,7 @@
 #pragma once
 #include <vk_mem_alloc.h>
 #include <detail/command_pool2.hpp>
+#include <detail/gfx_allocation.hpp>
 #include <detail/handle_map.hpp>
 #include <detail/vulkan_device.hpp>
 #include <vulkify/core/pool.hpp>
@@ -96,7 +97,6 @@ using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 struct CommandPoolFactory;
 using CommandFactory = Pool<CommandPool, CommandPoolFactory>;
 
-class GfxAllocation;
 using GfxAllocationMap = HandleMap<ktl::kunique_ptr<GfxAllocation>>;
 
 struct GfxDevice {
@@ -117,6 +117,15 @@ struct GfxDevice {
 	UniqueImage make_image(vk::ImageCreateInfo info, bool host, bool linear = false) const;
 	UniqueBuffer make_buffer(vk::BufferCreateInfo info, bool host) const;
 	vk::SamplerCreateInfo sampler_info(vk::SamplerAddressMode mode, vk::Filter filter) const;
+
+	template <typename T>
+	T* as(Handle<GfxAllocation> handle) const {
+		if (!allocations || !handle) { return {}; }
+		auto lock = std::scoped_lock(allocations->mutex);
+		auto const* alloc = allocations->find(lock, {handle.value});
+		if (!alloc || !alloc->get()) { return {}; }
+		return static_cast<T*>(alloc->get());
+	}
 
 	struct Deleter {
 		void operator()(GfxDevice const& vram) const;

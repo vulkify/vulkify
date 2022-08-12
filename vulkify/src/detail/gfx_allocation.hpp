@@ -14,7 +14,7 @@ class GfxAllocation {
 	Type type() const { return m_type; }
 
   protected:
-	GfxAllocation(GfxDevice const& device, Type type) : m_device(&device), m_type(type) {}
+	GfxAllocation(GfxDevice const* device, Type type) : m_device(device), m_type(type) {}
 
   private:
 	GfxDevice const* m_device{};

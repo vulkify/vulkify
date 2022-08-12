@@ -170,15 +170,10 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, 
 #include <detail/gfx_buffer_image.hpp>
 
 namespace vf::refactor {
-CombinedImageSampler RenderPass::image_sampler(Handle<GfxAllocation> texture) const {
-	if (!texture) { return white_texture(); }
-	auto lock = std::scoped_lock(device->allocations->mutex);
-	auto const it = device->allocations->find(lock, {texture.value});
-	if (!it) { return white_texture(); }
-	auto const* alloc = it->get();
-	if (!alloc || alloc->type() != GfxAllocation::Type::eImage) { return white_texture(); }
-	auto const& image = static_cast<GfxImage const&>(*alloc);
-	if (image.image.cache.view && image.image.sampler) { return CombinedImageSampler{*image.image.cache.view, *image.image.sampler}; }
+CombinedImageSampler RenderPass::image_sampler(Handle<Texture> texture) const {
+	auto const image = device->as<GfxImage>({texture.value});
+	if (!image) { return white_texture(); }
+	if (image->image.cache.view && image->image.sampler) { return CombinedImageSampler{*image->image.cache.view, *image->image.sampler}; }
 	return white_texture();
 }
 
@@ -195,30 +190,30 @@ void RenderPass::write_view(SetWriter& set) const {
 	set.write(shader_input.one.bindings.ubo, &dm, sizeof(dm));
 }
 
-void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instances, Texture const& texture) const {
-	// auto const tex = image_sampler(texture.handle());
-	// if (!set || instances.empty() || !tex.sampler || !tex.view) {
-	// 	VF_TRACE(name_v, trace::Type::eWarn, "Failed to write models set");
-	// 	return;
-	// }
-	// auto const& sb = shader_input.one;
-	// set.write(sb.bindings.ssbo, instances.data(), instances.size_bytes());
-	// set.update(sb.bindings.sampler, tex.sampler, tex.view);
-	// set.bind(command_buffer, bound);
+void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instances, Handle<Texture> texture) const {
+	auto const tex = image_sampler(texture);
+	if (!set || instances.empty() || !tex.sampler || !tex.view) {
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write models set");
+		return;
+	}
+	auto const& sb = shader_input.one;
+	set.write(sb.bindings.ssbo, instances.data(), instances.size_bytes());
+	set.update(sb.bindings.sampler, tex.sampler, tex.view);
+	set.bind(command_buffer, bound);
 }
 
-void RenderPass::write_custom(SetWriter& set, std::span<std::byte const> ubo, Texture const& texture) const {
-	// auto const tex = image_sampler(texture.handle());
-	// if (!set || !tex.sampler || !tex.view) {
-	// 	VF_TRACE(name_v, trace::Type::eWarn, "Failed to write custom set");
-	// 	return;
-	// }
-	// static constexpr auto byte_v = std::byte{};
-	// if (ubo.empty()) { ubo = {&byte_v, 1}; }
-	// auto const& sb = shader_input.two;
-	// set.write(sb.bindings.ubo, ubo.data(), ubo.size_bytes());
-	// set.update(sb.bindings.sampler, tex.sampler, tex.view);
-	// set.bind(command_buffer, bound);
+void RenderPass::write_custom(SetWriter& set, std::span<std::byte const> ubo, Handle<Texture> texture) const {
+	auto const tex = image_sampler(texture);
+	if (!set || !tex.sampler || !tex.view) {
+		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write custom set");
+		return;
+	}
+	static constexpr auto byte_v = std::byte{};
+	if (ubo.empty()) { ubo = {&byte_v, 1}; }
+	auto const& sb = shader_input.two;
+	set.write(sb.bindings.ubo, ubo.data(), ubo.size_bytes());
+	set.update(sb.bindings.sampler, tex.sampler, tex.view);
+	set.bind(command_buffer, bound);
 }
 
 void RenderPass::bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const {

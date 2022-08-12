@@ -39,6 +39,8 @@ inline DrawModel DrawInstance::draw_model() const {
 }
 } // namespace vf
 
+#include <vulkify/core/handle.hpp>
+
 namespace vf::refactor {
 class Texture;
 
@@ -48,6 +50,6 @@ class Texture;
 struct Drawable {
 	std::span<DrawInstance const> instances{};
 	GeometryBuffer const& buffer;
-	Texture const& texture;
+	Handle<Texture> texture{};
 };
 } // namespace vf::refactor

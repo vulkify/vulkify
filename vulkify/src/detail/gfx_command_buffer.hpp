@@ -11,7 +11,7 @@ struct ImageWriter {
 	GfxDevice const* device{};
 	vk::CommandBuffer cb;
 
-	ImageWriter(GfxDevice const& device, vk::CommandBuffer cb) : device(&device), cb(cb) {}
+	ImageWriter(GfxDevice const* device, vk::CommandBuffer cb) : device(device), cb(cb) {}
 
 	std::vector<UniqueBuffer> scratch{};
 
@@ -25,12 +25,11 @@ struct ImageWriter {
 };
 
 struct GfxCommandBuffer {
-	GfxDevice device;
 	CommandFactory::Scoped pool;
 	vk::CommandBuffer cmd;
 	ImageWriter writer;
 
-	GfxCommandBuffer(GfxDevice const& device) : device(device), pool(*device.command_factory), cmd(pool.get().acquire()), writer(device, cmd) {}
+	GfxCommandBuffer(GfxDevice const* device) : pool(*device->command_factory), cmd(pool.get().acquire()), writer(device, cmd) {}
 	~GfxCommandBuffer() { pool.get().release(std::move(cmd), true); }
 
 	GfxCommandBuffer& operator=(GfxCommandBuffer&&) = delete;
