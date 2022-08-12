@@ -201,7 +201,7 @@ int main(int argc, char** argv) {
 		auto context = vf::Context::make(std::move(*result));
 		context->show();
 		while (!context->closing()) {
-			auto frame = context->frame();
+			auto frame = context->frame2();
 			frame.poll();
 			//
 		}

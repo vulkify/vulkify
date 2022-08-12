@@ -98,7 +98,8 @@ class VulkifyInstance : public Instance {
 	Camera& camera() override;
 
 	EventQueue poll() override;
-	Surface begin_pass(Rgba clear) override;
+	vf::Surface begin_pass(Rgba clear) override;
+	Surface begin_pass2(Rgba clear);
 	bool end_pass() override;
 
   private:

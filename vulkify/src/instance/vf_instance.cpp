@@ -89,14 +89,14 @@ std::vector<vk::DescriptorSetLayout> make_set_layouts(std::span<vk::UniqueDescri
 	return ret;
 }
 
-struct VIStorage {
+struct VertexInputStorage {
 	std::vector<vk::VertexInputBindingDescription> bindings{};
 	std::vector<vk::VertexInputAttributeDescription> attributes{};
 
 	VertexInput operator()() const { return {bindings, attributes}; }
 
-	static VIStorage make() {
-		auto ret = VIStorage{};
+	static VertexInputStorage make() {
+		auto ret = VertexInputStorage{};
 		auto vertex = vk::VertexInputBindingDescription(0, sizeof(Vertex));
 		ret.bindings = {vertex};
 		auto xy = vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, xy));
@@ -271,7 +271,7 @@ struct VulkifyInstance::Impl {
 
 	VKSurface::Acquire acquired{};
 	std::vector<vk::UniqueDescriptorSetLayout> set_layouts{};
-	VIStorage vertex_input{};
+	VertexInputStorage vertex_input{};
 	PipelineFactory pipeline_factory{};
 	DescriptorSetFactory set_factory{};
 	ShaderInput::Textures shader_textures{};
@@ -362,7 +362,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 	impl->vram.vram->textureFormat = texture_format(impl->surface.info.imageFormat);
 
 	impl->set_layouts = make_set_layouts(impl->surface.device.device);
-	impl->vertex_input = VIStorage::make();
+	impl->vertex_input = VertexInputStorage::make();
 	auto const srr = create_info.instance_flags.test(InstanceFlag::eSuperSampling);
 	auto sl = make_set_layouts(impl->set_layouts);
 	auto const csamples = impl->vram.vram->colour_samples;
@@ -701,7 +701,7 @@ struct VulkifyInstance::Impl {
 
 	VulkanSwapchain::Acquire acquired{};
 	std::vector<vk::UniqueDescriptorSetLayout> set_layouts{};
-	VIStorage vertex_input{};
+	VertexInputStorage vertex_input{};
 	PipelineFactory pipeline_factory{};
 	DescriptorSetFactory set_factory{};
 	ShaderInput::Textures shader_textures{};
@@ -718,7 +718,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 	auto window = make_window(create_info, win_inst->get()->get());
 	if (!window) { return Error::eGlfwFailure; }
 
-	auto freetype = FtLib::make();
+	auto freetype = FtUnique<FtLib>{FtLib::make()};
 	if (!freetype) { return Error::eFreetypeInitFailure; }
 
 	auto vkinfo = VulkanInstance::Info{};
@@ -742,7 +742,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 	{
 		auto vulkan = std::move(instance.value());
 		auto vk_device = VulkanDevice::make(vulkan);
-		auto gfx_device = UniqueGfxDevice::make(*vulkan.instance, vk_device, freetype.lib, get_samples(create_info.desired_aa));
+		auto gfx_device = UniqueGfxDevice::make(*vulkan.instance, vk_device, freetype->lib, get_samples(create_info.desired_aa));
 		if (!gfx_device) { return Error::eVulkanInitFailure; }
 		gfx_device.device->buffering = 2;
 
@@ -766,21 +766,23 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 	}
 	{
 		impl->set_layouts = make_set_layouts(impl->swapchain.device.device);
-		impl->vertex_input = VIStorage::make();
-		// auto const srr = create_info.instance_flags.test(InstanceFlag::eSuperSampling);
+		impl->vertex_input = VertexInputStorage::make();
+		auto const srr = create_info.instance_flags.test(InstanceFlag::eSuperSampling);
 		auto sl = make_set_layouts(impl->set_layouts);
-		// auto const csamples = impl->device.device->colour_samples;
-		// impl->pipeline_factory = PipelineFactory::make(impl->device.device->device, impl->vertex_input(), std::move(sl), csamples, srr);
-		// if (!impl->pipeline_factory) { return Error::eVulkanInitFailure; }
+		auto const csamples = impl->device.device->colour_samples;
+		impl->pipeline_factory = PipelineFactory::make(impl->device.device->device, impl->vertex_input(), std::move(sl), csamples, srr);
+		if (!impl->pipeline_factory) { return Error::eVulkanInitFailure; }
 	}
 
-	// impl->set_factory = DescriptorSetFactory::make(impl->vram.vram, impl->pipeline_factory.set_layouts);
-	// if (!impl->set_factory) { return Error::eVulkanInitFailure; }
+	{
+		impl->set_factory = DescriptorSetFactory::make(impl->device.device, impl->pipeline_factory.set_layouts);
+		if (!impl->set_factory) { return Error::eVulkanInitFailure; }
 
-	// impl->shader_textures = make_shader_textures(impl->vram.vram);
-	// if (!impl->shader_textures) { return Error::eVulkanInitFailure; }
+		// impl->shader_textures = make_shader_textures(impl->vram.vram);
+		// if (!impl->shader_textures) { return Error::eVulkanInitFailure; }
+	}
 
-	impl->freetype = freetype;
+	impl->freetype = std::move(freetype);
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
 }
@@ -862,7 +864,9 @@ EventQueue VulkifyInstance::poll() {
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->file_drops};
 }
 
-Surface VulkifyInstance::begin_pass(Rgba clear) {
+vf::Surface VulkifyInstance::begin_pass(Rgba) { return {}; }
+
+Surface VulkifyInstance::begin_pass2(Rgba clear) {
 	if (m_impl->acquired) {
 		VF_TRACE("vf::(internal)", trace::Type::eWarn, "RenderPass already begun");
 		return {};
@@ -877,9 +881,9 @@ Surface VulkifyInstance::begin_pass(Rgba clear) {
 	m_impl->vulkan.util->defer.decrement();
 	m_impl->renderer.clear = clear;
 
-	// auto proj = m_impl->set_factory.postInc(0);
-	// auto const mat_p = projection(extent);
-	// proj.write(0, &mat_p, sizeof(mat_p));
+	auto proj = m_impl->set_factory.postInc(0);
+	auto const mat_p = projection(extent);
+	proj.write(0, &mat_p, sizeof(mat_p));
 
 	// auto const input = ShaderInput{proj, &m_impl->shader_textures};
 	auto const input = ShaderInput{};

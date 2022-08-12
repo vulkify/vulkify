@@ -64,4 +64,30 @@ struct RenderPass {
 	void bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const;
 	void set_viewport() const;
 };
+
+namespace refactor {
+struct GfxAllocation;
+
+struct RenderPass {
+	ktl::unique_val<Instance*> instance{};
+	PipelineFactory* pipeline_factory{};
+	DescriptorSetFactory* set_factory{};
+	vk::RenderPass render_pass{};
+	vk::CommandBuffer command_buffer{};
+	ShaderInput shader_input{};
+	RenderCam cam{};
+	TPair<float> line_width_limit{};
+	std::mutex* render_mutex;
+
+	mutable vk::PipelineLayout bound{};
+
+	CombinedImageSampler image_sampler(Ptr<GfxAllocation const> alloc) const;
+	CombinedImageSampler white_texture() const;
+	void write_view(SetWriter& set) const;
+	void write_models(SetWriter& set, std::span<DrawModel const> instances, TextureHandle const& texture) const;
+	void write_custom(SetWriter& set, std::span<std::byte const> ubo, TextureHandle const& texture) const;
+	void bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const;
+	void set_viewport() const;
+};
+} // namespace refactor
 } // namespace vf

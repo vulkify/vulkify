@@ -35,6 +35,7 @@ class Context {
 	VSync vsync() const { return m_instance->vsync(); }
 
 	Frame frame(Rgba clear = {});
+	refactor::Frame frame2(Rgba clear = {});
 
 	void set_position(glm::ivec2 xy) { m_instance->set_position(xy); }
 	void set_extent(glm::uvec2 size) { m_instance->set_extent(size); }
