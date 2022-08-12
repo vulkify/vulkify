@@ -192,7 +192,20 @@ void test(vf::Context context) {
 }
 } // namespace
 
+#include <vulkify/instance/vf_instance.hpp>
+
 int main(int argc, char** argv) {
+	{
+		auto result = vf::refactor::VulkifyInstance::make({});
+		if (!result) { return EXIT_FAILURE; }
+		auto context = vf::Context::make(std::move(*result));
+		context->show();
+		while (!context->closing()) {
+			auto frame = context->frame();
+			frame.poll();
+			//
+		}
+	}
 	bool const headless = argc > 1 && argv[1] == std::string_view("--headless");
 	std::cout << "vulkify " << vf::version_v << '\n';
 	auto context = vf::Builder{}.set_flag(vf::WindowFlag::eResizable).set_flag(vf::InstanceFlag::eHeadless, headless).build();

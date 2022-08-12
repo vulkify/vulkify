@@ -1,4 +1,5 @@
 #pragma once
+#include <detail/gfx_allocation.hpp>
 #include <detail/gfx_device.hpp>
 #include <detail/rotator.hpp>
 #include <detail/trace.hpp>
@@ -8,7 +9,6 @@ struct ImageCache {
 	using Extent = glm::uvec2;
 
 	struct Info {
-		GfxDevice device{};
 		vk::ImageCreateInfo info{};
 		vk::ImageAspectFlags aspect{};
 		bool prefer_host{false};
@@ -16,12 +16,13 @@ struct ImageCache {
 
 	Info info{};
 
+	GfxDevice device{};
 	UniqueImage image{};
 	vk::UniqueImageView view{};
 
 	static constexpr Extent scale2D(Extent extent, float value) { return glm::vec2(extent) * value; }
 
-	explicit operator bool() const { return info.device.device.device; }
+	explicit operator bool() const { return device.device.device; }
 	bool operator==(ImageCache const& rhs) const { return !image && !view && !rhs.image && !rhs.view; }
 
 	vk::ImageCreateInfo& set_depth() {
@@ -44,7 +45,7 @@ struct ImageCache {
 		static constexpr auto flags = vk::ImageUsageFlagBits::eSampled;
 		info.info = vk::ImageCreateInfo();
 		info.info.usage = flags;
-		info.info.format = info.device.textureFormat;
+		info.info.format = device.texture_format;
 		info.info.usage |= vk::ImageUsageFlagBits::eTransferDst;
 		if (transfer_src) { info.info.usage |= vk::ImageUsageFlagBits::eTransferSrc; }
 		info.aspect |= vk::ImageAspectFlagBits::eColor;
@@ -61,10 +62,10 @@ struct ImageCache {
 	bool make(Extent const extent, vk::Format const format) {
 		info.info.extent = vk::Extent3D(extent.x, extent.y, 1);
 		info.info.format = format;
-		info.device.device.defer(std::move(image), std::move(view));
-		image = info.device.make_image(info.info, info.prefer_host);
+		device.device.defer(std::move(image), std::move(view));
+		image = device.make_image(info.info, info.prefer_host);
 		if (!image) { return false; }
-		view = info.device.device.make_image_view(image->resource, format, info.aspect);
+		view = device.device.make_image_view(image->resource, format, info.aspect);
 		return *view;
 	}
 
@@ -106,5 +107,36 @@ struct BufferCache {
 		if (next) { buffers.next(); }
 		return buffer;
 	}
+};
+
+struct VulkanImage {
+	ImageCache cache{};
+	vk::UniqueSampler sampler{};
+
+	static VulkanImage make(GfxDevice const& device) { return VulkanImage{.cache = ImageCache{.device = device}}; }
+
+	bool operator==(VulkanImage const& rhs) const { return !sampler && !rhs.sampler && !cache.image && !rhs.cache.image; }
+};
+
+template <std::size_t Count>
+class GfxBuffer : GfxAllocation {
+  public:
+	GfxBuffer(GfxDevice const& device) : GfxAllocation(device, Type::eBuffer) {}
+
+	BufferCache buffers[Count]{};
+};
+
+using GfxGeometryBuffer = GfxBuffer<2>;
+
+class GfxImage : GfxAllocation {
+  public:
+	GfxImage(GfxDevice const& device) : GfxAllocation(device, Type::eImage) {}
+
+	void replace(ImageCache&& cache) {
+		device().device.defer(std::move(image.cache));
+		image.cache = std::move(cache);
+	}
+
+	VulkanImage image{};
 };
 } // namespace vf::refactor

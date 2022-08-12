@@ -16,6 +16,10 @@
 namespace vf {
 struct Vram;
 
+namespace refactor {
+struct GfxDevice;
+}
+
 class Instance {
   public:
 	static constexpr std::size_t max_events_v = 16;
@@ -24,6 +28,7 @@ class Instance {
 	virtual ~Instance() = default;
 
 	virtual Vram const& vram() const = 0;
+	virtual refactor::GfxDevice const& gfx_device() const = 0;
 	virtual Gpu const& gpu() const = 0;
 	virtual bool closing() const = 0;
 	virtual glm::uvec2 framebuffer_extent() const = 0;

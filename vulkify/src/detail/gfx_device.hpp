@@ -1,5 +1,6 @@
 #pragma once
 #include <vk_mem_alloc.h>
+#include <detail/command_pool2.hpp>
 #include <detail/vulkan_device.hpp>
 #include <vulkify/core/pool.hpp>
 #include <vulkify/core/rect.hpp>
@@ -10,8 +11,6 @@ struct FT_LibraryRec_;
 using FT_Library = FT_LibraryRec_*;
 
 namespace vf::refactor {
-class CommandPool;
-
 enum class BlitFlag { eSrc, eDst, eLinearFilter };
 using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
 
@@ -105,7 +104,7 @@ struct GfxDevice {
 
 	vk::PhysicalDeviceLimits const* device_limits{};
 	vk::SampleCountFlagBits colour_samples{};
-	vk::Format textureFormat = vk::Format::eR8G8B8A8Srgb;
+	vk::Format texture_format = vk::Format::eR8G8B8A8Srgb;
 
 	bool operator==(GfxDevice const& rhs) const { return command_factory == rhs.command_factory && allocator == rhs.allocator; }
 	explicit operator bool() const { return command_factory && allocator; }
@@ -119,17 +118,12 @@ struct GfxDevice {
 	};
 };
 
-struct CommandPoolFactory {
-	GfxDevice device{};
-	CommandPool operator()() const;
-};
-
 struct UniqueGfxDevice {
 	ktl::kunique_ptr<CommandFactory> commandFactory{};
 	Unique<GfxDevice, GfxDevice::Deleter> device{};
 
 	explicit operator bool() const { return device && commandFactory; }
 
-	static UniqueGfxDevice make(vk::Instance instance, VulkanDevice device, int samples);
+	static UniqueGfxDevice make(vk::Instance instance, VulkanDevice device, FT_Library ft, int samples);
 };
 } // namespace vf::refactor

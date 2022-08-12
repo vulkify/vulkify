@@ -13,6 +13,7 @@ class HeadlessInstance : public Instance {
 	HeadlessInstance(Time autoclose);
 
 	Vram const& vram() const override;
+	refactor::GfxDevice const& gfx_device() const override;
 	Gpu const& gpu() const override { return m_gpu; }
 	bool closing() const override { return Clock::now() - m_start > m_autoclose; }
 	glm::uvec2 framebuffer_extent() const override { return m_framebuffer_extent; }

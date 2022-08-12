@@ -1,4 +1,6 @@
 #pragma once
+#include <detail/gfx_allocation.hpp>
+#include <detail/handle_map.hpp>
 #include <detail/vulkan_device.hpp>
 #include <ktl/async/kfunction.hpp>
 #include <vulkify/core/defines.hpp>
@@ -9,6 +11,7 @@
 
 namespace vf::refactor {
 using MakeSurface = ktl::kfunction<vk::SurfaceKHR(vk::Instance)>;
+using GfxAllocationMap = HandleMap<ktl::kunique_ptr<GfxAllocation>>;
 
 struct GpuInfo {
 	vk::PhysicalDeviceProperties properties{};
@@ -26,17 +29,11 @@ struct PhysicalDevice {
 	auto operator<=>(PhysicalDevice const& rhs) const { return score <=> rhs.score; }
 };
 
-// Move to surface
-struct VKSync {
-	vk::Semaphore draw{};
-	vk::Semaphore present{};
-	vk::Fence drawn{};
-};
-
 struct VulkanInstance {
 	struct Util {
 		vk::PhysicalDeviceLimits device_limits{};
 		DeferQueue defer{};
+		GfxAllocationMap allocations{};
 		struct {
 			std::mutex queue{};
 			std::mutex render{};

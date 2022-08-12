@@ -15,6 +15,9 @@ struct Rotator {
 	T& get() { return storage[index]; }
 	T const& get() const { return storage[index]; }
 
-	void next() { index = (index + 1) % storage.size(); }
+	void next() {
+		if (storage.empty()) { return; }
+		index = (index + 1) % storage.size();
+	}
 };
 } // namespace vf

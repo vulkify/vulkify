@@ -255,6 +255,91 @@ Result<VulkanInstance> VulkanInstance::Builder::operator()(PhysicalDevice&& sele
 }
 /// /Instance
 
+/// CommandPool
+FencePool::FencePool(VulkanDevice device, std::size_t count) : m_device(device) {
+	if (!m_device) { return; }
+	m_idle.reserve(count);
+	for (std::size_t i = 0; i < count; ++i) { m_idle.push_back(make_fence()); }
+}
+
+vk::Fence FencePool::next() {
+	if (!m_device) { return {}; }
+	std::erase_if(m_busy, [this](vk::UniqueFence& f) {
+		if (!m_device.busy(*f)) {
+			m_idle.push_back(std::move(f));
+			return true;
+		}
+		return false;
+	});
+	if (m_idle.empty()) { m_idle.push_back(make_fence()); }
+	auto ret = std::move(m_idle.back());
+	m_idle.pop_back();
+	m_device.reset(*ret, {});
+	m_busy.push_back(std::move(ret));
+	return *m_busy.back();
+}
+
+vk::UniqueFence FencePool::make_fence() const { return m_device.device.createFenceUnique({vk::FenceCreateFlagBits::eSignaled}); }
+
+CommandPool::CommandPool(VulkanDevice device, std::size_t batch) : m_device(device), m_fencePool(device, 0U), m_batch(static_cast<std::uint32_t>(batch)) {
+	if (!m_device) { return; }
+	m_pool = m_device.device.createCommandPoolUnique({pool_flags_v, m_device.queue.family});
+	assert(m_pool);
+}
+
+vk::CommandBuffer CommandPool::acquire() {
+	if (!m_device || !m_pool) { return {}; }
+	Cmd cmd;
+	for (auto& cb : m_cbs) {
+		if (!m_device.busy(cb.fence)) {
+			std::swap(cb, m_cbs.back());
+			cmd = std::move(m_cbs.back());
+			break;
+		}
+	}
+	if (!cmd.cb) {
+		auto const info = vk::CommandBufferAllocateInfo(*m_pool, vk::CommandBufferLevel::ePrimary, m_batch);
+		auto cbs = m_device.device.allocateCommandBuffers(info);
+		m_cbs.reserve(m_cbs.size() + cbs.size());
+		for (auto const cb : cbs) { m_cbs.push_back(Cmd{{}, cb, {}}); }
+		cmd = std::move(m_cbs.back());
+	}
+	m_cbs.pop_back();
+	auto ret = cmd.cb;
+	ret.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+	return ret;
+}
+
+vk::Result CommandPool::release(vk::CommandBuffer&& cb, bool block, DeferQueue&& defer) {
+	auto ret = vk::Result::eErrorDeviceLost;
+	if (!m_device) { return ret; }
+	assert(!std::any_of(m_cbs.begin(), m_cbs.end(), [c = cb](Cmd const& cmd) { return cmd.cb == c; }));
+	cb.end();
+	Cmd cmd{std::move(defer), cb, m_fencePool.next()};
+	vk::SubmitInfo const si(0U, nullptr, {}, 1U, &cb);
+	{
+		auto lock = std::scoped_lock(*m_device.queue_mutex);
+		ret = m_device.queue.queue.submit(1, &si, cmd.fence);
+	}
+	if (ret == vk::Result::eSuccess) {
+		if (block) {
+			m_device.wait(cmd.fence);
+			cmd.defer.entries.clear();
+		}
+	} else {
+		m_device.reset(cmd.fence, {});
+	}
+	m_cbs.push_back(std::move(cmd));
+	return ret;
+}
+
+void CommandPool::clear() {
+	m_device.device.waitIdle();
+	m_cbs.clear();
+}
+
+/// /CommandPool
+
 /// GfxDevice
 namespace {
 vk::SampleCountFlagBits get_samples(vk::SampleCountFlags supported, int desired) {
@@ -319,9 +404,7 @@ void VmaImage::transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier
 
 void VmaImage::Deleter::operator()(const VmaImage& image) const { vmaDestroyImage(image.allocator, image.resource, image.handle); }
 
-CommandPool CommandPoolFactory::operator()() const { return device; }
-
-UniqueGfxDevice UniqueGfxDevice::make(vk::Instance instance, VulkanDevice device, int samples) {
+UniqueGfxDevice UniqueGfxDevice::make(vk::Instance instance, VulkanDevice device, FT_Library ft, int samples) {
 	auto allocatorInfo = VmaAllocatorCreateInfo{};
 	auto dl = VULKAN_HPP_DEFAULT_DISPATCHER;
 	allocatorInfo.instance = static_cast<VkInstance>(instance);
@@ -341,6 +424,7 @@ UniqueGfxDevice UniqueGfxDevice::make(vk::Instance instance, VulkanDevice device
 	ret.device_limits = device.limits;
 	assert(device.limits);
 	ret.colour_samples = get_samples(device.limits->framebufferColorSampleCounts, samples);
+	ret.ftlib = ft;
 	return {std::move(factory), ret};
 }
 
@@ -480,5 +564,9 @@ void ImageWriter::clear(VmaImage& in, Rgba rgba) const {
 	cb.clearColorImage(in.resource, vk::ImageLayout::eTransferDstOptimal, colour, isrr);
 }
 /// /GfxCommandBuffer
+
+/// GfxAllocation
+GfxAllocation::~GfxAllocation() {}
+/// /GfxAllocation
 } // namespace refactor
 } // namespace vf
