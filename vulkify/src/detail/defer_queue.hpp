@@ -24,6 +24,7 @@ struct DeferQueue {
 	static constexpr int default_delay_v = 3;
 
 	std::vector<Entry> entries{};
+	std::vector<Entry> expired{};
 
 	template <BoolLike T>
 	void push(T t, int delay = default_delay_v) {

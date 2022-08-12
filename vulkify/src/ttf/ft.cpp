@@ -416,10 +416,10 @@ Ttf::Ttf(Context const& context) : GfxResource(&context.device()) {
 	if (!m_device) { return; }
 	auto font = ktl::make_unique<GfxFont>(m_device);
 	auto lock = std::scoped_lock(m_device->allocations->mutex);
-	m_handle = {m_device->allocations->add(lock, std::move(font)).value};
+	m_allocation.value = {m_device->allocations->add(lock, std::move(font)).value};
 }
 
-Ttf::operator bool() const { return m_device && m_handle; }
+Ttf::operator bool() const { return m_device && m_allocation.value; }
 
 bool Ttf::load(std::span<std::byte const> bytes) {
 	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
@@ -496,6 +496,8 @@ Ptr<Texture const> Ttf::texture(Height height) const {
 	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
 	return font ? font->texture(height) : nullptr;
 }
+
+Handle<Ttf> Ttf::handle() const { return {m_allocation.value.value}; }
 
 void Ttf::on_loaded(GfxFont& out_font) {
 	assert(out_font.device());

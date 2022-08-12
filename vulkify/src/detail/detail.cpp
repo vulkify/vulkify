@@ -9,13 +9,21 @@
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/vulkify_version.hpp>
 #include <algorithm>
+#include <atomic>
 #include <unordered_set>
 
 namespace vf {
 using namespace std::string_view_literals;
 
 void DeferQueue::decrement() {
-	std::erase_if(entries, [](Entry& e) { return --e->delay <= 0; });
+	std::erase_if(entries, [this](Entry& e) {
+		if (--e->delay <= 0) {
+			expired.push_back(std::move(e));
+			return true;
+		}
+		return false;
+	});
+	expired.clear();
 }
 
 namespace refactor {
@@ -26,7 +34,6 @@ VulkanDevice VulkanDevice::make(VulkanInstance const& instance) {
 		.queue = instance.queue,
 		.gpu = instance.gpu.device,
 		.device = *instance.device,
-		.defer = {&instance.util->defer},
 		.queue_mutex = &instance.util->mutex.queue,
 		.limits = &instance.util->device_limits,
 		.flags = instance.messenger ? Flag::eDebugMsgr : Flags{},
@@ -352,6 +359,8 @@ vk::SampleCountFlagBits get_samples(vk::SampleCountFlags supported, int desired)
 }
 
 [[maybe_unused]] constexpr auto name_v = "vf::(internal)";
+
+std::atomic<std::uint64_t> g_next_id{};
 } // namespace
 
 BlitCaps BlitCaps::make(vk::PhysicalDevice device, vk::Format format) {
@@ -397,42 +406,50 @@ bool VmaBuffer::write(void const* data, std::size_t size) {
 }
 
 void VmaBuffer::Deleter::operator()(VmaBuffer const& buffer) const {
+	if (!buffer.handle) { return; }
 	if (buffer.map) { vmaUnmapMemory(buffer.allocator, buffer.handle); }
 	vmaDestroyBuffer(buffer.allocator, buffer.resource, buffer.handle);
 }
 
 void VmaImage::transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier const& barrier) { layout = barrier(cb, resource, {layout, to}); }
 
-void VmaImage::Deleter::operator()(const VmaImage& image) const { vmaDestroyImage(image.allocator, image.resource, image.handle); }
+void VmaImage::Deleter::operator()(const VmaImage& image) const {
+	if (!image.handle) { return; }
+	vmaDestroyImage(image.allocator, image.resource, image.handle);
+}
 
-UniqueGfxDevice UniqueGfxDevice::make(vk::Instance instance, VulkanDevice device, FT_Library ft, int samples) {
+UniqueGfxDevice UniqueGfxDevice::make(VulkanInstance const& instance, FT_Library ft, int samples) {
 	auto allocatorInfo = VmaAllocatorCreateInfo{};
 	auto dl = VULKAN_HPP_DEFAULT_DISPATCHER;
-	allocatorInfo.instance = static_cast<VkInstance>(instance);
-	allocatorInfo.device = static_cast<VkDevice>(device.device);
-	allocatorInfo.physicalDevice = static_cast<VkPhysicalDevice>(device.gpu);
+	allocatorInfo.instance = static_cast<VkInstance>(*instance.instance);
+	allocatorInfo.device = static_cast<VkDevice>(*instance.device);
+	allocatorInfo.physicalDevice = static_cast<VkPhysicalDevice>(instance.gpu.device);
 	auto vkFunc = VmaVulkanFunctions{};
 	vkFunc.vkGetInstanceProcAddr = dl.vkGetInstanceProcAddr;
 	vkFunc.vkGetDeviceProcAddr = dl.vkGetDeviceProcAddr;
 	allocatorInfo.pVulkanFunctions = &vkFunc;
-	auto ret = GfxDevice{device};
+	auto ret = GfxDevice{VulkanDevice::make(instance)};
 	if (vmaCreateAllocator(&allocatorInfo, &ret.allocator) != VK_SUCCESS) {
 		VF_TRACE(name_v, trace::Type::eError, "Failed to create GfxDevice!");
 		return {};
 	}
-	auto factory = ktl::make_unique<CommandFactory>(CommandPoolFactory{device});
+	auto factory = ktl::make_unique<CommandFactory>(CommandPoolFactory{ret.device});
 	ret.command_factory = factory.get();
-	ret.device_limits = device.limits;
-	assert(device.limits);
-	ret.colour_samples = get_samples(device.limits->framebufferColorSampleCounts, samples);
+	ret.device_limits = ret.device.limits;
+	assert(ret.device.limits);
+	ret.colour_samples = get_samples(ret.device.limits->framebufferColorSampleCounts, samples);
 	ret.ftlib = ft;
+	ret.defer = &instance.util->defer;
 	return {std::move(factory), ret};
 }
 
-void GfxDevice::Deleter::operator()(GfxDevice const& vram) const {
-	vram.device.defer.queue->entries.clear();
-	vram.command_factory->clear();
-	vmaDestroyAllocator(vram.allocator);
+void GfxDevice::Deleter::operator()(GfxDevice const& device) const {
+	if (!device.device) { return; }
+	device.command_factory->clear();
+	device.defer->entries.clear();
+	auto lock = std::scoped_lock(device.allocations->mutex);
+	device.allocations->clear(lock);
+	vmaDestroyAllocator(device.allocator);
 }
 
 UniqueImage GfxDevice::make_image(vk::ImageCreateInfo info, bool host, bool linear) const {
@@ -456,7 +473,9 @@ UniqueImage GfxDevice::make_image(vk::ImageCreateInfo info, bool host, bool line
 	auto handle = VmaAllocation{};
 	if (auto res = vmaCreateImage(allocator, &imageInfo, &vaci, &ret, &handle, nullptr); res != VK_SUCCESS) { return {}; }
 
-	return VmaImage{{vk::Image(ret), allocator, handle}, info.initialLayout, info.extent, info.tiling, BlitCaps::make(device.gpu, info.format)};
+	auto const caps = BlitCaps::make(device.gpu, info.format);
+	auto const id = ++g_next_id;
+	return VmaImage{{vk::Image(ret), allocator, handle, id}, info.initialLayout, info.extent, info.tiling, caps};
 }
 
 UniqueBuffer GfxDevice::make_buffer(vk::BufferCreateInfo info, bool host) const {
@@ -475,7 +494,8 @@ UniqueBuffer GfxDevice::make_buffer(vk::BufferCreateInfo info, bool host) const 
 	void* map{};
 	if (host) { vmaMapMemory(allocator, handle, &map); }
 
-	return VmaBuffer{{vk::Buffer(ret), allocator, handle}, info.size, map};
+	auto const id = ++g_next_id;
+	return VmaBuffer{{vk::Buffer(ret), allocator, handle, id}, info.size, map};
 }
 
 vk::SamplerCreateInfo GfxDevice::sampler_info(vk::SamplerAddressMode mode, vk::Filter filter) const {
@@ -526,7 +546,8 @@ bool ImageCache::ready(Extent const extent, vk::Format const format) const noexc
 bool ImageCache::make(Extent const extent, vk::Format const format) {
 	info.info.extent = vk::Extent3D(extent.x, extent.y, 1);
 	info.info.format = format;
-	device->device.defer(std::move(image), std::move(view));
+	device->defer->push(std::move(image));
+	device->defer->push(std::move(view));
 	image = device->make_image(info.info, info.prefer_host);
 	if (!image) { return false; }
 	view = device->device.make_image_view(image->resource, format, info.aspect);
@@ -551,7 +572,7 @@ VmaBuffer const& BufferCache::get(bool next) const {
 	auto& buffer = buffers.get();
 	if (buffer->size < data.size()) {
 		info.size = data.size();
-		device.device.defer(std::move(buffer));
+		device.defer->push(std::move(buffer));
 		buffer = device.make_buffer(info, true);
 	}
 	buffer->write(data.data(), data.size());
@@ -560,7 +581,7 @@ VmaBuffer const& BufferCache::get(bool next) const {
 }
 
 void GfxImage::replace(ImageCache&& cache) {
-	device()->device.defer(std::move(image.cache));
+	device()->defer->push(std::move(image.cache));
 	image.cache = std::move(cache);
 }
 /// /GfxBuffer/Image
@@ -640,9 +661,5 @@ void ImageWriter::clear(VmaImage& in, Rgba rgba) const {
 	cb.clearColorImage(in.resource, vk::ImageLayout::eTransferDstOptimal, colour, isrr);
 }
 /// /GfxCommandBuffer
-
-/// GfxAllocation
-GfxAllocation::~GfxAllocation() {}
-/// /GfxAllocation
 } // namespace refactor
 } // namespace vf

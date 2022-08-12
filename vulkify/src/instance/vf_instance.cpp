@@ -741,7 +741,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 
 	auto impl = ktl::make_unique<Impl>(Impl{std::move(*win_inst), std::move(window), std::move(*vulkan)});
 	{
-		impl->device = UniqueGfxDevice::make(*impl->vulkan.instance, VulkanDevice::make(impl->vulkan), freetype->lib, get_samples(create_info.desired_aa));
+		impl->device = UniqueGfxDevice::make(impl->vulkan, freetype->lib, get_samples(create_info.desired_aa));
 		if (!impl->device) { return Error::eVulkanInitFailure; }
 		impl->device.device->buffering = 2;
 		impl->device.device->allocations = &impl->vulkan.util->allocations;
@@ -751,7 +751,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 		auto const extent = impl->window->framebuffer_size();
 		auto const mode = select_mode(impl->vulkan.gpu, create_info.desired_vsyncs);
 		VF_TRACEI("vf::(internal)", "VSync set to [{}]", vsync_modes_v[static_cast<int>(to_vsync(mode))]);
-		impl->swapchain = VulkanSwapchain::make(impl->device.device->device, impl->vulkan.gpu.formats, *impl->vulkan.surface, mode, extent, linear);
+		impl->swapchain = VulkanSwapchain::make(&impl->device.device.get(), impl->vulkan.gpu.formats, *impl->vulkan.surface, mode, extent, linear);
 		if (!impl->swapchain) { return Error::eVulkanInitFailure; }
 		impl->device.device->device.flags.assign(VulkanDevice::Flag::eLinearSwp, impl->swapchain.linear);
 	}
@@ -763,7 +763,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 		impl->device.device->buffering = impl->renderer.frame_sync.storage.size();
 	}
 	{
-		impl->set_layouts = make_set_layouts(impl->swapchain.device.device);
+		impl->set_layouts = make_set_layouts(*impl->vulkan.device);
 		impl->vertex_input = VertexInputStorage::make();
 		auto const srr = create_info.instance_flags.test(InstanceFlag::eSuperSampling);
 		auto sl = make_set_layouts(impl->set_layouts);

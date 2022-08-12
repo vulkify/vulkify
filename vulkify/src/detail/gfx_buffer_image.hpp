@@ -65,7 +65,9 @@ struct VulkanImage {
 template <std::size_t Count>
 class GfxBuffer : public GfxAllocation {
   public:
-	GfxBuffer(GfxDevice const* device) : GfxAllocation(device, Type::eBuffer) {}
+	GfxBuffer(GfxDevice const* device) : GfxAllocation(device, Type::eBuffer) {
+		for (auto& buffer : buffers) { buffer.device = device; }
+	}
 
 	BufferCache buffers[Count]{};
 };
@@ -74,7 +76,7 @@ using GfxGeometryBuffer = GfxBuffer<2>;
 
 class GfxImage : public GfxAllocation {
   public:
-	GfxImage(GfxDevice const* device) : GfxAllocation(device, Type::eImage) {}
+	GfxImage(GfxDevice const* device) : GfxAllocation(device, Type::eImage) { image.cache.device = device; }
 
 	void replace(ImageCache&& cache);
 

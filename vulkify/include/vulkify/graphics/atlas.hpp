@@ -72,6 +72,7 @@ class Atlas::Bulk {
 
 namespace vf::refactor {
 struct GfxCommandBuffer;
+class GfxFont;
 
 ///
 /// \brief Expandable Texture Atlas

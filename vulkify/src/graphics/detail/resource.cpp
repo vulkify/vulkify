@@ -36,7 +36,7 @@ void defer_alloc(GfxDevice const* device, Handle<GfxAllocation> handle) {
 	auto lock = std::scoped_lock(device->allocations->mutex);
 	auto* alloc = device->allocations->find(lock, {handle.value});
 	if (!alloc) { return; }
-	device->device.defer(std::move(*alloc));
+	device->defer->push(std::move(*alloc));
 	device->allocations->remove(lock, {handle.value});
 }
 } // namespace

@@ -48,6 +48,8 @@ class Ttf {
 } // namespace vf
 
 namespace vf::refactor {
+class GfxFont;
+
 ///
 /// \brief TrueType Font
 ///
@@ -75,12 +77,11 @@ class Ttf : public GfxResource {
 
 	Ptr<Atlas const> atlas(Height height = height_v) const;
 	Ptr<Texture const> texture(Height height = height_v) const;
-	Handle<Ttf> handle() const { return m_handle; }
+	Handle<Ttf> handle() const;
 
   private:
 	void on_loaded(GfxFont& out_font);
 
 	std::unique_ptr<std::byte[]> m_file_data{};
-	Handle<Ttf> m_handle{};
 };
 } // namespace vf::refactor

@@ -8,7 +8,7 @@ class GfxAllocation {
   public:
 	enum class Type { eBuffer, eImage, eFont };
 
-	virtual ~GfxAllocation() = 0;
+	virtual ~GfxAllocation() = default;
 	GfxAllocation& operator=(GfxAllocation&&) = delete;
 
 	Ptr<GfxDevice const> device() const { return m_device; }

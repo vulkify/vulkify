@@ -240,7 +240,7 @@ Texture Texture::clone_image(GfxImage& out_image) const {
 void Texture::refresh(GfxImage& out_image, Extent extent) {
 	auto const format = out_image.image.cache.info.info.format;
 	if (!out_image.image.cache.ready(extent, format)) {
-		auto cache = ImageCache{out_image.image.cache.info};
+		auto cache = ImageCache{.info = out_image.image.cache.info, .device = out_image.device()};
 		cache.refresh(extent);
 		out_image.replace(std::move(cache));
 	}

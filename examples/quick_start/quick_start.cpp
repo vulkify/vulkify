@@ -193,17 +193,21 @@ void test(vf::Context context) {
 } // namespace
 
 #include <vulkify/instance/vf_instance.hpp>
+#include <optional>
 
 int main(int argc, char** argv) {
 	{
 		auto result = vf::refactor::VulkifyInstance::make({});
 		if (!result) { return EXIT_FAILURE; }
 		auto context = vf::Context::make(std::move(*result));
+		auto ttf = std::optional<vf::refactor::Ttf>{*context};
+		ttf->load("test_font.ttf");
 		context->show();
 		while (!context->closing()) {
 			auto frame = context->frame2();
 			frame.poll();
 			//
+			ttf.reset();
 		}
 	}
 	bool const headless = argc > 1 && argv[1] == std::string_view("--headless");

@@ -1,5 +1,4 @@
 #pragma once
-#include <detail/defer_queue.hpp>
 #include <ktl/enum_flags/enum_flags.hpp>
 #include <vulkan/vulkan.hpp>
 #include <vulkify/instance/instance_enums.hpp>
@@ -60,7 +59,6 @@ struct VulkanDevice {
 	Queue queue{};
 	vk::PhysicalDevice gpu{};
 	vk::Device device{};
-	Defer defer{};
 	std::mutex* queue_mutex{};
 	vk::PhysicalDeviceLimits const* limits{};
 	Flags flags{};

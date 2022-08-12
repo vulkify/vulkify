@@ -56,6 +56,7 @@ struct VmaResource {
 	T resource{};
 	VmaAllocator allocator{};
 	VmaAllocation handle{};
+	std::uint64_t id{};
 };
 
 template <typename T>
@@ -106,6 +107,7 @@ struct GfxDevice {
 	std::size_t buffering{};
 	CommandFactory* command_factory{};
 	GfxAllocationMap* allocations{};
+	DeferQueue* defer{};
 
 	vk::PhysicalDeviceLimits const* device_limits{};
 	vk::SampleCountFlagBits colour_samples{};
@@ -132,12 +134,14 @@ struct GfxDevice {
 	};
 };
 
+struct VulkanInstance;
+
 struct UniqueGfxDevice {
 	ktl::kunique_ptr<CommandFactory> command_factory{};
 	Unique<GfxDevice, GfxDevice::Deleter> device{};
 
 	explicit operator bool() const { return device && command_factory; }
 
-	static UniqueGfxDevice make(vk::Instance instance, VulkanDevice device, FT_Library ft, int samples);
+	static UniqueGfxDevice make(VulkanInstance const& instance, FT_Library ft, int samples);
 };
 } // namespace vf::refactor

@@ -1,3 +1,4 @@
+#include <detail/gfx_device.hpp>
 #include <detail/trace.hpp>
 #include <detail/vulkan_swapchain.hpp>
 #include <algorithm>
@@ -65,8 +66,8 @@ vk::SwapchainCreateInfoKHR make_swci(VulkanDevice const& device, std::span<vk::S
 }
 } // namespace
 
-VulkanSwapchain VulkanSwapchain::make(VulkanDevice const& device, std::span<vk::SurfaceFormatKHR const> formats, vk::SurfaceKHR surface,
-									  vk::PresentModeKHR mode, glm::ivec2 extent, bool linear) {
+VulkanSwapchain VulkanSwapchain::make(GfxDevice const* device, std::span<vk::SurfaceFormatKHR const> formats, vk::SurfaceKHR surface, vk::PresentModeKHR mode,
+									  glm::ivec2 extent, bool linear) {
 	if (!device) { return {}; }
 	auto ret = VulkanSwapchain{device, surface, formats, linear};
 	if (ret.refresh(extent, mode) != vk::Result::eSuccess) { return {}; }
@@ -74,7 +75,7 @@ VulkanSwapchain VulkanSwapchain::make(VulkanDevice const& device, std::span<vk::
 	return ret;
 }
 
-vk::SwapchainCreateInfoKHR VulkanSwapchain::make_info(glm::uvec2 const extent) const { return make_swci(device, formats, surface, extent, linear); }
+vk::SwapchainCreateInfoKHR VulkanSwapchain::make_info(glm::uvec2 const extent) const { return make_swci(device->device, formats, surface, extent, linear); }
 
 vk::Result VulkanSwapchain::refresh(glm::uvec2 const extent, vk::PresentModeKHR const mode) {
 	if (!device) { return vk::Result::eErrorDeviceLost; }
@@ -82,14 +83,14 @@ vk::Result VulkanSwapchain::refresh(glm::uvec2 const extent, vk::PresentModeKHR 
 	info.oldSwapchain = *swapchain.swapchain;
 	info.presentMode = mode;
 	vk::SwapchainKHR vks;
-	auto const ret = device.device.createSwapchainKHR(&info, nullptr, &vks);
+	auto const ret = device->device.device.createSwapchainKHR(&info, nullptr, &vks);
 	if (ret != vk::Result::eSuccess) { return ret; }
-	device.defer(std::move(swapchain));
+	device->defer->push(std::move(swapchain));
 	swapchain = {};
-	swapchain.swapchain = vk::UniqueSwapchainKHR(vks, device.device);
-	auto const images = device.device.getSwapchainImagesKHR(*swapchain.swapchain);
+	swapchain.swapchain = vk::UniqueSwapchainKHR(vks, device->device.device);
+	auto const images = device->device.device.getSwapchainImagesKHR(*swapchain.swapchain);
 	for (std::size_t i = 0; i < images.size(); ++i) {
-		swapchain.views.push_back(device.make_image_view(images[i], info.imageFormat, vk::ImageAspectFlagBits::eColor));
+		swapchain.views.push_back(device->device.make_image_view(images[i], info.imageFormat, vk::ImageAspectFlagBits::eColor));
 		swapchain.images.push_back({images[i], *swapchain.views[i], info.imageExtent});
 	}
 	return ret;
@@ -100,7 +101,7 @@ VulkanSwapchain::Acquire VulkanSwapchain::acquire(vk::Semaphore const signal, gl
 	if (!device) { return {}; }
 	static constexpr auto max_wait_v = std::numeric_limits<std::uint64_t>::max();
 	std::uint32_t idx{};
-	auto result = device.device.acquireNextImageKHR(*swapchain.swapchain, max_wait_v, signal, {}, &idx);
+	auto result = device->device.device.acquireNextImageKHR(*swapchain.swapchain, max_wait_v, signal, {}, &idx);
 	if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
 		refresh(extent, info.presentMode);
 		return {};
@@ -121,8 +122,8 @@ void VulkanSwapchain::submit(vk::CommandBuffer const cb, SwapchainSync const& sy
 	submitInfo.pWaitSemaphores = &sync.draw;
 	submitInfo.signalSemaphoreCount = 1U;
 	submitInfo.pSignalSemaphores = &sync.present;
-	auto lock = std::scoped_lock(*device.queue_mutex);
-	auto res = device.queue.queue.submit(1U, &submitInfo, sync.drawn);
+	auto lock = std::scoped_lock(*device->device.queue_mutex);
+	auto res = device->device.queue.queue.submit(1U, &submitInfo, sync.drawn);
 	if (res != vk::Result::eSuccess) { VF_TRACE("vf::(internal)", trace::Type::eError, "Queue submit failure!"); }
 }
 
@@ -134,7 +135,7 @@ void VulkanSwapchain::present(Acquire const& acquired, vk::Semaphore const wait,
 	info.swapchainCount = 1;
 	info.pSwapchains = &*swapchain.swapchain;
 	info.pImageIndices = &*acquired.index;
-	auto res = device.queue.queue.presentKHR(&info);
+	auto res = device->device.queue.queue.presentKHR(&info);
 	if (res != vk::Result::eSuccess && res != vk::Result::eSuboptimalKHR) { refresh(extent, this->info.presentMode); }
 }
 } // namespace vf::refactor
