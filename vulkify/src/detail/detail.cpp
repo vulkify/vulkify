@@ -560,7 +560,7 @@ VmaBuffer const& BufferCache::get(bool next) const {
 }
 
 void GfxImage::replace(ImageCache&& cache) {
-	device().device.defer(std::move(image.cache));
+	device()->device.defer(std::move(image.cache));
 	image.cache = std::move(cache);
 }
 /// /GfxBuffer/Image

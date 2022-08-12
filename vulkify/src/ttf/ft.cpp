@@ -353,3 +353,153 @@ Scribe& Scribe::line_break() {
 	return *this;
 }
 } // namespace vf
+
+#include <detail/gfx_device.hpp>
+
+namespace vf::refactor {
+GfxFont::GfxFont(GfxDevice const* device) : GfxAllocation(device, GfxAllocation::Type::eFont) {
+	if (!device->ftlib) { return; }
+}
+
+GfxFont::operator bool() const { return device() && face->face; }
+
+Character GfxFont::get(Codepoint codepoint, Height height) {
+	if (!*this) { return {}; }
+	auto& font = get_or_make(height);
+
+	Entry const* ret{};
+	if (auto it = font.map.find(codepoint); it != font.map.end()) { ret = &it->second; }
+	if (!ret) { ret = &insert(font, codepoint, {}); }
+
+	if (ret) { return {&ret->glyph, font.atlas.uv(ret->coords)}; }
+	return {};
+}
+
+GfxFont::Font& GfxFont::get_or_make(Height height) {
+	auto it = fonts.find(height);
+	if (it == fonts.end()) {
+		auto [i, _] = fonts.insert_or_assign(height, Font{Atlas{device(), initial_extent_v}});
+		it = i;
+		insert(it->second, {}, nullptr);
+	}
+	face->set_pixel_size({0, height});
+	return it->second;
+}
+
+GfxFont::Entry& GfxFont::insert(Font& out_font, Codepoint const codepoint, Atlas::Bulk* bulk) {
+	auto const slot = face->slot(codepoint);
+	auto entry = Entry{};
+	if (slot.has_bitmap()) {
+		auto const image = Image::View{slot.pixmap, slot.metrics.extent};
+		if (bulk) {
+			entry.coords = bulk->add(image);
+		} else {
+			entry.coords = out_font.atlas.add(image);
+		}
+	}
+	entry.glyph.metrics = slot.metrics;
+	auto [it, _] = out_font.map.insert_or_assign(codepoint, std::move(entry));
+	return it->second;
+}
+
+Ptr<Atlas const> GfxFont::atlas(Height height) const {
+	if (auto it = fonts.find(height); it != fonts.end()) { return &it->second.atlas; }
+	return {};
+}
+
+Ptr<Texture const> GfxFont::texture(Height height) const {
+	if (auto a = atlas(height)) { return &a->texture(); }
+	return {};
+}
+
+Ttf::Ttf(Context const& context) : GfxResource(&context.device()) {
+	if (!m_device) { return; }
+	auto font = ktl::make_unique<GfxFont>(m_device);
+	auto lock = std::scoped_lock(m_device->allocations->mutex);
+	m_handle = {m_device->allocations->add(lock, std::move(font)).value};
+}
+
+Ttf::operator bool() const { return m_device && m_handle; }
+
+bool Ttf::load(std::span<std::byte const> bytes) {
+	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	if (!font || !font->device()->ftlib) { return false; }
+	auto data = std::make_unique<std::byte[]>(bytes.size());
+	std::memcpy(data.get(), bytes.data(), bytes.size());
+	if (auto face = FtFace::make(font->device()->ftlib, {data.get(), bytes.size()})) {
+		font->face = face;
+		m_file_data = std::move(data);
+		on_loaded(*font);
+		return true;
+	}
+	return false;
+}
+
+bool Ttf::load(char const* path) {
+	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	if (!font) { return false; }
+	if (auto face = FtFace::make(m_device->ftlib, path)) {
+		font->face = face;
+		on_loaded(*font);
+		return true;
+	}
+	return false;
+}
+
+bool Ttf::contains(Codepoint codepoint, Height height) const {
+	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	if (!font) { return false; }
+	if (auto it = font->fonts.find(height); it != font->fonts.end()) { return it->second.map.contains(codepoint); }
+	return false;
+}
+
+Character Ttf::find(Codepoint codepoint, Height height) const {
+	auto* gfx_font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	if (!gfx_font) { return {}; }
+	auto font_it = gfx_font->fonts.find(height);
+	if (font_it == gfx_font->fonts.end()) { return {}; }
+
+	auto& font = font_it->second;
+	auto entry_it = font.map.find(codepoint);
+	if (entry_it == font.map.end()) { return {}; }
+
+	auto& entry = entry_it->second;
+	return {&entry.glyph, font.atlas.uv(entry.coords)};
+}
+
+Character Ttf::get(Codepoint codepoint, Height height) {
+	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	if (!font) { return {}; }
+	return font->get(codepoint, height);
+}
+
+std::size_t Ttf::preload(std::span<Codepoint const> codepoints, Height const height) {
+	auto* gfx_font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	if (!gfx_font) { return {}; }
+	auto ret = std::size_t{};
+	auto& font = gfx_font->get_or_make(height);
+	auto bulk = Atlas::Bulk{font.atlas};
+	for (auto const codepoint : codepoints) {
+		if (font.map.contains(codepoint)) { continue; }
+		gfx_font->insert(font, codepoint, &bulk);
+		++ret;
+	}
+	return ret;
+}
+
+Ptr<Atlas const> Ttf::atlas(Height height) const {
+	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	return font ? font->atlas(height) : nullptr;
+}
+
+Ptr<Texture const> Ttf::texture(Height height) const {
+	auto* font = m_device ? m_device->as<GfxFont>(m_allocation) : nullptr;
+	return font ? font->texture(height) : nullptr;
+}
+
+void Ttf::on_loaded(GfxFont& out_font) {
+	assert(out_font.device());
+	out_font.fonts.clear();
+	out_font.get_or_make(height_v);
+}
+} // namespace vf::refactor

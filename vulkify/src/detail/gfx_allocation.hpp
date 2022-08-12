@@ -1,16 +1,17 @@
 #pragma once
+#include <vulkify/core/ptr.hpp>
 
 namespace vf::refactor {
 struct GfxDevice;
 
 class GfxAllocation {
   public:
-	enum class Type { eBuffer, eImage };
+	enum class Type { eBuffer, eImage, eFont };
 
 	virtual ~GfxAllocation() = 0;
 	GfxAllocation& operator=(GfxAllocation&&) = delete;
 
-	GfxDevice const& device() const { return *m_device; }
+	Ptr<GfxDevice const> device() const { return m_device; }
 	Type type() const { return m_type; }
 
   protected:
