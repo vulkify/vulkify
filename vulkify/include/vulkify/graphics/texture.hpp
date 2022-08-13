@@ -72,7 +72,7 @@ class Texture : public GfxResource {
 };
 } // namespace vf
 
-#include <vulkify/graphics/detail/resource.hpp>
+#include <vulkify/graphics/detail/gfx_deferred.hpp>
 #include <vulkify/graphics/handle.hpp>
 
 namespace vf::refactor {
@@ -81,7 +81,7 @@ class GfxImage;
 ///
 /// \brief GPU Texture (Image and sampler)
 ///
-class Texture : public GfxResource {
+class Texture : public GfxDeferred {
   public:
 	using CreateInfo = TextureCreateInfo;
 	using TopLeft = Bitmap::TopLeft;
@@ -101,7 +101,7 @@ class Texture : public GfxResource {
 	Filtering filtering() const { return m_filtering; }
 	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
 
-	Handle<Texture> handle() const { return {m_allocation.get()}; }
+	Handle<Texture> handle() const;
 
   private:
 	Texture(GfxDevice const* device, CreateInfo const& info);

@@ -49,7 +49,7 @@ class Texture;
 ///
 struct Drawable {
 	std::span<DrawInstance const> instances{};
-	GeometryBuffer const& buffer;
-	Handle<Texture> texture{};
+	Handle<GeometryBuffer const> buffer{};
+	Handle<Texture const> texture{};
 };
 } // namespace vf::refactor

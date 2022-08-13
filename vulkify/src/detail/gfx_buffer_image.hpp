@@ -40,13 +40,13 @@ struct ImageCache {
 };
 
 struct BufferCache {
-	GfxDevice device{};
+	GfxDevice const* device{};
 	mutable vk::BufferCreateInfo info{};
 	mutable Rotator<UniqueBuffer, 4> buffers{};
 	std::vector<std::byte> data{std::byte{}};
 
 	BufferCache() = default;
-	BufferCache(GfxDevice const& device, vk::BufferUsageFlagBits usage);
+	BufferCache(GfxDevice const* device, vk::BufferUsageFlagBits usage);
 
 	explicit operator bool() const { return device && !buffers.storage.empty(); }
 
@@ -72,7 +72,13 @@ class GfxBuffer : public GfxAllocation {
 	BufferCache buffers[Count]{};
 };
 
-using GfxGeometryBuffer = GfxBuffer<2>;
+class GfxGeometryBuffer : public GfxBuffer<2> {
+  public:
+	using GfxBuffer::GfxBuffer;
+
+	std::uint32_t vertices{};
+	std::uint32_t indices{};
+};
 
 class GfxImage : public GfxAllocation {
   public:

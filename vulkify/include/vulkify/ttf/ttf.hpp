@@ -83,7 +83,7 @@ class Ttf {
 
 	Ptr<Atlas const> atlas(Height height = height_v) const;
 	Ptr<Texture const> texture(Height height = height_v) const;
-	Handle<Ttf> handle() const { return {m_allocation.get()}; }
+	Handle<Ttf> handle() const;
 
   private:
 	void on_loaded(GfxFont& out_font);

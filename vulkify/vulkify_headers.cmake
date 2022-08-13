@@ -45,6 +45,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/primitives/text.hpp
 
   include/vulkify/graphics/detail/draw_model.hpp
+  include/vulkify/graphics/detail/gfx_deferred.hpp
   include/vulkify/graphics/detail/resource.hpp
 
   include/vulkify/instance/cursor.hpp

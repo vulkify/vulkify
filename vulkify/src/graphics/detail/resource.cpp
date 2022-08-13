@@ -29,6 +29,8 @@ Vram const& GfxResource::vram() const { return m_allocation ? m_allocation->vram
 void GfxResource::release() && { defer_alloc(std::move(m_allocation)); }
 } // namespace vf
 
+#include <vulkify/graphics/detail/gfx_deferred.hpp>
+
 namespace vf::refactor {
 namespace {
 void defer_alloc(ktl::kunique_ptr<GfxAllocation>&& allocation) {
@@ -37,12 +39,12 @@ void defer_alloc(ktl::kunique_ptr<GfxAllocation>&& allocation) {
 }
 } // namespace
 
-GfxResource::GfxResource() noexcept = default;
-GfxResource::GfxResource(GfxResource&&) noexcept = default;
-GfxResource& GfxResource::operator=(GfxResource&&) noexcept = default;
-GfxResource::~GfxResource() { std::move(*this).release(); }
+GfxDeferred::GfxDeferred() noexcept = default;
+GfxDeferred::GfxDeferred(GfxDeferred&&) noexcept = default;
+GfxDeferred& GfxDeferred::operator=(GfxDeferred&&) noexcept = default;
+GfxDeferred::~GfxDeferred() { std::move(*this).release(); }
 
-GfxResource::GfxResource(GfxDevice const* device) noexcept : m_device(device) {}
+GfxDeferred::GfxDeferred(GfxDevice const* device) noexcept : m_device(device) {}
 
-void GfxResource::release() && { defer_alloc(std::move(m_allocation)); }
+void GfxDeferred::release() && { defer_alloc(std::move(m_allocation)); }
 } // namespace vf::refactor

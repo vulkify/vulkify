@@ -170,7 +170,7 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, 
 #include <detail/gfx_buffer_image.hpp>
 
 namespace vf::refactor {
-CombinedImageSampler RenderPass::image_sampler(Handle<Texture> texture) const {
+CombinedImageSampler RenderPass::image_sampler(Handle<Texture const> texture) const {
 	auto const image = static_cast<GfxImage const*>(texture.allocation);
 	if (!image) { return white_texture(); }
 	assert(image->type() == GfxAllocation::Type::eImage);
@@ -191,7 +191,7 @@ void RenderPass::write_view(SetWriter& set) const {
 	set.write(shader_input.one.bindings.ubo, &dm, sizeof(dm));
 }
 
-void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instances, Handle<Texture> texture) const {
+void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instances, Handle<Texture const> texture) const {
 	auto const tex = image_sampler(texture);
 	if (!set || instances.empty() || !tex.sampler || !tex.view) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write models set");
@@ -203,7 +203,7 @@ void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instanc
 	set.bind(command_buffer, bound);
 }
 
-void RenderPass::write_custom(SetWriter& set, std::span<std::byte const> ubo, Handle<Texture> texture) const {
+void RenderPass::write_custom(SetWriter& set, std::span<std::byte const> ubo, Handle<Texture const> texture) const {
 	auto const tex = image_sampler(texture);
 	if (!set || !tex.sampler || !tex.view) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write custom set");
@@ -276,6 +276,7 @@ bool Surface::bind(RenderState const& state) const {
 
 bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, RenderState const& state) const {
 	if (!m_render_pass->pipeline_factory || !m_render_pass->render_pass || !m_render_pass->render_mutex) { return false; }
+	if (drawable.instances.empty() || !drawable.buffer) { return false; }
 	auto lock = std::scoped_lock(*m_render_pass->render_mutex);
 	if (!bind(state)) { return false; }
 
@@ -293,16 +294,17 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, 
 	auto const lineWidth = std::clamp(state.pipeline.line_width, m_render_pass->line_width_limit.first, m_render_pass->line_width_limit.second);
 	m_render_pass->command_buffer.setLineWidth(lineWidth);
 
-	auto const& vbo = drawable.buffer.resource().buffers[0].get(true);
+	auto const* gbo = static_cast<GfxGeometryBuffer const*>(drawable.buffer.allocation);
+	assert(gbo && gbo->type() == GfxAllocation::Type::eBuffer);
+	auto const& vbo = gbo->buffers[0].get(true);
 	m_render_pass->command_buffer.bindVertexBuffers(0, vbo.resource, vk::DeviceSize{});
-	auto const counts = drawable.buffer.counts();
 	auto const instanceCount = static_cast<std::uint32_t>(models.size());
-	if (counts.indices > 0) {
-		auto const& ibo = drawable.buffer.resource().buffers[1].get(true);
+	if (gbo->indices > 0) {
+		auto const& ibo = gbo->buffers[1].get(true);
 		m_render_pass->command_buffer.bindIndexBuffer(ibo.resource, vk::DeviceSize{}, vk::IndexType::eUint32);
-		m_render_pass->command_buffer.drawIndexed(counts.indices, instanceCount, 0, 0, 0);
+		m_render_pass->command_buffer.drawIndexed(gbo->indices, instanceCount, 0, 0, 0);
 	} else {
-		m_render_pass->command_buffer.draw(counts.vertices, instanceCount, 0, 0);
+		m_render_pass->command_buffer.draw(gbo->vertices, instanceCount, 0, 0);
 	}
 	return true;
 }

@@ -223,7 +223,7 @@ Extent Texture::extent() const {
 }
 
 Texture::Texture(GfxDevice const* device, CreateInfo const& createInfo)
-	: GfxResource(device), m_address_mode(createInfo.address_mode), m_filtering(createInfo.filtering) {
+	: GfxDeferred(device), m_address_mode(createInfo.address_mode), m_filtering(createInfo.filtering) {
 	if (!device) { return; }
 	auto image = ktl::make_unique<GfxImage>(device);
 	image->image.sampler = device->device.device.createSamplerUnique(device->sampler_info(get_mode(m_address_mode), get_filter(m_filtering)));
@@ -231,6 +231,8 @@ Texture::Texture(GfxDevice const* device, CreateInfo const& createInfo)
 	image->image.cache.info.info.format = get_format(createInfo.format);
 	m_allocation = std::move(image);
 }
+
+Handle<Texture> Texture::handle() const { return {m_allocation.get()}; }
 
 Texture Texture::clone_image(GfxImage& out_image) const {
 	auto ret = Texture{m_device, {m_address_mode, m_filtering}};

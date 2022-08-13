@@ -10,5 +10,7 @@ struct Handle {
 
 	bool operator==(Handle const& rhs) const = default;
 	explicit constexpr operator bool() const { return allocation != nullptr; }
+
+	operator Handle<Type const>() const { return {allocation}; }
 };
 } // namespace vf::refactor

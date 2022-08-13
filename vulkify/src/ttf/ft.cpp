@@ -500,6 +500,8 @@ Ptr<Texture const> Ttf::texture(Height height) const {
 	return font ? font->texture(height) : nullptr;
 }
 
+Handle<Ttf> Ttf::handle() const { return {m_allocation.get()}; }
+
 void Ttf::on_loaded(GfxFont& out_font) {
 	assert(out_font.device());
 	out_font.fonts.clear();

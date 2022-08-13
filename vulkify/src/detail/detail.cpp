@@ -558,20 +558,21 @@ ImageView ImageCache::refresh(Extent const extent, vk::Format format) {
 	return peek();
 }
 
-BufferCache::BufferCache(GfxDevice const& device, vk::BufferUsageFlagBits usage) : device(device) {
+BufferCache::BufferCache(GfxDevice const* device, vk::BufferUsageFlagBits usage) : device(device) {
 	info.usage = usage;
 	info.size = 1;
-	for (std::size_t i = 0; i < device.buffering; ++i) { buffers.push(device.make_buffer(info, true)); }
+	if (!device || !*device) { return; }
+	for (std::size_t i = 0; i < device->buffering; ++i) { buffers.push(device->make_buffer(info, true)); }
 }
 
 VmaBuffer const& BufferCache::get(bool next) const {
 	static auto const blank_v = VmaBuffer{};
-	if (!device) { return blank_v; }
+	if (!device || !*device) { return blank_v; }
 	auto& buffer = buffers.get();
 	if (buffer->size < data.size()) {
 		info.size = data.size();
-		device.defer->push(std::move(buffer));
-		buffer = device.make_buffer(info, true);
+		device->defer->push(std::move(buffer));
+		buffer = device->make_buffer(info, true);
 	}
 	buffer->write(data.data(), data.size());
 	if (next) { buffers.next(); }
