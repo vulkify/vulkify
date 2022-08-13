@@ -12,21 +12,21 @@ concept InstancedMeshStorage = std::convertible_to<T, std::span<DrawInstance con
 /// \brief Low level primitive with public GeometryBuffer, TextureHandle, and std::vector<DrawInstance> (customizable)
 ///
 template <InstancedMeshStorage Storage = std::vector<DrawInstance>>
-class InstancedMesh : public Primitive {
+class InstancedMesh : public refactor::Primitive {
   public:
-	static InstancedMesh make_quad(Context const& context, QuadCreateInfo const& info = {}, TextureHandle texture = {});
+	static InstancedMesh make_quad(Context const& context, QuadCreateInfo const& info = {}, refactor::Handle<refactor::Texture> texture = {});
 
 	InstancedMesh() = default;
-	InstancedMesh(Context const& context, TextureHandle texture = {}) : buffer(context), texture(texture) {}
+	InstancedMesh(Context const& context, refactor::Handle<refactor::Texture> texture = {}) : buffer(context), texture(texture) {}
 
-	Drawable drawable() const { return {storage, buffer, texture}; }
+	refactor::Drawable drawable() const { return {storage, buffer.handle(), texture}; }
 
-	void draw(Surface const& surface, RenderState const& state = {}) const override { surface.draw(drawable(), state); }
+	void draw(refactor::Surface const& surface, RenderState const& state = {}) const override { surface.draw(drawable(), state); }
 
 	explicit operator bool() const { return static_cast<bool>(buffer); }
 
-	GeometryBuffer buffer{};
-	TextureHandle texture{};
+	refactor::GeometryBuffer buffer{};
+	refactor::Handle<refactor::Texture> texture{};
 	Storage storage{};
 };
 
@@ -44,7 +44,7 @@ class Mesh : public InstancedMesh<DrawInstance> {
 // impl
 
 template <InstancedMeshStorage Storage>
-InstancedMesh<Storage> InstancedMesh<Storage>::make_quad(Context const& context, QuadCreateInfo const& info, TextureHandle texture) {
+InstancedMesh<Storage> InstancedMesh<Storage>::make_quad(Context const& context, QuadCreateInfo const& info, refactor::Handle<refactor::Texture> texture) {
 	auto ret = InstancedMesh{context, texture};
 	ret.buffer.write(Geometry::make_quad(info));
 	return ret;

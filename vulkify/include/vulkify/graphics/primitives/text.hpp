@@ -7,7 +7,11 @@
 namespace vf {
 class Ttf;
 
-class Text : public Primitive {
+namespace refactor {
+class Ttf;
+}
+
+class Text : public refactor::Primitive {
   public:
 	using Height = std::uint32_t;
 
@@ -31,15 +35,15 @@ class Text : public Primitive {
 	Align align() const { return m_align; }
 	Height height() const { return m_height; }
 
-	Text& set_ttf(ktl::not_null<Ttf*> ttf);
-	Text& set_ttf(TtfHandle ttf);
+	Text& set_ttf(ktl::not_null<refactor::Ttf*> ttf);
+	Text& set_ttf(refactor::Handle<refactor::Ttf> ttf);
 	Text& set_string(std::string string);
 	Text& append(std::string string);
 	Text& append(char ch);
 	Text& set_align(Align align);
 	Text& set_height(Height height);
 
-	void draw(Surface const& surface, RenderState const& state = {}) const override;
+	void draw(refactor::Surface const& surface, RenderState const& state = {}) const override;
 
   private:
 	void rebuild() const;
@@ -48,6 +52,6 @@ class Text : public Primitive {
 	std::string m_text{};
 	Align m_align{};
 	Height m_height{60};
-	TtfHandle m_ttf{};
+	refactor::Handle<refactor::Ttf> m_ttf{};
 };
 } // namespace vf

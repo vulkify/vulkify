@@ -235,8 +235,8 @@ ShaderInput::Textures make_shader_textures(Vram const& vram) {
 	auto ret = ShaderInput::Textures{};
 	auto sci = sampler_info(vram, vk::SamplerAddressMode::eClampToBorder, vk::Filter::eNearest);
 	ret.sampler = vram.device.device.createSamplerUnique(sci);
-	ret.white = {{vram}};
-	ret.magenta = {{vram}};
+	// ret.white = {{vram}};
+	// ret.magenta = {{vram}};
 	ret.white.set_texture(false);
 	ret.magenta.set_texture(false);
 
@@ -246,9 +246,9 @@ ShaderInput::Textures make_shader_textures(Vram const& vram) {
 	std::byte imageBytes[4]{};
 	Bitmap::rgba_to_byte(white_v, imageBytes);
 	auto cb = GfxCommandBuffer(vram);
-	cb.writer.write(ret.white.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
-	Bitmap::rgba_to_byte(magenta_v, imageBytes);
-	cb.writer.write(ret.magenta.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	// cb.writer.write(ret.white.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	// Bitmap::rgba_to_byte(magenta_v, imageBytes);
+	// cb.writer.write(ret.magenta.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 
 	return ret;
 }
@@ -467,7 +467,8 @@ Surface VulkifyInstance::begin_pass(Rgba clear) {
 	auto const mat_p = projection(extent);
 	proj.write(0, &mat_p, sizeof(mat_p));
 
-	auto const input = ShaderInput{proj, &m_impl->shader_textures};
+	// auto const input = ShaderInput{proj, &m_impl->shader_textures};
+	auto const input = ShaderInput{};
 	auto const cam = RenderCam{extent, &m_impl->camera};
 	auto const lwl = std::pair(m_impl->vram.vram->device_limits.lineWidthRange[0], m_impl->vram.vram->device_limits.lineWidthRange[1]);
 	auto* mutex = &m_impl->vulkan.util->mutex.render;
@@ -533,6 +534,7 @@ std::size_t GamepadMap::count() const { return static_cast<std::size_t>(std::cou
 } // namespace vf
 
 #include <detail/gfx_buffer_image.hpp>
+#include <detail/gfx_command_buffer.hpp>
 #include <detail/gfx_device.hpp>
 #include <detail/vulkan_instance.hpp>
 #include <detail/vulkan_swapchain.hpp>
@@ -689,6 +691,40 @@ struct SwapchainRenderer {
 
 	void next() { frame_sync.next(); }
 };
+
+vk::SamplerCreateInfo sampler_info(GfxDevice const* device, vk::SamplerAddressMode mode, vk::Filter filter) {
+	auto ret = vk::SamplerCreateInfo{};
+	if (!device->device_limits) { return ret; }
+	ret.minFilter = ret.magFilter = filter;
+	ret.anisotropyEnable = device->device_limits->maxSamplerAnisotropy > 0.0f;
+	ret.maxAnisotropy = device->device_limits->maxSamplerAnisotropy;
+	ret.borderColor = vk::BorderColor::eIntOpaqueBlack;
+	ret.mipmapMode = vk::SamplerMipmapMode::eNearest;
+	ret.addressModeU = ret.addressModeV = ret.addressModeW = mode;
+	return ret;
+}
+
+ShaderInput::Textures make_shader_textures(GfxDevice const* device) {
+	auto ret = ShaderInput::Textures{};
+	auto sci = sampler_info(device, vk::SamplerAddressMode::eClampToBorder, vk::Filter::eNearest);
+	ret.sampler = device->device.device.createSamplerUnique(sci);
+	ret.white = {.device = device};
+	ret.magenta = {.device = device};
+	ret.white.set_texture(false);
+	ret.magenta.set_texture(false);
+
+	ret.white.refresh({1, 1});
+	ret.magenta.refresh({1, 1});
+	if (!ret.white.view || !ret.magenta.view) { return {}; }
+	std::byte imageBytes[4]{};
+	Bitmap::rgba_to_byte(white_v, imageBytes);
+	auto cb = refactor::GfxCommandBuffer(device);
+	cb.writer.write(ret.white.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+	Bitmap::rgba_to_byte(magenta_v, imageBytes);
+	cb.writer.write(ret.magenta.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
+
+	return ret;
+}
 } // namespace
 
 struct VulkifyInstance::Impl {
@@ -707,6 +743,7 @@ struct VulkifyInstance::Impl {
 	DescriptorSetFactory set_factory{};
 	ShaderInput::Textures shader_textures{};
 	Camera camera{};
+	RenderPass render_pass{};
 };
 
 VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
@@ -775,8 +812,8 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 		impl->set_factory = DescriptorSetFactory::make(impl->device.device, impl->pipeline_factory.set_layouts);
 		if (!impl->set_factory) { return Error::eVulkanInitFailure; }
 
-		// impl->shader_textures = make_shader_textures(impl->vram.vram);
-		// if (!impl->shader_textures) { return Error::eVulkanInitFailure; }
+		impl->shader_textures = make_shader_textures(&impl->device.device.get());
+		if (!impl->shader_textures) { return Error::eVulkanInitFailure; }
 	}
 
 	impl->freetype = std::move(freetype);
@@ -882,13 +919,14 @@ Surface VulkifyInstance::begin_pass2(Rgba clear) {
 	auto const mat_p = projection(extent);
 	proj.write(0, &mat_p, sizeof(mat_p));
 
-	// auto const input = ShaderInput{proj, &m_impl->shader_textures};
-	auto const input = ShaderInput{};
+	auto const input = ShaderInput{proj, &m_impl->shader_textures};
 	auto const cam = RenderCam{extent, &m_impl->camera};
 	auto const lwl = std::pair(m_impl->device.device->device_limits->lineWidthRange[0], m_impl->device.device->device_limits->lineWidthRange[1]);
 	auto* mutex = &m_impl->vulkan.util->mutex.render;
 	auto const& device = m_impl->device.device.get();
-	return RenderPass{this, &device, &m_impl->pipeline_factory, &m_impl->set_factory, *sr.renderer.render_pass, std::move(cmd), input, cam, lwl, mutex};
+	m_impl->render_pass =
+		RenderPass{this, &device, &m_impl->pipeline_factory, &m_impl->set_factory, *sr.renderer.render_pass, std::move(cmd), input, cam, lwl, mutex};
+	return Surface{&m_impl->render_pass};
 }
 
 bool VulkifyInstance::end_pass() {

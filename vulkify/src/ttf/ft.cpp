@@ -301,7 +301,7 @@ glm::vec2 Scribe::extent(std::string_view line) const {
 
 Scribe& Scribe::preload(std::string_view text) {
 	auto& font = out_font.get_or_make(height);
-	auto bulk = Atlas::Bulk(font.atlas);
+	auto bulk = refactor::Atlas::Bulk(font.atlas);
 	for (auto const ch : text) {
 		auto const codepoint = static_cast<Codepoint>(ch);
 		if (codepoint < codepoint_range_v.first || codepoint > codepoint_range_v.second || font.map.contains(codepoint)) { continue; }

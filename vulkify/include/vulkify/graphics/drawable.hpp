@@ -43,13 +43,14 @@ inline DrawModel DrawInstance::draw_model() const {
 
 namespace vf::refactor {
 class Texture;
+class GeometryBuffer;
 
 ///
 /// \brief View to geometry, texture, and instances associated with a single draw call
 ///
 struct Drawable {
 	std::span<DrawInstance const> instances{};
-	Handle<GeometryBuffer const> buffer{};
-	Handle<Texture const> texture{};
+	Handle<GeometryBuffer> buffer{};
+	Handle<Texture> texture{};
 };
 } // namespace vf::refactor

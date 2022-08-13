@@ -6,11 +6,9 @@ class GfxAllocation;
 
 template <typename Type>
 struct Handle {
-	Ptr<GfxAllocation const> allocation{};
+	Ptr<GfxAllocation> allocation{};
 
 	bool operator==(Handle const& rhs) const = default;
 	explicit constexpr operator bool() const { return allocation != nullptr; }
-
-	operator Handle<Type const>() const { return {allocation}; }
 };
 } // namespace vf::refactor

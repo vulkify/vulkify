@@ -112,7 +112,7 @@ struct Helper {
 		return stars;
 	}
 
-	vf::Text make_text(vf::Ttf& ttf) {
+	vf::Text make_text(vf::refactor::Ttf& ttf) {
 		auto ret = vf::Text(context);
 		ret.set_ttf(&ttf).set_height(80).set_string("vulkify");
 		ret.tint() = vf::Rgba::make(0xec3841ff);
@@ -124,7 +124,7 @@ struct Helper {
 void test(vf::Context context) {
 	std::cout << "using GPU: " << context.gpu().name << '\n';
 
-	auto ttf = vf::Ttf{context};
+	auto ttf = vf::refactor::Ttf{context};
 	if (ttf.load("test_font.ttf")) { std::cout << "[test_font.ttf] loaded successfully\n"; }
 
 	auto helper = Helper{context};
@@ -151,14 +151,15 @@ void test(vf::Context context) {
 	static constexpr auto clearA = vf::Rgba::make(0xfff000ff);
 	static constexpr auto clearB = vf::Rgba::make(0x000fffff);
 
-	vf::Primitive const* primitives[] = {&triangle, &rgb_quad, &hexagon, &circle, &iris, &textured_quad, &stars, &text};
+	// vf::Primitive const* primitives[] = {&triangle, &rgb_quad, &hexagon, &circle, &iris, &textured_quad, &stars, &text};
+	vf::refactor::Primitive const* primitives[] = {&triangle, &circle, &stars, &text};
 
 	context.show();
 	auto elapsed = vf::Time{};
 
 	while (!context.closing()) {
 		auto const clear = vf::Rgba::lerp(clearA, clearB, (std::sin(elapsed.count()) + 1.0f) * 0.5f);
-		auto frame = context.frame(clear);
+		auto frame = context.frame2(clear);
 		elapsed += frame.dt();
 
 		for (auto const& event : frame.poll().events) {

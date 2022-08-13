@@ -1,5 +1,5 @@
 #pragma once
-#include <detail/cache.hpp>
+#include <detail/gfx_buffer_image.hpp>
 #include <detail/set_writer.hpp>
 #include <glm/vec2.hpp>
 #include <ktl/unique_val.hpp>
@@ -26,13 +26,13 @@ struct SetBind {
 struct ShaderInput {
 	struct Textures {
 		vk::UniqueSampler sampler{};
-		ImageCache white{};
-		ImageCache magenta{};
+		refactor::ImageCache white{};
+		refactor::ImageCache magenta{};
 
 		explicit operator bool() const { return sampler && white.image && magenta.image; }
 	};
 
-	SetWriter mat_p{};
+	refactor::SetWriter mat_p{};
 	Textures const* textures{};
 	SetBind one{1};
 	SetBind two{2};
@@ -85,11 +85,11 @@ struct RenderPass {
 
 	mutable vk::PipelineLayout bound{};
 
-	CombinedImageSampler image_sampler(Handle<Texture const> texture) const;
+	CombinedImageSampler image_sampler(Handle<Texture> texture) const;
 	CombinedImageSampler white_texture() const;
 	void write_view(SetWriter& set) const;
-	void write_models(SetWriter& set, std::span<DrawModel const> instances, Handle<Texture const> texture) const;
-	void write_custom(SetWriter& set, std::span<std::byte const> ubo, Handle<Texture const> texture) const;
+	void write_models(SetWriter& set, std::span<DrawModel const> instances, Handle<Texture> texture) const;
+	void write_custom(SetWriter& set, std::span<std::byte const> ubo, Handle<Texture> texture) const;
 	void bind(vk::PipelineLayout layout, vk::Pipeline pipeline) const;
 	void set_viewport() const;
 };

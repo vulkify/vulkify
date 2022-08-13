@@ -67,10 +67,10 @@ class Surface {
 	template <std::output_iterator<DrawModel> Out>
 	static void add_draw_models(std::span<DrawInstance const> instances, Out out);
 
-	Surface() noexcept;
-	Surface(RenderPass render_pass);
-	Surface(Surface&&) noexcept;
-	Surface& operator=(Surface&&) noexcept;
+	Surface() = default;
+	Surface(RenderPass const* render_pass) : m_render_pass(render_pass) { bind({}); }
+	Surface(Surface&& rhs) noexcept : Surface() { swap(rhs); }
+	Surface& operator=(Surface rhs) noexcept { return (swap(rhs), *this); }
 	~Surface();
 
 	explicit operator bool() const;
@@ -78,10 +78,11 @@ class Surface {
 	bool draw(Drawable const& drawable, RenderState const& state = {}) const;
 
   private:
+	void swap(Surface& rhs) noexcept { std::swap(m_render_pass, rhs.m_render_pass); }
 	bool bind(RenderState const& state) const;
 	bool draw(std::span<DrawModel const> models, Drawable const& drawable, RenderState const& state) const;
 
-	ktl::fixed_pimpl<RenderPass, 256> m_render_pass;
+	RenderPass const* m_render_pass{};
 };
 
 // impl

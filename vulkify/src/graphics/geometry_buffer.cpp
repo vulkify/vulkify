@@ -70,10 +70,11 @@ void write_geometry(BufferCache& vbo, BufferCache& ibo, Geometry const& geometry
 } // namespace
 
 GeometryBuffer::GeometryBuffer(Context const& context) : GfxDeferred(&context.device()) {
-	auto allocation = ktl::make_unique<GfxGeometryBuffer>(m_device);
-	auto& bufs = allocation->buffers;
+	auto buffer = ktl::make_unique<GfxGeometryBuffer>(m_device);
+	auto& bufs = buffer->buffers;
 	bufs[0] = BufferCache(m_device, vk::BufferUsageFlagBits::eVertexBuffer);
 	bufs[1] = BufferCache(m_device, vk::BufferUsageFlagBits::eIndexBuffer);
+	m_allocation = std::move(buffer);
 }
 
 Result<void> GeometryBuffer::write(Geometry geometry) {

@@ -170,7 +170,7 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, 
 #include <detail/gfx_buffer_image.hpp>
 
 namespace vf::refactor {
-CombinedImageSampler RenderPass::image_sampler(Handle<Texture const> texture) const {
+CombinedImageSampler RenderPass::image_sampler(Handle<Texture> texture) const {
 	auto const image = static_cast<GfxImage const*>(texture.allocation);
 	if (!image) { return white_texture(); }
 	assert(image->type() == GfxAllocation::Type::eImage);
@@ -191,7 +191,7 @@ void RenderPass::write_view(SetWriter& set) const {
 	set.write(shader_input.one.bindings.ubo, &dm, sizeof(dm));
 }
 
-void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instances, Handle<Texture const> texture) const {
+void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instances, Handle<Texture> texture) const {
 	auto const tex = image_sampler(texture);
 	if (!set || instances.empty() || !tex.sampler || !tex.view) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write models set");
@@ -203,7 +203,7 @@ void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instanc
 	set.bind(command_buffer, bound);
 }
 
-void RenderPass::write_custom(SetWriter& set, std::span<std::byte const> ubo, Handle<Texture const> texture) const {
+void RenderPass::write_custom(SetWriter& set, std::span<std::byte const> ubo, Handle<Texture> texture) const {
 	auto const tex = image_sampler(texture);
 	if (!set || !tex.sampler || !tex.view) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write custom set");
@@ -237,19 +237,14 @@ void RenderPass::set_viewport() const {
 	command_buffer.setViewport(0, vk::Viewport(vp.offset.x, vp.offset.y + vp.extent.y, vp.extent.x, -vp.extent.y)); // flip x / negative y
 }
 
-Surface::Surface() noexcept = default;
-Surface::Surface(RenderPass render_pass) : m_render_pass(std::move(render_pass)) { bind({}); }
-Surface::Surface(Surface&& rhs) noexcept : Surface() { std::swap(m_render_pass, rhs.m_render_pass); }
-Surface& Surface::operator=(Surface&& rhs) noexcept = default;
-
 Surface::~Surface() {
-	if (m_render_pass->instance) { m_render_pass->instance.value->end_pass(); }
+	if (m_render_pass && m_render_pass->instance) { m_render_pass->instance.value->end_pass(); }
 }
 
-Surface::operator bool() const { return m_render_pass->instance; }
+Surface::operator bool() const { return m_render_pass && m_render_pass->instance; }
 
 bool Surface::draw(Drawable const& drawable, RenderState const& state) const {
-	if (!m_render_pass->pipeline_factory || !m_render_pass->render_pass) { return false; }
+	if (!m_render_pass || !m_render_pass->pipeline_factory || !m_render_pass->render_pass) { return false; }
 	if (drawable.instances.empty() || !drawable.buffer) { return false; }
 	if (drawable.instances.size() <= small_buffer_v) {
 		auto buffer = ktl::fixed_vector<DrawModel, small_buffer_v>{};
@@ -264,6 +259,7 @@ bool Surface::draw(Drawable const& drawable, RenderState const& state) const {
 }
 
 bool Surface::bind(RenderState const& state) const {
+	if (!m_render_pass) { return false; }
 	auto program = PipelineFactory::Spec::ShaderProgram{};
 	// TODO: fixup
 	// if (state.descriptor_set) { program.frag = *state.descriptor_set->m_shader->m_module->module; }
@@ -275,7 +271,7 @@ bool Surface::bind(RenderState const& state) const {
 }
 
 bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, RenderState const& state) const {
-	if (!m_render_pass->pipeline_factory || !m_render_pass->render_pass || !m_render_pass->render_mutex) { return false; }
+	if (!m_render_pass || !m_render_pass->pipeline_factory || !m_render_pass->render_pass || !m_render_pass->render_mutex) { return false; }
 	if (drawable.instances.empty() || !drawable.buffer) { return false; }
 	auto lock = std::scoped_lock(*m_render_pass->render_mutex);
 	if (!bind(state)) { return false; }

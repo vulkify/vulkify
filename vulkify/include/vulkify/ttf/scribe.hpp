@@ -15,7 +15,7 @@ struct LineViewer {
 /// \brief Writes codepoints and moves write-head
 ///
 struct Pen {
-	GfxFont* out_font{};
+	refactor::GfxFont* out_font{};
 	Geometry* out_geometry{};
 	glm::vec2 head{};
 	Glyph::Height height{Glyph::height_v};
@@ -41,7 +41,7 @@ struct Scribe {
 	static constexpr auto centre_v = Pivot{};
 	static constexpr auto codepoint_range_v = std::pair(Codepoint{33}, Codepoint{255});
 
-	GfxFont& out_font;
+	refactor::GfxFont& out_font;
 	Height height{Glyph::height_v};
 	glm::vec2 origin{};
 
