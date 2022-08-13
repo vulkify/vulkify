@@ -18,7 +18,7 @@ class Sprite : public Prop {
 	///
 	/// \brief Index into a sprite sheet's list of UVs
 	///
-	using UvIndex = std::uint32_t;
+	enum struct UvIndex : std::uint32_t { eDefault = 0 };
 
 	Sprite() = default;
 	explicit Sprite(GfxDevice const& device, glm::vec2 size = {100.0f, 100.0f});

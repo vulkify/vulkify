@@ -46,8 +46,8 @@ auto Sprite::Sheet::add_uv(UvRect uv) -> UvIndex {
 UvRect const& Sprite::Sheet::uv(UvIndex index) const {
 	static constexpr auto default_v = UvRect{};
 	if (m_uvs.empty()) { return default_v; }
-	if (index >= m_uvs.size()) { index = 0; }
-	return m_uvs[index];
+	if (static_cast<std::size_t>(index) >= m_uvs.size()) { index = {}; }
+	return m_uvs[static_cast<std::size_t>(index)];
 }
 
 auto Sprite::Sheet::set_uvs(ktl::not_null<Texture const*> texture, std::uint32_t const rows, std::uint32_t const columns, glm::uvec2 const pad) -> Sheet& {

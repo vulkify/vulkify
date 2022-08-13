@@ -5,8 +5,9 @@ namespace vf {
 using Codepoint = std::uint32_t;
 
 struct Glyph {
-	using Height = std::uint32_t;
-	static constexpr auto height_v = Height{60};
+	enum struct Height : std::uint32_t { eDefault = 60 };
+
+	static constexpr auto height_v = Height::eDefault;
 
 	struct Metrics {
 		glm::uvec2 extent{};

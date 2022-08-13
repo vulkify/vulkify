@@ -3,13 +3,14 @@
 #include <vulkify/core/dirty_flag.hpp>
 #include <vulkify/graphics/handle.hpp>
 #include <vulkify/graphics/primitives/mesh.hpp>
+#include <vulkify/ttf/glyph.hpp>
 
 namespace vf {
 class Ttf;
 
 class Text : public Primitive {
   public:
-	using Height = std::uint32_t;
+	using Height = Glyph::Height;
 
 	enum class Horz { eLeft, eCentre, eRight };
 	enum class Vert { eDown, eMid, eUp };
