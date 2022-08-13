@@ -216,7 +216,7 @@ struct DescriptorSetFactory {
 
 	explicit operator bool() const { return !allocators[0].pools.storage.empty(); }
 
-	SetWriter postInc(std::uint32_t set) {
+	SetWriter post_increment(std::uint32_t set) {
 		assert(set < sets_v);
 		auto& rot = allocators[set];
 		auto ret = rot.descriptor_set();

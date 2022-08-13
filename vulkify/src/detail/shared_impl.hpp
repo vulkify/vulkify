@@ -74,11 +74,6 @@ struct GfxCommandBuffer {
 	GfxCommandBuffer& operator=(GfxCommandBuffer&&) = delete;
 };
 
-struct GfxShaderModule {
-	vk::UniqueShaderModule module{};
-	vk::Device device{};
-};
-
 struct CombinedImageSampler {
 	vk::ImageView view{};
 	vk::Sampler sampler{};

@@ -6,7 +6,7 @@ struct GfxDevice;
 
 class GfxAllocation {
   public:
-	enum class Type { eBuffer, eImage, eFont };
+	enum class Type { eBuffer, eImage, eFont, eShader };
 
 	virtual ~GfxAllocation() = default;
 	GfxAllocation& operator=(GfxAllocation&&) = delete;

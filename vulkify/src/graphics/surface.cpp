@@ -126,7 +126,7 @@ bool Surface::draw(Drawable const& drawable, RenderState const& state) const {
 
 bool Surface::bind(RenderState const& state) const {
 	auto program = PipelineFactory::Spec::ShaderProgram{};
-	if (state.descriptor_set) { program.frag = *state.descriptor_set->m_shader->m_module->module; }
+	// if (state.descriptor_set) { program.frag = *state.descriptor_set->m_shader->m_module->module; }
 	auto const spec = PipelineFactory::Spec{program, polygon_mode(state.pipeline.polygon_mode), topology(state.pipeline.topology)};
 	auto const [pipe, layout] = m_render_pass->pipeline_factory->pipeline(spec, m_render_pass->render_pass);
 	if (!pipe || !layout) { return false; }
@@ -139,30 +139,30 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, 
 	auto lock = std::scoped_lock(*m_render_pass->render_mutex);
 	if (!bind(state)) { return false; }
 
-	auto set = m_render_pass->set_factory->postInc(m_render_pass->shader_input.one.set);
-	if (!set) { return false; }
-	m_render_pass->write_view(set);
-	m_render_pass->write_models(set, models, drawable.texture);
-	if (state.descriptor_set) {
-		set = m_render_pass->set_factory->postInc(m_render_pass->shader_input.two.set);
-		if (!set) { return false; }
-		m_render_pass->write_custom(set, state.descriptor_set->m_data.bytes, state.descriptor_set->m_data.texture);
-	}
-	m_render_pass->set_viewport();
-	auto const lineWidth = std::clamp(state.pipeline.line_width, m_render_pass->line_width_limit.first, m_render_pass->line_width_limit.second);
-	m_render_pass->command_buffer.setLineWidth(lineWidth);
+	// auto set = m_render_pass->set_factory->post_increment(m_render_pass->shader_input.one.set);
+	// if (!set) { return false; }
+	// m_render_pass->write_view(set);
+	// m_render_pass->write_models(set, models, drawable.texture);
+	// if (state.descriptor_set) {
+	// 	set = m_render_pass->set_factory->post_increment(m_render_pass->shader_input.two.set);
+	// 	if (!set) { return false; }
+	// 	// m_render_pass->write_custom(set, state.descriptor_set->m_data.bytes, state.descriptor_set->m_data.texture);
+	// }
+	// m_render_pass->set_viewport();
+	// auto const lineWidth = std::clamp(state.pipeline.line_width, m_render_pass->line_width_limit.first, m_render_pass->line_width_limit.second);
+	// m_render_pass->command_buffer.setLineWidth(lineWidth);
 
-	auto const& vbo = drawable.buffer.resource().buffers[0].get(true);
-	m_render_pass->command_buffer.bindVertexBuffers(0, vbo.resource, vk::DeviceSize{});
-	auto const counts = drawable.buffer.counts();
-	auto const instanceCount = static_cast<std::uint32_t>(models.size());
-	if (counts.indices > 0) {
-		auto const& ibo = drawable.buffer.resource().buffers[1].get(true);
-		m_render_pass->command_buffer.bindIndexBuffer(ibo.resource, vk::DeviceSize{}, vk::IndexType::eUint32);
-		m_render_pass->command_buffer.drawIndexed(counts.indices, instanceCount, 0, 0, 0);
-	} else {
-		m_render_pass->command_buffer.draw(counts.vertices, instanceCount, 0, 0);
-	}
+	// auto const& vbo = drawable.buffer.resource().buffers[0].get(true);
+	// m_render_pass->command_buffer.bindVertexBuffers(0, vbo.resource, vk::DeviceSize{});
+	// auto const counts = drawable.buffer.counts();
+	// auto const instanceCount = static_cast<std::uint32_t>(models.size());
+	// if (counts.indices > 0) {
+	// 	auto const& ibo = drawable.buffer.resource().buffers[1].get(true);
+	// 	m_render_pass->command_buffer.bindIndexBuffer(ibo.resource, vk::DeviceSize{}, vk::IndexType::eUint32);
+	// 	m_render_pass->command_buffer.drawIndexed(counts.indices, instanceCount, 0, 0, 0);
+	// } else {
+	// 	m_render_pass->command_buffer.draw(counts.vertices, instanceCount, 0, 0);
+	// }
 	return true;
 }
 } // namespace vf
@@ -261,8 +261,7 @@ bool Surface::draw(Drawable const& drawable, RenderState const& state) const {
 bool Surface::bind(RenderState const& state) const {
 	if (!m_render_pass) { return false; }
 	auto program = PipelineFactory::Spec::ShaderProgram{};
-	// TODO: fixup
-	// if (state.descriptor_set) { program.frag = *state.descriptor_set->m_shader->m_module->module; }
+	if (state.descriptor_set) { program.frag = *state.descriptor_set->m_shader->m_module->module; }
 	auto const spec = PipelineFactory::Spec{program, polygon_mode(state.pipeline.polygon_mode), topology(state.pipeline.topology)};
 	auto const [pipe, layout] = m_render_pass->pipeline_factory->pipeline(spec, m_render_pass->render_pass);
 	if (!pipe || !layout) { return false; }
@@ -276,15 +275,14 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, 
 	auto lock = std::scoped_lock(*m_render_pass->render_mutex);
 	if (!bind(state)) { return false; }
 
-	auto set = m_render_pass->set_factory->postInc(m_render_pass->shader_input.one.set);
+	auto set = m_render_pass->set_factory->post_increment(m_render_pass->shader_input.one.set);
 	if (!set) { return false; }
 	m_render_pass->write_view(set);
 	m_render_pass->write_models(set, models, drawable.texture);
 	if (state.descriptor_set) {
-		set = m_render_pass->set_factory->postInc(m_render_pass->shader_input.two.set);
+		set = m_render_pass->set_factory->post_increment(m_render_pass->shader_input.two.set);
 		if (!set) { return false; }
-		// TODO: fixup
-		// m_render_pass->write_custom(set, state.descriptor_set->m_data.bytes, state.descriptor_set->m_data.texture);
+		m_render_pass->write_custom(set, state.descriptor_set->m_data.bytes, state.descriptor_set->m_data.texture);
 	}
 	m_render_pass->set_viewport();
 	auto const lineWidth = std::clamp(state.pipeline.line_width, m_render_pass->line_width_limit.first, m_render_pass->line_width_limit.second);

@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkify/core/ptr.hpp>
+#include <vulkify/graphics/handle.hpp>
 #include <vulkify/graphics/texture_handle.hpp>
 #include <cstring>
 #include <span>
@@ -7,6 +8,11 @@
 
 namespace vf {
 class Shader;
+
+namespace refactor {
+class Surface;
+class Texture;
+} // namespace refactor
 
 template <typename T>
 concept BufferData = std::is_trivially_copyable_v<T>;
@@ -18,16 +24,17 @@ class DescriptorSet {
 	template <BufferData T>
 	void write(T const& t);
 	void write(std::vector<std::byte> uniform_data) { m_data.bytes = std::move(uniform_data); }
-	void write(TextureHandle texture) { m_data.texture = texture; }
+	void write(refactor::Handle<refactor::Texture> texture) { m_data.texture = texture; }
 
   private:
 	struct {
-		TextureHandle texture{};
+		refactor::Handle<refactor::Texture> texture{};
 		std::vector<std::byte> bytes{};
 	} m_data{};
 	Ptr<Shader const> m_shader{};
 
 	friend class Surface;
+	friend class refactor::Surface;
 };
 
 // impl

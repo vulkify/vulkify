@@ -472,7 +472,7 @@ Surface VulkifyInstance::begin_pass(Rgba clear) {
 	auto const cam = RenderCam{extent, &m_impl->camera};
 	auto const lwl = std::pair(m_impl->vram.vram->device_limits.lineWidthRange[0], m_impl->vram.vram->device_limits.lineWidthRange[1]);
 	auto* mutex = &m_impl->vulkan.util->mutex.render;
-	return RenderPass{this, &m_impl->pipeline_factory, &m_impl->set_factory, *sr.renderer.render_pass, std::move(cmd), input, cam, lwl, mutex};
+	return RenderPass{this, &m_impl->pipeline_factory, {}, *sr.renderer.render_pass, std::move(cmd), input, cam, lwl, mutex};
 }
 
 bool VulkifyInstance::end_pass() {
@@ -915,7 +915,7 @@ Surface VulkifyInstance::begin_pass2(Rgba clear) {
 	m_impl->vulkan.util->defer.decrement();
 	m_impl->renderer.clear = clear;
 
-	auto proj = m_impl->set_factory.postInc(0);
+	auto proj = m_impl->set_factory.post_increment(0);
 	auto const mat_p = projection(extent);
 	proj.write(0, &mat_p, sizeof(mat_p));
 

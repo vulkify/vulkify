@@ -34,9 +34,9 @@ class Context {
 	AntiAliasing anti_aliasing() const { return m_instance->anti_aliasing(); }
 	VSync vsync() const { return m_instance->vsync(); }
 
-	Frame frame(Rgba clear = {});
+	Frame frame_old(Rgba clear = {});
 	// TODO: fixup
-	refactor::Frame frame2(Rgba clear = {});
+	refactor::Frame frame(Rgba clear = {});
 
 	void set_position(glm::ivec2 xy) { m_instance->set_position(xy); }
 	void set_extent(glm::uvec2 size) { m_instance->set_extent(size); }

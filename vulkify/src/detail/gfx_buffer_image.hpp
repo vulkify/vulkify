@@ -88,4 +88,11 @@ class GfxImage : public GfxAllocation {
 
 	VulkanImage image{};
 };
+
+class GfxShaderModule : public GfxAllocation {
+  public:
+	GfxShaderModule(GfxDevice const* device) : GfxAllocation(device, Type::eShader) {}
+
+	vk::UniqueShaderModule module{};
+};
 } // namespace vf::refactor

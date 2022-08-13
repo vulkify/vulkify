@@ -11,8 +11,11 @@ namespace vf {
 class Instance;
 struct DrawModel;
 struct PipelineFactory;
-struct DescriptorSetFactory;
 struct CombinedImageSampler;
+
+namespace refactor {
+struct DescriptorSetFactory;
+}
 
 struct SetBind {
 	std::uint32_t set{};
@@ -46,7 +49,7 @@ struct RenderCam {
 struct RenderPass {
 	ktl::unique_val<Instance*> instance{};
 	PipelineFactory* pipeline_factory{};
-	DescriptorSetFactory* set_factory{};
+	refactor::DescriptorSetFactory* set_factory{};
 	vk::RenderPass render_pass{};
 	vk::CommandBuffer command_buffer{};
 	ShaderInput shader_input{};
@@ -75,7 +78,7 @@ struct RenderPass {
 	ktl::unique_val<Instance*> instance{};
 	GfxDevice const* device{};
 	PipelineFactory* pipeline_factory{};
-	DescriptorSetFactory* set_factory{};
+	refactor::DescriptorSetFactory* set_factory{};
 	vk::RenderPass render_pass{};
 	vk::CommandBuffer command_buffer{};
 	ShaderInput shader_input{};
