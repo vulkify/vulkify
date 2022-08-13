@@ -24,6 +24,11 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/command_pool.hpp
   detail/defer_queue.hpp
   detail/descriptor_set_factory.hpp
+  detail/detail.cpp
+  detail/gfx_allocation.hpp
+  detail/gfx_allocations.hpp
+  detail/gfx_command_buffer.hpp
+  detail/gfx_device.hpp
   detail/gfx_font.hpp
   detail/pipeline_factory.cpp
   detail/pipeline_factory.hpp
@@ -35,13 +40,6 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/spir_v.cpp
   detail/trace.cpp
   detail/trace.hpp
-
-  detail/command_pool.hpp
-  detail/detail.cpp
-  detail/gfx_allocation.hpp
-  detail/gfx_buffer_image.hpp
-  detail/gfx_command_buffer.hpp
-  detail/gfx_device.hpp
   detail/vulkan_device.hpp
   detail/vulkan_instance.hpp
   detail/vulkan_swapchain.cpp

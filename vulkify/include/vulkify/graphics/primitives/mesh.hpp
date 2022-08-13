@@ -11,7 +11,7 @@ template <typename T>
 concept InstancedMeshStorage = std::convertible_to<T, std::span<DrawInstance const>>;
 
 ///
-/// \brief Low level primitive with public GeometryBuffer, TextureHandle, and std::vector<DrawInstance> (customizable)
+/// \brief Low level primitive with public GeometryBuffer, Handle<Texture>, and std::vector<DrawInstance> (customizable)
 ///
 template <InstancedMeshStorage Storage = std::vector<DrawInstance>>
 class InstancedMesh : public Primitive {
@@ -33,7 +33,7 @@ class InstancedMesh : public Primitive {
 };
 
 ///
-/// \brief Low level primitive with public GeometryBuffer, TextureHandle, and DrawInstance
+/// \brief Low level primitive with public GeometryBuffer, Handle<Texture>, and DrawInstance
 ///
 class Mesh : public InstancedMesh<DrawInstance> {
   public:

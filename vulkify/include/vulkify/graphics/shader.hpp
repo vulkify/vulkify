@@ -7,8 +7,6 @@
 
 namespace vf {
 struct GfxDevice;
-class GfxShaderModule;
-class Surface;
 
 class Shader {
   public:
@@ -24,8 +22,10 @@ class Shader {
 	bool load(std::span<std::byte const> spirv);
 	bool load(char const* path, bool try_compile);
 
+	Handle<Shader> handle() const;
+
   private:
-	ktl::kunique_ptr<GfxShaderModule> m_module{};
+	ktl::kunique_ptr<class GfxShader> m_module{};
 
 	friend class Surface;
 };

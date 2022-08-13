@@ -1,4 +1,4 @@
-#include <detail/gfx_buffer_image.hpp>
+#include <detail/gfx_allocations.hpp>
 #include <vulkify/graphics/geometry_buffer.hpp>
 
 namespace vf {

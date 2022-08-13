@@ -1,5 +1,5 @@
 #include <detail/descriptor_set_factory.hpp>
-#include <detail/gfx_buffer_image.hpp>
+#include <detail/gfx_allocations.hpp>
 #include <detail/pipeline_factory.hpp>
 #include <detail/render_pass.hpp>
 #include <detail/trace.hpp>
@@ -34,6 +34,8 @@ constexpr vk::PrimitiveTopology topology(Topology topo) {
 
 [[maybe_unused]] constexpr auto name_v = "vf::(internal)";
 } // namespace
+
+DescriptorSet::DescriptorSet(ktl::not_null<Shader const*> shader) : m_shader(shader->handle()) {}
 
 CombinedImageSampler RenderPass::image_sampler(Handle<Texture> texture) const {
 	auto const image = static_cast<GfxImage const*>(texture.allocation);
@@ -126,7 +128,10 @@ bool Surface::draw(Drawable const& drawable, RenderState const& state) const {
 bool Surface::bind(RenderState const& state) const {
 	if (!m_render_pass) { return false; }
 	auto program = PipelineFactory::Spec::ShaderProgram{};
-	if (state.descriptor_set) { program.frag = *state.descriptor_set->m_shader->m_module->module; }
+	if (state.descriptor_set && state.descriptor_set->m_shader && state.descriptor_set->m_shader.allocation) {
+		assert(state.descriptor_set->m_shader.allocation->type() == GfxAllocation::Type::eShader);
+		program.frag = *static_cast<GfxShader const*>(state.descriptor_set->m_shader.allocation)->module;
+	}
 	auto const spec = PipelineFactory::Spec{program, polygon_mode(state.pipeline.polygon_mode), topology(state.pipeline.topology)};
 	auto const [pipe, layout] = m_render_pass->pipeline_factory->pipeline(spec, m_render_pass->render_pass);
 	if (!pipe || !layout) { return false; }

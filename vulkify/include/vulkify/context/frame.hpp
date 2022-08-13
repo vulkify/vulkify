@@ -5,8 +5,6 @@
 #include <vulkify/instance/event_queue.hpp>
 
 namespace vf {
-class Context;
-
 ///
 /// \brief Frame to render to (and present)
 ///
@@ -18,7 +16,7 @@ class Frame {
 	EventQueue const& poll() const { return m_poll; }
 
 	void draw(Primitive const& primitive, RenderState const& state = {}) const { primitive.draw(m_surface, state); }
-	// void draw(Primitive const& primitive, DescriptorSet const& descriptorSet) const { draw(primitive, {.descriptor_set = &descriptorSet}); }
+	void draw(Primitive const& primitive, DescriptorSet const& descriptorSet) const { draw(primitive, {.descriptor_set = &descriptorSet}); }
 
 	Surface const& surface() const { return m_surface; }
 
@@ -29,6 +27,6 @@ class Frame {
 	EventQueue m_poll{};
 	Time m_dt{};
 
-	friend class vf::Context;
+	friend class Context;
 };
 } // namespace vf

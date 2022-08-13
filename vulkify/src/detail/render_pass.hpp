@@ -1,5 +1,5 @@
 #pragma once
-#include <detail/gfx_buffer_image.hpp>
+#include <detail/gfx_allocations.hpp>
 #include <detail/set_writer.hpp>
 #include <glm/vec2.hpp>
 #include <ktl/unique_val.hpp>

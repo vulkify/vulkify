@@ -23,7 +23,7 @@
 
 #include <ttf/ft.hpp>
 
-#include <detail/gfx_buffer_image.hpp>
+#include <detail/gfx_allocations.hpp>
 #include <detail/gfx_command_buffer.hpp>
 #include <detail/gfx_device.hpp>
 #include <detail/vulkan_instance.hpp>
@@ -213,14 +213,11 @@ struct SwapchainRenderer {
 		auto& sync = frame_sync.get();
 		auto const extent = Extent{acquired.extent.width, acquired.extent.height};
 		device->device.reset(*sync.drawn);
-		// TODO: fixup
-		{
-			framebuffer.colour = {acquired.image, acquired.view, acquired.extent};
-			if (msaa) {
-				auto refreshed = msaa_image.refresh(extent);
-				framebuffer.colour = {refreshed.image, refreshed.view, refreshed.extent};
-				framebuffer.resolve = {acquired.image, acquired.view, acquired.extent};
-			}
+		framebuffer.colour = {acquired.image, acquired.view, acquired.extent};
+		if (msaa) {
+			auto refreshed = msaa_image.refresh(extent);
+			framebuffer.colour = {refreshed.image, refreshed.view, refreshed.extent};
+			framebuffer.resolve = {acquired.image, acquired.view, acquired.extent};
 		}
 		framebuffer.extent = vk::Extent2D(extent.x, extent.y);
 		sync.framebuffer = renderer.make_framebuffer(framebuffer);
@@ -261,21 +258,10 @@ struct SwapchainRenderer {
 	void next() { frame_sync.next(); }
 };
 
-vk::SamplerCreateInfo sampler_info(GfxDevice const* device, vk::SamplerAddressMode mode, vk::Filter filter) {
-	auto ret = vk::SamplerCreateInfo{};
-	if (!device->device_limits) { return ret; }
-	ret.minFilter = ret.magFilter = filter;
-	ret.anisotropyEnable = device->device_limits->maxSamplerAnisotropy > 0.0f;
-	ret.maxAnisotropy = device->device_limits->maxSamplerAnisotropy;
-	ret.borderColor = vk::BorderColor::eIntOpaqueBlack;
-	ret.mipmapMode = vk::SamplerMipmapMode::eNearest;
-	ret.addressModeU = ret.addressModeV = ret.addressModeW = mode;
-	return ret;
-}
-
 ShaderInput::Textures make_shader_textures(GfxDevice const* device) {
+	assert(device);
 	auto ret = ShaderInput::Textures{};
-	auto sci = sampler_info(device, vk::SamplerAddressMode::eClampToBorder, vk::Filter::eNearest);
+	auto sci = device->sampler_info(vk::SamplerAddressMode::eClampToBorder, vk::Filter::eNearest);
 	ret.sampler = device->device.device.createSamplerUnique(sci);
 	ret.white = {.device = device};
 	ret.magenta = {.device = device};

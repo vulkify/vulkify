@@ -16,7 +16,8 @@ concept BufferData = std::is_trivially_copyable_v<T>;
 
 class DescriptorSet {
   public:
-	DescriptorSet(ktl::not_null<Shader const*> shader) : m_shader(shader) {}
+	explicit DescriptorSet(ktl::not_null<Shader const*> shader);
+	explicit DescriptorSet(Handle<Shader> shader) : m_shader(shader) {}
 
 	template <BufferData T>
 	void write(T const& t);
@@ -28,7 +29,7 @@ class DescriptorSet {
 		Handle<Texture> texture{};
 		std::vector<std::byte> bytes{};
 	} m_data{};
-	ktl::not_null<Shader const*> m_shader;
+	Handle<Shader> m_shader{};
 
 	friend class Surface;
 	friend class Surface;

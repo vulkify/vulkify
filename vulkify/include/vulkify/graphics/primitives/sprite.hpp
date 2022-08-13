@@ -43,7 +43,7 @@ class Sprite : public Prop {
 };
 
 ///
-/// \brief Stores a list of UVs and a TextureHandle
+/// \brief Stores a list of UVs and a Handle<Texture>
 ///
 class Sprite::Sheet {
   public:

@@ -1,4 +1,4 @@
-#include <detail/gfx_buffer_image.hpp>
+#include <detail/gfx_allocations.hpp>
 #include <detail/gfx_command_buffer.hpp>
 #include <vulkify/graphics/atlas.hpp>
 
@@ -30,6 +30,7 @@ QuadTexCoords Atlas::add(Image::View const image) {
 void Atlas::clear(Rgba const rgba) {
 	if (!m_texture.m_allocation) { return; }
 	auto* image = static_cast<GfxImage*>(m_texture.m_allocation.get());
+	assert(image->type() == GfxAllocation::Type::eImage);
 	auto cb = GfxCommandBuffer{m_texture.m_device};
 	cb.writer.clear(image->image.cache.image, rgba);
 	m_state = {};
@@ -58,6 +59,7 @@ bool Atlas::resize(GfxCommandBuffer& cb, Extent const target) {
 	auto* src = static_cast<GfxImage*>(m_texture.m_allocation.get());
 	auto* dst = static_cast<GfxImage*>(texture.m_allocation.get());
 	if (!src || !dst) { return false; }
+	assert(src->type() == GfxAllocation::Type::eImage && dst->type() == GfxAllocation::Type::eImage);
 	texture.refresh(*dst, {pot(target.x), pot(target.y)});
 	static constexpr auto layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 	auto rect = TRect<std::uint32_t>{m_texture.extent()};
@@ -74,6 +76,7 @@ bool Atlas::overwrite(GfxCommandBuffer& cb, Image::View image, Texture::Rect con
 	if (!m_texture.m_allocation) { return false; }
 	auto* self = static_cast<GfxImage*>(m_texture.m_allocation.get());
 	if (!self) { return false; }
+	assert(self->type() == GfxAllocation::Type::eImage);
 	return cb.writer.write(self->image.cache.image, image.data, region, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 

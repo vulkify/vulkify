@@ -5,7 +5,7 @@
 
 namespace vf {
 ///
-/// \brief Abstract Primitive with protected GeometryBufer, TextureHandle, and DrawInstance
+/// \brief Abstract Primitive with protected GeometryBuffer, Handle<Texture>, and DrawInstance
 ///
 class Prop : public Primitive {
   public:

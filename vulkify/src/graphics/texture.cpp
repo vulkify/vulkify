@@ -1,4 +1,4 @@
-#include <detail/gfx_buffer_image.hpp>
+#include <detail/gfx_allocations.hpp>
 #include <detail/gfx_command_buffer.hpp>
 #include <detail/gfx_device.hpp>
 #include <detail/trace.hpp>
@@ -60,9 +60,9 @@ Result<void> Texture::create(Image::View image) {
 }
 
 Result<void> Texture::overwrite(Image::View const image, Rect const& region) {
-	if (!m_allocation || !m_allocation->device()) { return Error::eInactiveInstance; }
-	assert(m_allocation->type() == GfxAllocation::Type::eImage);
 	auto* self = static_cast<GfxImage*>(m_allocation.get());
+	if (!self || !self->device()) { return Error::eInactiveInstance; }
+	assert(self->type() == GfxAllocation::Type::eImage);
 	if (static_cast<std::uint32_t>(region.offset.x) + region.extent.x > extent().x ||
 		static_cast<std::uint32_t>(region.offset.y) + region.extent.y > extent().y) {
 		return Error::eInvalidArgument;
@@ -77,9 +77,9 @@ Result<void> Texture::rescale(float scale) {
 	auto const ext = Extent(glm::vec2(extent()) * scale);
 	if (ext.x == 0 || ext.y == 0) { return Error::eInvalidArgument; }
 
-	if (!m_allocation || !m_allocation->device()) { return Error::eInactiveInstance; }
-	assert(m_allocation->type() == GfxAllocation::Type::eImage);
 	auto* self = static_cast<GfxImage*>(m_allocation.get());
+	if (!self || !self->device()) { return Error::eInactiveInstance; }
+	assert(self->type() == GfxAllocation::Type::eImage);
 	if (!self) { return Error::eInactiveInstance; }
 
 	auto image = ImageCache{self->image.cache.info};
@@ -92,15 +92,15 @@ Result<void> Texture::rescale(float scale) {
 }
 
 Texture Texture::clone() const {
-	if (!m_allocation || !m_allocation->device()) { return {}; }
-	assert(m_allocation->type() == GfxAllocation::Type::eImage);
 	auto* self = static_cast<GfxImage*>(m_allocation.get());
+	if (!self || !self->device()) { return {}; }
+	assert(self->type() == GfxAllocation::Type::eImage);
 
 	auto ret = clone_image(*self);
-	if (!ret.m_allocation) { return ret; }
-	assert(ret.m_allocation->type() == GfxAllocation::Type::eImage);
-
 	auto* other = static_cast<GfxImage*>(ret.m_allocation.get());
+	if (!other) { return ret; }
+	assert(other->type() == GfxAllocation::Type::eImage);
+
 	if (!other) { return ret; }
 
 	blit(self->image.cache, other->image.cache, m_filtering);

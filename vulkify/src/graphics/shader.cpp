@@ -1,4 +1,4 @@
-#include <detail/gfx_buffer_image.hpp>
+#include <detail/gfx_allocations.hpp>
 #include <detail/spir_v.hpp>
 #include <vulkify/graphics/shader.hpp>
 
@@ -10,7 +10,7 @@ Shader::~Shader() noexcept = default;
 
 Shader::Shader(GfxDevice const& device) {
 	if (!device) { return; }
-	m_module = ktl::make_unique<GfxShaderModule>(&device);
+	m_module = ktl::make_unique<GfxShader>(&device);
 }
 
 Shader::operator bool() const { return m_module && m_module->module; }
@@ -37,4 +37,6 @@ bool Shader::load(char const* path, bool tryCompile) {
 	m_module->module = m_module->device()->device.device.createShaderModuleUnique({{}, spv.codesize, spv.code.get()});
 	return static_cast<bool>(m_module->module);
 }
+
+Handle<Shader> Shader::handle() const { return {m_module.get()}; }
 } // namespace vf

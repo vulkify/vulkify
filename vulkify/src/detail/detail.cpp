@@ -1,5 +1,5 @@
 #include <detail/command_pool.hpp>
-#include <detail/gfx_buffer_image.hpp>
+#include <detail/gfx_allocations.hpp>
 #include <detail/gfx_command_buffer.hpp>
 #include <detail/gfx_device.hpp>
 #include <detail/trace.hpp>

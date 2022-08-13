@@ -4,7 +4,6 @@
 
 namespace vf {
 struct GfxDevice;
-struct GfxCommandBuffer;
 class GfxFont;
 
 ///
@@ -38,7 +37,7 @@ class Atlas {
 	static constexpr glm::uvec2 pad_v = {1, 1};
 
 	void next_line();
-	bool prepare(GfxCommandBuffer& cb, Extent extent);
+	bool prepare(struct GfxCommandBuffer& cb, Extent extent);
 	bool resize(GfxCommandBuffer& cb, Extent extent);
 	bool overwrite(GfxCommandBuffer& cb, Image::View image, Texture::Rect const& region);
 	QuadTexCoords insert(GfxCommandBuffer& cb, Image::View image);

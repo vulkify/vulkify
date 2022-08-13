@@ -89,9 +89,9 @@ class GfxImage : public GfxAllocation {
 	VulkanImage image{};
 };
 
-class GfxShaderModule : public GfxAllocation {
+class GfxShader : public GfxAllocation {
   public:
-	GfxShaderModule(GfxDevice const* device) : GfxAllocation(device, Type::eShader) {}
+	GfxShader(GfxDevice const* device) : GfxAllocation(device, Type::eShader) {}
 
 	vk::UniqueShaderModule module{};
 };
