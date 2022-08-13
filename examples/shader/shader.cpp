@@ -4,15 +4,15 @@
 #include <vulkify/graphics/texture.hpp>
 
 namespace example {
-template <std::derived_from<vf::refactor::Primitive> T>
-class Shaded : public vf::refactor::Primitive {
+template <std::derived_from<vf::Primitive> T>
+class Shaded : public vf::Primitive {
   public:
 	struct Uniform {
 		float alpha{};
 	};
 
 	Uniform uniform{};
-	vf::refactor::Handle<vf::refactor::Texture> blend_texture{};
+	vf::Handle<vf::Texture> blend_texture{};
 
 	Shaded() = default;
 	Shaded(T&& t, vf::Shader const& shader) : m_t(std::move(t)), m_shader(&shader) {}
@@ -20,7 +20,7 @@ class Shaded : public vf::refactor::Primitive {
 	T& get() { return m_t; }
 	T const& get() const { return m_t; }
 
-	void draw(vf::refactor::Surface const& surface, vf::RenderState const& state) const override {
+	void draw(vf::Surface const& surface, vf::RenderState const& state) const override {
 		auto copy = state;
 		auto set = vf::DescriptorSet(*m_shader);
 		set.write(uniform);
@@ -50,13 +50,13 @@ class Shader : public Base {
 		return true;
 	}
 
-	bool load_texture(vf::refactor::Texture& out, std::string_view uri) const {
+	bool load_texture(vf::Texture& out, std::string_view uri) const {
 		auto image = vf::Image{};
 		if (!image.load(env.dataPath(uri).c_str())) {
 			log.error("Failed to load image [{}]", uri);
 			return false;
 		}
-		out = vf::refactor::Texture(context(), image);
+		out = vf::Texture(context(), image);
 		if (!out) {
 			log.error("Failed to load texture [{}]", uri);
 			return false;
@@ -123,8 +123,8 @@ class Shader : public Base {
 	}
 
 	struct {
-		vf::refactor::Texture crate{};
-		vf::refactor::Texture overlay{};
+		vf::Texture crate{};
+		vf::Texture overlay{};
 	} m_textures{};
 	vf::Shader m_shader{};
 	vf::Ptr<ShadedMesh> m_blend_quad{};

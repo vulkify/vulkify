@@ -58,7 +58,7 @@ struct Helper {
 		return ret;
 	}
 
-	vf::QuadShape make_rgb_quad(vf::refactor::Texture const& texture) {
+	vf::QuadShape make_rgb_quad(vf::Texture const& texture) {
 		auto ret = vf::QuadShape(context, vf::QuadShape::State{glm::vec2(100.0f, 100.0f)});
 		ret.set_texture(&texture, false);
 		ret.transform().position = area.top_right() + glm::vec2(-padding_v.x, -padding_v.y);
@@ -66,7 +66,7 @@ struct Helper {
 		return ret;
 	}
 
-	vf::CircleShape make_hexagon(vf::refactor::Texture& out_texture) {
+	vf::CircleShape make_hexagon(vf::Texture& out_texture) {
 		auto ret = vf::CircleShape(context, vf::CircleShape::State{100.0f, 6});
 		auto bitmap = vf::Bitmap(vf::magenta_v);
 		out_texture.overwrite(bitmap.image(), vf::Texture::Rect{{1, 1}, {1, 1}});
@@ -92,13 +92,13 @@ struct Helper {
 		return {std::move(circle), std::move(iris)};
 	}
 
-	vf::QuadShape make_textured_quad(vf::refactor::Texture& out_texture, char const* image_path) {
+	vf::QuadShape make_textured_quad(vf::Texture& out_texture, char const* image_path) {
 		auto image = vf::Image{};
 		auto load_result = image.load(image_path);
 		if (load_result) { std::cout << image_path << " [" << load_result->x << 'x' << load_result->y << "] loaded sucessfully\n"; }
 
 		auto ret = vf::QuadShape(context, {{200.0f, 200.0f}});
-		out_texture = vf::refactor::Texture(context, image);
+		out_texture = vf::Texture(context, image);
 		ret.set_texture(&out_texture, false); // should be magenta if image is bad
 		return ret;
 	}
@@ -112,7 +112,7 @@ struct Helper {
 		return stars;
 	}
 
-	vf::Text make_text(vf::refactor::Ttf& ttf) {
+	vf::Text make_text(vf::Ttf& ttf) {
 		auto ret = vf::Text(context);
 		ret.set_ttf(&ttf).set_height(80).set_string("vulkify");
 		ret.tint() = vf::Rgba::make(0xec3841ff);
@@ -124,15 +124,15 @@ struct Helper {
 void test(vf::Context context) {
 	std::cout << "using GPU: " << context.gpu().name << '\n';
 
-	auto ttf = vf::refactor::Ttf{context};
+	auto ttf = vf::Ttf{context};
 	if (ttf.load("test_font.ttf")) { std::cout << "[test_font.ttf] loaded successfully\n"; }
 
 	auto helper = Helper{context};
 
 	auto triangle = helper.make_triangle();
 	auto rgb_bitmap = helper.make_rgb_bitmap();
-	auto rgb_texture = vf::refactor::Texture(context, rgb_bitmap.image());
-	auto image_texture = vf::refactor::Texture{};
+	auto rgb_texture = vf::Texture(context, rgb_bitmap.image());
+	auto image_texture = vf::Texture{};
 	auto rgb_quad = helper.make_rgb_quad(rgb_texture);
 	auto hexagon = helper.make_hexagon(rgb_texture);
 	auto [circle, iris] = helper.make_circles();
@@ -151,7 +151,7 @@ void test(vf::Context context) {
 	static constexpr auto clearA = vf::Rgba::make(0xfff000ff);
 	static constexpr auto clearB = vf::Rgba::make(0x000fffff);
 
-	vf::refactor::Primitive const* primitives[] = {&triangle, &rgb_quad, &hexagon, &circle, &iris, &textured_quad, &stars, &text};
+	vf::Primitive const* primitives[] = {&triangle, &rgb_quad, &hexagon, &circle, &iris, &textured_quad, &stars, &text};
 
 	context.show();
 	auto elapsed = vf::Time{};
@@ -193,7 +193,7 @@ void test(vf::Context context) {
 } // namespace
 
 int main(int argc, char** argv) {
-	bool const headless = argc > 1 && argv[1] == std::string_view("--headless");
+	bool const headless = true || (argc > 1 && argv[1] == std::string_view("--headless"));
 	std::cout << "vulkify " << vf::version_v << '\n';
 	auto context = vf::Builder{}.set_flag(vf::WindowFlag::eResizable).set_flag(vf::InstanceFlag::eHeadless, headless).build();
 	if (!context) { return EXIT_FAILURE; }

@@ -1,5 +1,4 @@
 #include <detail/command_pool.hpp>
-#include <detail/command_pool2.hpp>
 #include <detail/gfx_buffer_image.hpp>
 #include <detail/gfx_command_buffer.hpp>
 #include <detail/gfx_device.hpp>
@@ -7,6 +6,7 @@
 #include <detail/vulkan_instance.hpp>
 #include <ktl/enumerate.hpp>
 #include <ktl/fixed_vector.hpp>
+#include <vulkify/graphics/detail/gfx_deferred.hpp>
 #include <vulkify/vulkify_version.hpp>
 #include <algorithm>
 #include <atomic>
@@ -26,7 +26,6 @@ void DeferQueue::decrement() {
 	expired.clear();
 }
 
-namespace refactor {
 /// Device
 VulkanDevice VulkanDevice::make(VulkanInstance const& instance) {
 	assert(instance.util);
@@ -499,14 +498,30 @@ UniqueBuffer GfxDevice::make_buffer(vk::BufferCreateInfo info, bool host) const 
 vk::SamplerCreateInfo GfxDevice::sampler_info(vk::SamplerAddressMode mode, vk::Filter filter) const {
 	auto ret = vk::SamplerCreateInfo{};
 	ret.minFilter = ret.magFilter = filter;
-	ret.anisotropyEnable = device_limits->maxSamplerAnisotropy > 0.0f;
-	ret.maxAnisotropy = device_limits->maxSamplerAnisotropy;
+	if (device_limits) {
+		ret.anisotropyEnable = device_limits->maxSamplerAnisotropy > 0.0f;
+		ret.maxAnisotropy = device_limits->maxSamplerAnisotropy;
+	}
 	ret.borderColor = vk::BorderColor::eIntOpaqueBlack;
 	ret.mipmapMode = vk::SamplerMipmapMode::eNearest;
 	ret.addressModeU = ret.addressModeV = ret.addressModeW = mode;
 	return ret;
 }
 /// /GfxDevice
+
+/// GfxDeferred
+GfxDeferred::GfxDeferred() noexcept = default;
+GfxDeferred::GfxDeferred(GfxDeferred&&) noexcept = default;
+GfxDeferred& GfxDeferred::operator=(GfxDeferred&&) noexcept = default;
+GfxDeferred::~GfxDeferred() { std::move(*this).release(); }
+
+GfxDeferred::GfxDeferred(GfxDevice const* device) noexcept : m_device(device) {}
+/// /GfxDeferred
+
+void GfxDeferred::release() && {
+	if (!m_allocation || !m_allocation->device() || !m_allocation->device()->defer) { return; }
+	m_allocation->device()->defer->push(std::move(m_allocation));
+}
 
 /// GfxBuffer/Image
 vk::ImageCreateInfo& ImageCache::set_depth() {
@@ -660,5 +675,4 @@ void ImageWriter::clear(VmaImage& in, Rgba rgba) const {
 	cb.clearColorImage(in.resource, vk::ImageLayout::eTransferDstOptimal, colour, isrr);
 }
 /// /GfxCommandBuffer
-} // namespace refactor
 } // namespace vf

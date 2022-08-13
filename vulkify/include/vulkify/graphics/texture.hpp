@@ -3,11 +3,12 @@
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/result.hpp>
 #include <vulkify/graphics/bitmap.hpp>
-#include <vulkify/graphics/detail/resource.hpp>
-#include <vulkify/graphics/texture_handle.hpp>
+#include <vulkify/graphics/detail/gfx_deferred.hpp>
+#include <vulkify/graphics/handle.hpp>
 
 namespace vf {
 class Context;
+class GfxImage;
 
 enum class AddressMode : std::uint8_t { eClampEdge, eClampBorder, eRepeat };
 enum class Filtering : std::uint8_t { eNearest, eLinear };
@@ -31,52 +32,6 @@ struct QuadTexCoords {
 		return {glm::vec2(top_left) / ext, glm::vec2(bottom_right) / ext};
 	}
 };
-
-///
-/// \brief GPU Texture (Image and sampler)
-///
-class Texture : public GfxResource {
-  public:
-	using CreateInfo = TextureCreateInfo;
-	using TopLeft = Bitmap::TopLeft;
-	using Rect = TRect<std::uint32_t>;
-	using Handle = TextureHandle;
-
-	Texture() = default;
-	explicit Texture(Context const& context, Image::View image = {}, CreateInfo const& create_info = {});
-
-	Result<void> create(Image::View image);
-	Result<void> overwrite(Image::View image, Rect const& region);
-	Result<void> rescale(float scale);
-
-	Texture clone() const;
-
-	Extent extent() const;
-	AddressMode address_mode() const { return m_address_mode; }
-	Filtering filtering() const { return m_filtering; }
-	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
-	Handle handle() const;
-
-  private:
-	Texture(Vram const& vram, CreateInfo const& info);
-	Texture clone_image() const;
-
-	void refresh(Extent extent);
-	void write(Image::View image, Rect const& region);
-	void set_invalid();
-
-	AddressMode m_address_mode{};
-	Filtering m_filtering{};
-
-	friend class Atlas;
-};
-} // namespace vf
-
-#include <vulkify/graphics/detail/gfx_deferred.hpp>
-#include <vulkify/graphics/handle.hpp>
-
-namespace vf::refactor {
-class GfxImage;
 
 ///
 /// \brief GPU Texture (Image and sampler)
@@ -116,4 +71,4 @@ class Texture : public GfxDeferred {
 
 	friend class Atlas;
 };
-} // namespace vf::refactor
+} // namespace vf

@@ -6,7 +6,7 @@
 #include <limits>
 #include <span>
 
-namespace vf::refactor {
+namespace vf {
 namespace {
 constexpr vk::Format srgb_formats_v[] = {vk::Format::eR8G8B8A8Srgb, vk::Format::eB8G8R8A8Srgb};
 constexpr vk::Format linear_formats_v[] = {vk::Format::eR8G8B8A8Unorm, vk::Format::eB8G8R8A8Unorm};
@@ -138,4 +138,4 @@ void VulkanSwapchain::present(Acquire const& acquired, vk::Semaphore const wait,
 	auto res = device->device.queue.queue.presentKHR(&info);
 	if (res != vk::Result::eSuccess && res != vk::Result::eSuboptimalKHR) { refresh(extent, this->info.presentMode); }
 }
-} // namespace vf::refactor
+} // namespace vf

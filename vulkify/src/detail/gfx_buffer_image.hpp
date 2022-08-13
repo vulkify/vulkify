@@ -4,7 +4,7 @@
 #include <detail/rotator.hpp>
 #include <detail/trace.hpp>
 
-namespace vf::refactor {
+namespace vf {
 struct ImageCache {
 	using Extent = glm::uvec2;
 
@@ -95,4 +95,4 @@ class GfxShaderModule : public GfxAllocation {
 
 	vk::UniqueShaderModule module{};
 };
-} // namespace vf::refactor
+} // namespace vf

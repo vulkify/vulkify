@@ -1,6 +1,6 @@
 #pragma once
 #include <vk_mem_alloc.h>
-#include <detail/command_pool2.hpp>
+#include <detail/command_pool.hpp>
 #include <detail/gfx_allocation.hpp>
 #include <detail/vulkan_device.hpp>
 #include <vulkify/core/pool.hpp>
@@ -11,7 +11,7 @@
 struct FT_LibraryRec_;
 using FT_Library = FT_LibraryRec_*;
 
-namespace vf::refactor {
+namespace vf {
 enum class BlitFlag { eSrc, eDst, eLinearFilter };
 using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
 
@@ -131,4 +131,4 @@ struct UniqueGfxDevice {
 
 	static UniqueGfxDevice make(VulkanInstance const& instance, FT_Library ft, int samples);
 };
-} // namespace vf::refactor
+} // namespace vf

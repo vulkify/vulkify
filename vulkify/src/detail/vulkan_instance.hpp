@@ -8,7 +8,7 @@
 #include <mutex>
 #include <span>
 
-namespace vf::refactor {
+namespace vf {
 using MakeSurface = ktl::kfunction<vk::SurfaceKHR(vk::Instance)>;
 
 struct GpuInfo {
@@ -65,4 +65,4 @@ struct VulkanInstance::Builder {
 
 	Result<VulkanInstance> operator()(PhysicalDevice&& selected);
 };
-} // namespace vf::refactor
+} // namespace vf

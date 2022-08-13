@@ -7,10 +7,8 @@
 
 namespace vf {
 class Context;
-namespace refactor {
-struct GfxShaderModule;
+class GfxShaderModule;
 class Surface;
-} // namespace refactor
 
 class Shader {
   public:
@@ -27,8 +25,8 @@ class Shader {
 	bool load(char const* path, bool try_compile);
 
   private:
-	ktl::kunique_ptr<refactor::GfxShaderModule> m_module{};
+	ktl::kunique_ptr<GfxShaderModule> m_module{};
 
-	friend class refactor::Surface;
+	friend class Surface;
 };
 } // namespace vf

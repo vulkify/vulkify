@@ -1,9 +1,9 @@
 #pragma once
-#include <detail/command_pool2.hpp>
+#include <detail/command_pool.hpp>
 #include <detail/gfx_device.hpp>
 #include <vulkify/core/rect.hpp>
 
-namespace vf::refactor {
+namespace vf {
 struct ImageWriter {
 	using URegion = TRect<std::uint32_t>;
 	using IRegion = TRect<std::int32_t>;
@@ -34,4 +34,4 @@ struct GfxCommandBuffer {
 
 	GfxCommandBuffer& operator=(GfxCommandBuffer&&) = delete;
 };
-} // namespace vf::refactor
+} // namespace vf

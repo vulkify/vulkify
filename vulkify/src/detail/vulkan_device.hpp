@@ -5,7 +5,7 @@
 #include <limits>
 #include <mutex>
 
-namespace vf::refactor {
+namespace vf {
 constexpr VSync to_vsync(vk::PresentModeKHR mode) {
 	switch (mode) {
 	default:
@@ -48,6 +48,13 @@ struct DescriptorSetLayout {
 	vk::BufferUsageFlagBits bufferUsage = vk::BufferUsageFlagBits::eUniformBuffer;
 };
 
+struct CombinedImageSampler {
+	vk::ImageView view{};
+	vk::Sampler sampler{};
+
+	constexpr bool operator==(CombinedImageSampler const& rhs) const { return view == rhs.view && sampler == rhs.sampler; }
+};
+
 struct VulkanInstance;
 
 struct VulkanDevice {
@@ -73,4 +80,4 @@ struct VulkanDevice {
 
 	vk::UniqueImageView make_image_view(vk::Image const image, vk::Format const format, vk::ImageAspectFlags aspects) const;
 };
-} // namespace vf::refactor
+} // namespace vf

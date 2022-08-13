@@ -18,7 +18,7 @@ class CircleShape : public Shape {
 	std::uint32_t points() const { return m_state.points; }
 
 	CircleShape& set_state(State state);
-	CircleShape& set_texture(Ptr<refactor::Texture const> texture, bool resize_to_match = false);
+	CircleShape& set_texture(Ptr<Texture const> texture, bool resize_to_match = false);
 	CircleShape& set_silhouette(float extrude, Rgba tint);
 
   protected:

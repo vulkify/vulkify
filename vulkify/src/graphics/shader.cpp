@@ -1,5 +1,4 @@
 #include <detail/gfx_buffer_image.hpp>
-#include <detail/shared_impl.hpp>
 #include <detail/spir_v.hpp>
 #include <vulkify/context/context.hpp>
 #include <vulkify/graphics/shader.hpp>
@@ -12,7 +11,7 @@ Shader::~Shader() noexcept = default;
 
 Shader::Shader(Context const& context) {
 	if (!context.device()) { return; }
-	m_module = ktl::make_unique<refactor::GfxShaderModule>(&context.device());
+	m_module = ktl::make_unique<GfxShaderModule>(&context.device());
 }
 
 Shader::operator bool() const { return m_module && m_module->module; }

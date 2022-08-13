@@ -19,7 +19,7 @@ class QuadShape : public Shape {
 	glm::vec2 size() const { return m_state.size; }
 
 	QuadShape& set_state(State state);
-	QuadShape& set_texture(Ptr<refactor::Texture const> texture, bool resize_to_match = false);
+	QuadShape& set_texture(Ptr<Texture const> texture, bool resize_to_match = false);
 	QuadShape& set_silhouette(float extrude, Rgba tint);
 
   protected:

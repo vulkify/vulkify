@@ -30,7 +30,7 @@ Context::Result Builder::build() {
 		if (!inst) { return inst.error(); }
 		instance = std::move(inst.value());
 	} else {
-		auto inst = refactor::VulkifyInstance::make(m_create_info);
+		auto inst = VulkifyInstance::make(m_create_info);
 		if (!inst) { return inst.error(); }
 		instance = std::move(inst.value());
 	}

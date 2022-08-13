@@ -27,12 +27,12 @@ Text::Text(Context const& context) { m_mesh.get() = vf::Mesh{context}; }
 
 Text::operator bool() const { return m_ttf && m_ttf.allocation && m_mesh.get(); }
 
-Text& Text::set_ttf(ktl::not_null<refactor::Ttf*> ttf) {
+Text& Text::set_ttf(ktl::not_null<Ttf*> ttf) {
 	if (*ttf) { return set_ttf(ttf->handle()); }
 	return *this;
 }
 
-Text& Text::set_ttf(refactor::Handle<refactor::Ttf> ttf) {
+Text& Text::set_ttf(Handle<Ttf> ttf) {
 	m_ttf = ttf;
 	m_mesh.set_dirty();
 	return *this;
@@ -68,15 +68,15 @@ Text& Text::set_height(Height height) {
 	return *this;
 }
 
-void Text::draw(refactor::Surface const& surface, RenderState const& state) const {
+void Text::draw(Surface const& surface, RenderState const& state) const {
 	if (m_mesh.dirty) { rebuild(); }
 	surface.draw(m_mesh.get().drawable(), state);
 }
 
 void Text::rebuild() const {
-	auto* self = static_cast<refactor::GfxFont*>(m_ttf.allocation);
+	auto* self = static_cast<GfxFont*>(m_ttf.allocation);
 	if (m_text.empty() || !self || !m_mesh.t) { return; }
-	assert(self->type() == refactor::GfxAllocation::Type::eFont);
+	assert(self->type() == GfxAllocation::Type::eFont);
 	auto scribe = Scribe{*self, m_height};
 	scribe.write(Scribe::Block{m_text}, pivot(m_align));
 	if (auto const* texture = self->texture(m_height)) {

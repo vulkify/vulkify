@@ -1,7 +1,5 @@
-#include <detail/shared_impl.hpp>
-#include <vulkify/context/context.hpp>
-
 #include <detail/gfx_device.hpp>
+#include <vulkify/context/context.hpp>
 #include <vulkify/instance/vf_instance.hpp>
 
 namespace vf {
@@ -12,16 +10,10 @@ auto Context::make(UInstance&& instance) -> Result {
 	return Context(std::move(instance));
 }
 
-Frame Context::frame_old(Rgba clear) {
+Frame Context::frame(Rgba clear) {
 	auto poll = m_instance->poll();
 	auto surface = m_instance->begin_pass(clear);
 	return Frame{std::move(surface), poll, diff_exchg(m_stamp)};
-}
-
-refactor::Frame Context::frame(Rgba clear) {
-	auto poll = m_instance->poll();
-	auto surface = dynamic_cast<refactor::VulkifyInstance&>(*m_instance).begin_pass2(clear);
-	return refactor::Frame{std::move(surface), poll, diff_exchg(m_stamp)};
 }
 
 glm::mat3 Context::unprojection() const {

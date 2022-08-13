@@ -5,6 +5,8 @@
 #include <vulkify/graphics/surface.hpp>
 
 namespace vf {
+class Texture;
+
 template <typename T>
 concept InstancedMeshStorage = std::convertible_to<T, std::span<DrawInstance const>>;
 
@@ -12,21 +14,21 @@ concept InstancedMeshStorage = std::convertible_to<T, std::span<DrawInstance con
 /// \brief Low level primitive with public GeometryBuffer, TextureHandle, and std::vector<DrawInstance> (customizable)
 ///
 template <InstancedMeshStorage Storage = std::vector<DrawInstance>>
-class InstancedMesh : public refactor::Primitive {
+class InstancedMesh : public Primitive {
   public:
-	static InstancedMesh make_quad(Context const& context, QuadCreateInfo const& info = {}, refactor::Handle<refactor::Texture> texture = {});
+	static InstancedMesh make_quad(Context const& context, QuadCreateInfo const& info = {}, Handle<Texture> texture = {});
 
 	InstancedMesh() = default;
-	InstancedMesh(Context const& context, refactor::Handle<refactor::Texture> texture = {}) : buffer(context), texture(texture) {}
+	InstancedMesh(Context const& context, Handle<Texture> texture = {}) : buffer(context), texture(texture) {}
 
-	refactor::Drawable drawable() const { return {storage, buffer.handle(), texture}; }
+	Drawable drawable() const { return {storage, buffer.handle(), texture}; }
 
-	void draw(refactor::Surface const& surface, RenderState const& state = {}) const override { surface.draw(drawable(), state); }
+	void draw(Surface const& surface, RenderState const& state = {}) const override { surface.draw(drawable(), state); }
 
 	explicit operator bool() const { return static_cast<bool>(buffer); }
 
-	refactor::GeometryBuffer buffer{};
-	refactor::Handle<refactor::Texture> texture{};
+	GeometryBuffer buffer{};
+	Handle<Texture> texture{};
 	Storage storage{};
 };
 
@@ -44,7 +46,7 @@ class Mesh : public InstancedMesh<DrawInstance> {
 // impl
 
 template <InstancedMeshStorage Storage>
-InstancedMesh<Storage> InstancedMesh<Storage>::make_quad(Context const& context, QuadCreateInfo const& info, refactor::Handle<refactor::Texture> texture) {
+InstancedMesh<Storage> InstancedMesh<Storage>::make_quad(Context const& context, QuadCreateInfo const& info, Handle<Texture> texture) {
 	auto ret = InstancedMesh{context, texture};
 	ret.buffer.write(Geometry::make_quad(info));
 	return ret;

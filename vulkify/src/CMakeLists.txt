@@ -4,8 +4,6 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   core/rgba.cpp
 
-  graphics/detail/resource.cpp
-
   graphics/atlas.cpp
   graphics/bitmap.cpp
   graphics/geometry_buffer.cpp
@@ -23,7 +21,6 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   instance/vf_instance.cpp
 
-  detail/cache.hpp
   detail/command_pool.hpp
   detail/defer_queue.hpp
   detail/descriptor_set_factory.hpp
@@ -35,19 +32,11 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/renderer.hpp
   detail/rotator.hpp
   detail/set_writer.hpp
-  detail/shared_impl.hpp
   detail/spir_v.cpp
   detail/trace.cpp
   detail/trace.hpp
-  detail/vk_device.hpp
-  detail/vk_instance.cpp
-  detail/vk_instance.hpp
-  detail/vk_surface.cpp
-  detail/vk_surface.hpp
-  detail/vram.cpp
-  detail/vram.hpp
 
-  detail/command_pool2.hpp
+  detail/command_pool.hpp
   detail/detail.cpp
   detail/gfx_allocation.hpp
   detail/gfx_buffer_image.hpp

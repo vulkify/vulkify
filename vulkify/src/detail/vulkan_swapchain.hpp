@@ -5,7 +5,7 @@
 #include <vulkify/core/result.hpp>
 #include <optional>
 
-namespace vf::refactor {
+namespace vf {
 struct GfxDevice;
 
 struct Swapchain {
@@ -46,4 +46,4 @@ struct VulkanSwapchain {
 	void submit(vk::CommandBuffer cb, SwapchainSync const& sync);
 	void present(Acquire const& acquired, vk::Semaphore wait, glm::uvec2 extent);
 };
-} // namespace vf::refactor
+} // namespace vf

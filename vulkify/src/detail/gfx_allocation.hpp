@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkify/core/ptr.hpp>
 
-namespace vf::refactor {
+namespace vf {
 struct GfxDevice;
 
 class GfxAllocation {
@@ -21,4 +21,4 @@ class GfxAllocation {
 	GfxDevice const* m_device{};
 	Type m_type{};
 };
-} // namespace vf::refactor
+} // namespace vf

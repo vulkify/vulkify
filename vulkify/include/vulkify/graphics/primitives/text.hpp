@@ -1,17 +1,13 @@
 #pragma once
 #include <ktl/not_null.hpp>
 #include <vulkify/core/dirty_flag.hpp>
+#include <vulkify/graphics/handle.hpp>
 #include <vulkify/graphics/primitives/mesh.hpp>
-#include <vulkify/ttf/ttf_handle.hpp>
 
 namespace vf {
 class Ttf;
 
-namespace refactor {
-class Ttf;
-}
-
-class Text : public refactor::Primitive {
+class Text : public Primitive {
   public:
 	using Height = std::uint32_t;
 
@@ -35,15 +31,15 @@ class Text : public refactor::Primitive {
 	Align align() const { return m_align; }
 	Height height() const { return m_height; }
 
-	Text& set_ttf(ktl::not_null<refactor::Ttf*> ttf);
-	Text& set_ttf(refactor::Handle<refactor::Ttf> ttf);
+	Text& set_ttf(ktl::not_null<Ttf*> ttf);
+	Text& set_ttf(Handle<Ttf> ttf);
 	Text& set_string(std::string string);
 	Text& append(std::string string);
 	Text& append(char ch);
 	Text& set_align(Align align);
 	Text& set_height(Height height);
 
-	void draw(refactor::Surface const& surface, RenderState const& state = {}) const override;
+	void draw(Surface const& surface, RenderState const& state = {}) const override;
 
   private:
 	void rebuild() const;
@@ -52,6 +48,6 @@ class Text : public refactor::Primitive {
 	std::string m_text{};
 	Align m_align{};
 	Height m_height{60};
-	refactor::Handle<refactor::Ttf> m_ttf{};
+	Handle<Ttf> m_ttf{};
 };
 } // namespace vf

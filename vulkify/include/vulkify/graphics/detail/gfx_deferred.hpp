@@ -1,7 +1,7 @@
 #pragma once
 #include <ktl/kunique_ptr.hpp>
 
-namespace vf::refactor {
+namespace vf {
 struct GfxDevice;
 class GfxAllocation;
 
@@ -28,4 +28,4 @@ class GfxDeferred {
 	ktl::kunique_ptr<GfxAllocation> m_allocation{};
 	GfxDevice const* m_device{};
 };
-} // namespace vf::refactor
+} // namespace vf

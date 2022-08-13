@@ -1,7 +1,7 @@
 #pragma once
 #include <vulkify/core/ptr.hpp>
 
-namespace vf::refactor {
+namespace vf {
 class GfxAllocation;
 
 template <typename Type>
@@ -11,4 +11,4 @@ struct Handle {
 	bool operator==(Handle const& rhs) const = default;
 	explicit constexpr operator bool() const { return allocation != nullptr; }
 };
-} // namespace vf::refactor
+} // namespace vf

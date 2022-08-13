@@ -51,21 +51,21 @@ class Base {
 	};
 
 	struct Scene {
-		std::vector<ktl::kunique_ptr<vf::refactor::Primitive>> primitives{};
+		std::vector<ktl::kunique_ptr<vf::Primitive>> primitives{};
 
-		template <std::derived_from<vf::refactor::Primitive> T, typename... Args>
+		template <std::derived_from<vf::Primitive> T, typename... Args>
 		T& add(Args&&... args) {
 			return add<T>(ktl::make_unique<T>(std::forward<Args>(args)...));
 		}
 
-		template <std::derived_from<vf::refactor::Primitive> T>
+		template <std::derived_from<vf::Primitive> T>
 		T& add(ktl::kunique_ptr<T>&& t) {
 			auto ret = t.get();
 			primitives.push_back(std::move(t));
 			return *ret;
 		}
 
-		template <std::derived_from<vf::refactor::Primitive> T>
+		template <std::derived_from<vf::Primitive> T>
 		T& add(T&& t) {
 			auto ut = ktl::make_unique<T>(std::move(t));
 			auto ret = ut.get();
@@ -114,7 +114,7 @@ class Base {
 	virtual void configure(vf::Builder&) {}
 	virtual bool setup() { return true; }
 	virtual void tick(vf::Time dt) = 0;
-	virtual void render(vf::refactor::Frame const& frame) const {
+	virtual void render(vf::Frame const& frame) const {
 		for (auto const& primitive : scene.primitives) { frame.draw(*primitive); }
 	}
 

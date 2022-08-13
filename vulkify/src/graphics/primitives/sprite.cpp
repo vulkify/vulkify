@@ -22,13 +22,13 @@ Sprite& Sprite::set_sheet(Ptr<Sheet const> sheet, UvIndex index) {
 	return *this;
 }
 
-void Sprite::draw(refactor::Surface const& surface, RenderState const& state) const {
+void Sprite::draw(Surface const& surface, RenderState const& state) const {
 	if (m_texture) {
-		surface.draw(refactor::Drawable{m_instance, m_buffer.handle(), m_texture}, state);
+		surface.draw(Drawable{m_instance, m_buffer.handle(), m_texture}, state);
 	} else if (draw_invalid) {
 		auto instance = m_instance;
 		instance.tint = magenta_v;
-		surface.draw(refactor::Drawable{instance, m_buffer.handle()}, state);
+		surface.draw(Drawable{instance, m_buffer.handle()}, state);
 	}
 }
 
@@ -51,8 +51,7 @@ UvRect const& Sprite::Sheet::uv(UvIndex index) const {
 	return m_uvs[index];
 }
 
-auto Sprite::Sheet::set_uvs(ktl::not_null<refactor::Texture const*> texture, std::uint32_t const rows, std::uint32_t const columns, glm::uvec2 const pad)
-	-> Sheet& {
+auto Sprite::Sheet::set_uvs(ktl::not_null<Texture const*> texture, std::uint32_t const rows, std::uint32_t const columns, glm::uvec2 const pad) -> Sheet& {
 	if (!*texture || rows == 0 || columns == 0) { return *this; }
 	m_uvs.clear();
 	m_texture = texture->handle();
@@ -74,7 +73,7 @@ auto Sprite::Sheet::set_uvs(ktl::not_null<refactor::Texture const*> texture, std
 	return *this;
 }
 
-auto Sprite::Sheet::set_texture(refactor::Handle<refactor::Texture> texture) -> Sheet& {
+auto Sprite::Sheet::set_texture(Handle<Texture> texture) -> Sheet& {
 	m_texture = texture;
 	return *this;
 }

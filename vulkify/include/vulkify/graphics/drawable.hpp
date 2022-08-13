@@ -3,11 +3,12 @@
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/core/transform.hpp>
 #include <vulkify/graphics/detail/draw_model.hpp>
-#include <vulkify/graphics/texture_handle.hpp>
+#include <vulkify/graphics/handle.hpp>
 #include <cstring>
 
 namespace vf {
 class GeometryBuffer;
+class Texture;
 
 struct DrawInstance {
 	Transform transform{};
@@ -22,8 +23,8 @@ struct DrawInstance {
 ///
 struct Drawable {
 	std::span<DrawInstance const> instances{};
-	GeometryBuffer const& buffer;
-	TextureHandle texture{};
+	Handle<GeometryBuffer> buffer{};
+	Handle<Texture> texture{};
 };
 
 // impl
@@ -38,19 +39,3 @@ inline DrawModel DrawInstance::draw_model() const {
 	return ret;
 }
 } // namespace vf
-
-#include <vulkify/graphics/handle.hpp>
-
-namespace vf::refactor {
-class Texture;
-class GeometryBuffer;
-
-///
-/// \brief View to geometry, texture, and instances associated with a single draw call
-///
-struct Drawable {
-	std::span<DrawInstance const> instances{};
-	Handle<GeometryBuffer> buffer{};
-	Handle<Texture> texture{};
-};
-} // namespace vf::refactor

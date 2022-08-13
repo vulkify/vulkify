@@ -1,13 +1,13 @@
 #pragma once
-#include <detail/vk_device.hpp>
+#include <detail/vulkan_device.hpp>
 #include <vulkify/core/rgba.hpp>
 
 namespace vf {
 struct ImageBarrier;
 
 struct RenderTarget {
-	VKImage colour{};
-	VKImage resolve{};
+	ImageView colour{};
+	ImageView resolve{};
 	vk::Extent2D extent{};
 };
 
@@ -39,11 +39,11 @@ struct Renderer::Frame {
 	vk::CommandBuffer cmd;
 
 	void render(Rgba clear, std::span<vk::CommandBuffer const> recorded) const;
-	void blit(VKImage const& src, VKImage const& dst) const;
+	void blit(ImageView const& src, ImageView const& dst) const;
 
-	void undef_to_colour(std::span<VKImage const> images) const;
-	void colour_to_tfr(VKImage const& src, VKImage const& dst) const;
-	void colour_to_present(VKImage const& image) const;
-	void tfr_to_present(VKImage const& image) const;
+	void undef_to_colour(std::span<ImageView const> images) const;
+	void colour_to_tfr(ImageView const& src, ImageView const& dst) const;
+	void colour_to_present(ImageView const& image) const;
+	void tfr_to_present(ImageView const& image) const;
 };
 } // namespace vf
