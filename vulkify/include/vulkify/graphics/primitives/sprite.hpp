@@ -29,7 +29,7 @@ class Sprite : public Prop {
 	glm::vec2 size() const { return m_state.size; }
 	UvRect uv() const { return m_state.uv; }
 
-	void draw(Surface const& surface, RenderState const& state) const override;
+	void draw(refactor::Surface const& surface, RenderState const& state) const override;
 
 	///
 	/// \brief If set, will draw a magenta-tinted quad if sprite doesn't have a sheet
@@ -47,7 +47,7 @@ class Sprite : public Prop {
 ///
 class Sprite::Sheet {
   public:
-	TextureHandle texture() const { return m_texture; }
+	refactor::Handle<refactor::Texture> texture() const { return m_texture; }
 
 	///
 	/// \brief Add a custom UV rect and obtain its corresponding UvIndex
@@ -67,11 +67,11 @@ class Sprite::Sheet {
 	/// Note: All previously returned UvIndex values will be invalidated, new indices will be
 	/// 	assigned in a monotonically increasing order, left to right, top to bottom: [0, uv_count()).
 	///
-	Sheet& set_uvs(ktl::not_null<Texture const*> texture, std::uint32_t rows = 1, std::uint32_t columns = 1, glm::uvec2 pad = {});
-	Sheet& set_texture(TextureHandle texture);
+	Sheet& set_uvs(ktl::not_null<refactor::Texture const*> texture, std::uint32_t rows = 1, std::uint32_t columns = 1, glm::uvec2 pad = {});
+	Sheet& set_texture(refactor::Handle<refactor::Texture> texture);
 
   protected:
 	std::vector<UvRect> m_uvs{};
-	TextureHandle m_texture{};
+	refactor::Handle<refactor::Texture> m_texture{};
 };
 } // namespace vf

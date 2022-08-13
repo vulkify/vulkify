@@ -9,7 +9,7 @@ QuadShape& QuadShape::set_state(State state) {
 	return refresh();
 }
 
-QuadShape& QuadShape::set_texture(Ptr<Texture const> texture, bool resize_to_match) {
+QuadShape& QuadShape::set_texture(Ptr<refactor::Texture const> texture, bool resize_to_match) {
 	if (!texture) {
 		m_texture = {};
 		return *this;

@@ -15,11 +15,11 @@ class Shape : public Prop {
 	virtual Rect bounds() const = 0;
 	void unset_silhouette() { m_silhouette.draw = false; }
 
-	void draw(Surface const& surface, RenderState const& state = {}) const override;
+	void draw(refactor::Surface const& surface, RenderState const& state = {}) const override;
 
   protected:
 	struct {
-		GeometryBuffer buffer{};
+		refactor::GeometryBuffer buffer{};
 		Rgba tint{};
 		bool draw{};
 	} m_silhouette{};
