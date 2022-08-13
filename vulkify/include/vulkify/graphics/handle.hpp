@@ -2,12 +2,13 @@
 #include <vulkify/core/ptr.hpp>
 
 namespace vf {
-struct GfxAllocation;
+class GfxAllocation;
 
-struct TextureHandle {
-	Ptr<GfxAllocation const> allocation{};
+template <typename Type>
+struct Handle {
+	Ptr<GfxAllocation> allocation{};
 
-	bool operator==(TextureHandle const& rhs) const = default;
+	bool operator==(Handle const& rhs) const = default;
 	explicit constexpr operator bool() const { return allocation != nullptr; }
 };
 } // namespace vf

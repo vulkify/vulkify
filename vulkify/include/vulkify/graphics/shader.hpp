@@ -1,12 +1,14 @@
 #pragma once
-#include <ktl/fixed_pimpl.hpp>
+#include <ktl/kunique_ptr.hpp>
+#include <vulkify/graphics/handle.hpp>
 #include <cstddef>
 #include <istream>
 #include <span>
 
 namespace vf {
-class Context;
-struct GfxShaderModule;
+struct GfxDevice;
+class GfxShaderModule;
+class Surface;
 
 class Shader {
   public:
@@ -15,7 +17,7 @@ class Shader {
 	Shader& operator=(Shader&&) noexcept;
 	~Shader() noexcept;
 
-	Shader(Context const& context);
+	Shader(GfxDevice const& device);
 
 	explicit operator bool() const;
 
@@ -23,7 +25,7 @@ class Shader {
 	bool load(char const* path, bool try_compile);
 
   private:
-	ktl::fixed_pimpl<GfxShaderModule, 64> m_module;
+	ktl::kunique_ptr<GfxShaderModule> m_module{};
 
 	friend class Surface;
 };

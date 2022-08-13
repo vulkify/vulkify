@@ -3,15 +3,16 @@
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/result.hpp>
 #include <vulkify/graphics/bitmap.hpp>
-#include <vulkify/graphics/detail/resource.hpp>
-#include <vulkify/graphics/texture_handle.hpp>
+#include <vulkify/graphics/detail/gfx_deferred.hpp>
+#include <vulkify/graphics/handle.hpp>
 
 namespace vf {
 class Context;
+class GfxImage;
 
-enum class AddressMode { eClampEdge, eClampBorder, eRepeat };
-enum class Filtering { eNearest, eLinear };
-enum class ImageFormat { eSrgb, eLinear };
+enum class AddressMode : std::uint8_t { eClampEdge, eClampBorder, eRepeat };
+enum class Filtering : std::uint8_t { eNearest, eLinear };
+enum class ImageFormat : std::uint8_t { eSrgb, eLinear };
 
 struct TextureCreateInfo {
 	AddressMode address_mode{AddressMode::eClampEdge};
@@ -35,15 +36,14 @@ struct QuadTexCoords {
 ///
 /// \brief GPU Texture (Image and sampler)
 ///
-class Texture : public GfxResource {
+class Texture : public GfxDeferred {
   public:
 	using CreateInfo = TextureCreateInfo;
 	using TopLeft = Bitmap::TopLeft;
 	using Rect = TRect<std::uint32_t>;
-	using Handle = TextureHandle;
 
 	Texture() = default;
-	explicit Texture(Context const& context, Image::View image = {}, CreateInfo const& create_info = {});
+	explicit Texture(GfxDevice const& device, Image::View image = {}, CreateInfo const& create_info = {});
 
 	Result<void> create(Image::View image);
 	Result<void> overwrite(Image::View image, Rect const& region);
@@ -55,15 +55,15 @@ class Texture : public GfxResource {
 	AddressMode address_mode() const { return m_address_mode; }
 	Filtering filtering() const { return m_filtering; }
 	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
-	Handle handle() const;
+
+	Handle<Texture> handle() const;
 
   private:
-	Texture(Vram const& vram, CreateInfo const& info);
-	Texture clone_image() const;
+	Texture clone_image(GfxImage& out_image) const;
 
-	void refresh(Extent extent);
-	void write(Image::View image, Rect const& region);
-	void set_invalid();
+	void refresh(GfxImage& out_image, Extent extent);
+	void write(GfxImage& out_image, Image::View image, Rect const& region);
+	void set_invalid(GfxImage& out_image);
 
 	AddressMode m_address_mode{};
 	Filtering m_filtering{};

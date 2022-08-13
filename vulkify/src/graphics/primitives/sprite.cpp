@@ -1,10 +1,9 @@
-#include <vulkify/context/context.hpp>
 #include <vulkify/context/frame.hpp>
 #include <vulkify/graphics/primitives/sprite.hpp>
 #include <vulkify/graphics/texture.hpp>
 
 namespace vf {
-Sprite::Sprite(Context const& context, glm::vec2 size) : Prop(context) { set_size(size); }
+Sprite::Sprite(GfxDevice const& device, glm::vec2 size) : Prop(device) { set_size(size); }
 
 Sprite& Sprite::set_size(glm::vec2 size) {
 	m_state.size = size;
@@ -24,11 +23,11 @@ Sprite& Sprite::set_sheet(Ptr<Sheet const> sheet, UvIndex index) {
 
 void Sprite::draw(Surface const& surface, RenderState const& state) const {
 	if (m_texture) {
-		surface.draw(Drawable{m_instance, m_buffer, m_texture}, state);
+		surface.draw(Drawable{m_instance, m_buffer.handle(), m_texture}, state);
 	} else if (draw_invalid) {
 		auto instance = m_instance;
 		instance.tint = magenta_v;
-		surface.draw(Drawable{instance, m_buffer}, state);
+		surface.draw(Drawable{instance, m_buffer.handle()}, state);
 	}
 }
 
@@ -73,7 +72,7 @@ auto Sprite::Sheet::set_uvs(ktl::not_null<Texture const*> texture, std::uint32_t
 	return *this;
 }
 
-auto Sprite::Sheet::set_texture(TextureHandle texture) -> Sheet& {
+auto Sprite::Sheet::set_texture(Handle<Texture> texture) -> Sheet& {
 	m_texture = texture;
 	return *this;
 }

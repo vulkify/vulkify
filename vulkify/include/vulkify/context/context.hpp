@@ -50,7 +50,7 @@ class Context {
 	glm::mat3 unprojection() const;
 	glm::vec2 unproject(glm::vec2 point) const { return unprojection() * glm::vec3(point, 1.0f); }
 
-	Vram const& vram() const { return m_instance->vram(); }
+	GfxDevice const& device() const { return m_instance->gfx_device(); }
 
   private:
 	Context(UInstance&& instance) noexcept;

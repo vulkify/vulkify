@@ -1,5 +1,5 @@
 #pragma once
-#include <detail/vk_instance.hpp>
+#include <detail/vulkan_device.hpp>
 #include <ktl/hash_table.hpp>
 #include <vulkan/vulkan_hash.hpp>
 #include <span>
@@ -10,7 +10,7 @@ struct VertexInput {
 	std::span<vk::VertexInputAttributeDescription const> attributes{};
 };
 
-struct VKPipeline {
+struct VulkanPipeline {
 	vk::Pipeline pipeline{};
 	vk::PipelineLayout layout{};
 };
@@ -51,7 +51,7 @@ struct PipelineFactory {
 	} default_shaders{};
 	std::pair<float, float> line_width_limit{1.0f, 1.0f};
 
-	static PipelineFactory make(VKDevice const& device, VertexInput vertexInput, SetLayouts setLayouts, vk::SampleCountFlagBits samples, bool srr);
+	static PipelineFactory make(VulkanDevice const& device, VertexInput vertexInput, SetLayouts setLayouts, vk::SampleCountFlagBits samples, bool srr);
 
 	explicit operator bool() const { return device; }
 

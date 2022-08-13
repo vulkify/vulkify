@@ -1,5 +1,6 @@
-#include <detail/shared_impl.hpp>
+#include <detail/gfx_device.hpp>
 #include <vulkify/context/context.hpp>
+#include <vulkify/instance/vf_instance.hpp>
 
 namespace vf {
 Context::Context(UInstance&& instance) noexcept : m_instance(std::move(instance)) {}

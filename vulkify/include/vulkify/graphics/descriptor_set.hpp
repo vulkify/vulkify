@@ -1,32 +1,36 @@
 #pragma once
+#include <ktl/not_null.hpp>
 #include <vulkify/core/ptr.hpp>
-#include <vulkify/graphics/texture_handle.hpp>
+#include <vulkify/graphics/handle.hpp>
 #include <cstring>
 #include <span>
 #include <vector>
 
 namespace vf {
 class Shader;
+class Surface;
+class Texture;
 
 template <typename T>
 concept BufferData = std::is_trivially_copyable_v<T>;
 
 class DescriptorSet {
   public:
-	DescriptorSet(Shader const& shader) : m_shader(&shader) {}
+	DescriptorSet(ktl::not_null<Shader const*> shader) : m_shader(shader) {}
 
 	template <BufferData T>
 	void write(T const& t);
 	void write(std::vector<std::byte> uniform_data) { m_data.bytes = std::move(uniform_data); }
-	void write(TextureHandle texture) { m_data.texture = texture; }
+	void write(Handle<Texture> texture) { m_data.texture = texture; }
 
   private:
 	struct {
-		TextureHandle texture{};
+		Handle<Texture> texture{};
 		std::vector<std::byte> bytes{};
 	} m_data{};
-	Ptr<Shader const> m_shader{};
+	ktl::not_null<Shader const*> m_shader;
 
+	friend class Surface;
 	friend class Surface;
 };
 

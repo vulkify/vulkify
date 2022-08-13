@@ -1,9 +1,8 @@
 #pragma once
 #include <vk_mem_alloc.h>
 #include <detail/command_pool.hpp>
-#include <detail/vk_device.hpp>
-#include <ktl/enum_flags/enum_flags.hpp>
-#include <ktl/fixed_vector.hpp>
+#include <detail/gfx_allocation.hpp>
+#include <detail/vulkan_device.hpp>
 #include <vulkify/core/pool.hpp>
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/rgba.hpp>
@@ -13,8 +12,6 @@ struct FT_LibraryRec_;
 using FT_Library = FT_LibraryRec_*;
 
 namespace vf {
-class CommandPool;
-
 enum class BlitFlag { eSrc, eDst, eLinearFilter };
 using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
 
@@ -58,6 +55,7 @@ struct VmaResource {
 	T resource{};
 	VmaAllocator allocator{};
 	VmaAllocation handle{};
+	std::uint64_t id{};
 };
 
 template <typename T>
@@ -85,7 +83,7 @@ struct VmaImage : VmaResource<vk::Image> {
 	BlitCaps caps{};
 
 	void transition(vk::CommandBuffer cb, vk::ImageLayout to, ImageBarrier const& barrier = {});
-	VKImage image(vk::ImageView view = {}) const { return {resource, view, {extent.width, extent.height}}; }
+	ImageView image(vk::ImageView view = {}) const { return {resource, view, {extent.width, extent.height}}; }
 	BlitFlags blit_flags() const { return tiling == vk::ImageTiling::eLinear ? caps.linear : caps.optimal; }
 
 	struct Deleter {
@@ -96,62 +94,41 @@ struct VmaImage : VmaResource<vk::Image> {
 using UniqueImage = Unique<VmaImage, VmaImage::Deleter>;
 using UniqueBuffer = Unique<VmaBuffer, VmaBuffer::Deleter>;
 
-struct CommandPoolFactory {
-	VKDevice device{};
-	CommandPool operator()() const { return device; }
-};
-
+struct CommandPoolFactory;
 using CommandFactory = Pool<CommandPool, CommandPoolFactory>;
 
-struct Vram {
-	VKDevice device{};
+struct GfxDevice {
+	VulkanDevice device{};
 	VmaAllocator allocator{};
 	FT_Library ftlib{};
 	std::size_t buffering{};
 	CommandFactory* command_factory{};
+	DeferQueue* defer{};
 
-	vk::PhysicalDeviceLimits device_limits{};
+	vk::PhysicalDeviceLimits const* device_limits{};
 	vk::SampleCountFlagBits colour_samples{};
-	vk::Format textureFormat = vk::Format::eR8G8B8A8Srgb;
+	vk::Format texture_format = vk::Format::eR8G8B8A8Srgb;
 
-	bool operator==(Vram const& rhs) const { return command_factory == rhs.command_factory && allocator == rhs.allocator; }
+	bool operator==(GfxDevice const& rhs) const { return command_factory == rhs.command_factory && allocator == rhs.allocator; }
 	explicit operator bool() const { return command_factory && allocator; }
 
 	UniqueImage make_image(vk::ImageCreateInfo info, bool host, bool linear = false) const;
 	UniqueBuffer make_buffer(vk::BufferCreateInfo info, bool host) const;
-
-	static void blit(vk::CommandBuffer cmd, vk::Image in, vk::Image out, TRect<std::int32_t> inr, TRect<std::int32_t> outr, vk::Filter filter);
+	vk::SamplerCreateInfo sampler_info(vk::SamplerAddressMode mode, vk::Filter filter) const;
 
 	struct Deleter {
-		void operator()(Vram const& vram) const;
+		void operator()(GfxDevice const& vram) const;
 	};
 };
 
-struct ImageWriter {
-	using URegion = TRect<std::uint32_t>;
-	using IRegion = TRect<std::int32_t>;
+struct VulkanInstance;
 
-	Vram const* vram{};
-	vk::CommandBuffer cb;
+struct UniqueGfxDevice {
+	ktl::kunique_ptr<CommandFactory> command_factory{};
+	Unique<GfxDevice, GfxDevice::Deleter> device{};
 
-	ImageWriter(Vram const& vram, vk::CommandBuffer cb) : vram(&vram), cb(cb) {}
+	explicit operator bool() const { return device && command_factory; }
 
-	std::vector<UniqueBuffer> scratch{};
-
-	static bool can_blit(VmaImage const& src, VmaImage const& dst);
-
-	bool write(VmaImage& out, std::span<std::byte const> data, URegion region = {}, vk::ImageLayout il = {});
-	bool blit(VmaImage& in, VmaImage& out, IRegion inr, IRegion outr, vk::Filter filter, TPair<vk::ImageLayout> il = {}) const;
-	bool copy(VmaImage& in, VmaImage& out, IRegion inr, IRegion outr, TPair<vk::ImageLayout> il = {}) const;
-	void clear(VmaImage& in, Rgba rgba) const;
-};
-
-struct UniqueVram {
-	ktl::kunique_ptr<CommandFactory> commandFactory{};
-	Unique<Vram, Vram::Deleter> vram{};
-
-	explicit operator bool() const { return vram && commandFactory; }
-
-	static UniqueVram make(vk::Instance instance, VKDevice device, int samples);
+	static UniqueGfxDevice make(VulkanInstance const& instance, FT_Library ft, int samples);
 };
 } // namespace vf

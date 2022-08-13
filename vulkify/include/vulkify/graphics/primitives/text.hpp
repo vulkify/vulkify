@@ -1,8 +1,8 @@
 #pragma once
 #include <ktl/not_null.hpp>
 #include <vulkify/core/dirty_flag.hpp>
+#include <vulkify/graphics/handle.hpp>
 #include <vulkify/graphics/primitives/mesh.hpp>
-#include <vulkify/ttf/ttf_handle.hpp>
 
 namespace vf {
 class Ttf;
@@ -19,7 +19,7 @@ class Text : public Primitive {
 	};
 
 	Text() = default;
-	explicit Text(Context const& context);
+	explicit Text(GfxDevice const& device);
 
 	explicit operator bool() const;
 
@@ -32,7 +32,7 @@ class Text : public Primitive {
 	Height height() const { return m_height; }
 
 	Text& set_ttf(ktl::not_null<Ttf*> ttf);
-	Text& set_ttf(TtfHandle ttf);
+	Text& set_ttf(Handle<Ttf> ttf);
 	Text& set_string(std::string string);
 	Text& append(std::string string);
 	Text& append(char ch);
@@ -48,6 +48,6 @@ class Text : public Primitive {
 	std::string m_text{};
 	Align m_align{};
 	Height m_height{60};
-	TtfHandle m_ttf{};
+	Handle<Ttf> m_ttf{};
 };
 } // namespace vf

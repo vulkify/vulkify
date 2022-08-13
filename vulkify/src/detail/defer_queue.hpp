@@ -1,6 +1,5 @@
 #pragma once
 #include <ktl/kunique_ptr.hpp>
-#include <algorithm>
 #include <vector>
 
 namespace vf {
@@ -25,15 +24,14 @@ struct DeferQueue {
 	static constexpr int default_delay_v = 3;
 
 	std::vector<Entry> entries{};
+	std::vector<Entry> expired{};
 
 	template <BoolLike T>
 	void push(T t, int delay = default_delay_v) {
 		if (t) { entries.push_back(ktl::make_unique<Model<T>>(std::move(t), delay)); }
 	}
 
-	void decrement() {
-		std::erase_if(entries, [](Entry& e) { return --e->delay <= 0; });
-	}
+	void decrement();
 };
 
 struct Defer {

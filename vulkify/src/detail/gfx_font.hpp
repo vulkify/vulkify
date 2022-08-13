@@ -1,4 +1,5 @@
 #pragma once
+#include <detail/gfx_allocation.hpp>
 #include <ktl/hash_table.hpp>
 #include <ttf/ft.hpp>
 #include <vulkify/core/ptr.hpp>
@@ -7,22 +8,17 @@
 #include <vulkify/ttf/glyph.hpp>
 
 namespace vf {
-struct Vram;
+struct GfxDevice;
 
-struct GfxFont {
+class GfxFont : public GfxAllocation {
+  public:
 	using Height = Glyph::Height;
 
-	GfxFont() = default;
-	GfxFont(Context const& context);
+	GfxFont(GfxDevice const* device);
 
 	explicit operator bool() const;
 
 	Character get(Codepoint codepoint, Height height);
-
-	struct Face {
-		Vram const* vram{};
-		FtUnique<FtFace> face{};
-	};
 
 	struct Entry {
 		Glyph glyph{};
@@ -39,6 +35,6 @@ struct GfxFont {
 	Ptr<Texture const> texture(Height height) const;
 
 	ktl::hash_table<Height, Font> fonts{};
-	Face face{};
+	FtUnique<FtFace> face{};
 };
 } // namespace vf

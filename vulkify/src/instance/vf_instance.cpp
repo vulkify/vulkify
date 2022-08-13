@@ -1,4 +1,3 @@
-#include <detail/vk_instance.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <ktl/debug_trap.hpp>
 
@@ -12,10 +11,7 @@
 #include <detail/render_pass.hpp>
 #include <detail/renderer.hpp>
 #include <detail/rotator.hpp>
-#include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
-#include <detail/vk_surface.hpp>
-#include <detail/vram.hpp>
 #include <detail/window/window.hpp>
 #include <functional>
 
@@ -27,22 +23,37 @@
 
 #include <ttf/ft.hpp>
 
+#include <detail/gfx_buffer_image.hpp>
+#include <detail/gfx_command_buffer.hpp>
+#include <detail/gfx_device.hpp>
+#include <detail/vulkan_instance.hpp>
+#include <detail/vulkan_swapchain.hpp>
+
 #include <ktl/ktl_version.hpp>
 
 static_assert(ktl::version_v >= ktl::kversion{1, 4, 2});
 
 namespace vf {
 namespace {
-constexpr vk::Format texture_format(vk::Format surface) { return Renderer::isSrgb(surface) ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm; }
-
-VKDevice make_device(VKInstance const& instance) {
-	auto const flags = instance.messenger ? VKDevice::Flag::eDebugMsgr : VKDevice::Flags{};
-	return {instance.queue, instance.gpu.device, *instance.device, {&instance.util->defer}, &instance.util->mutex.queue, flags};
+PhysicalDevice select_device(std::span<PhysicalDevice> devices, GpuSelector const* gpu_selector) {
+	assert(!devices.empty());
+	std::size_t index{};
+	if (gpu_selector) {
+		auto gpus = std::vector<Gpu>{};
+		gpus.reserve(devices.size());
+		for (auto const& device : devices) { gpus.push_back(device.gpu); }
+		auto const first = gpus.data();
+		auto const last = first + gpus.size();
+		if (auto gpu = gpu_selector->operator()(first, last); gpu < last) { index = static_cast<std::size_t>(gpu - first); }
+	}
+	return std::move(devices[index]);
 }
 
-vk::UniqueDescriptorSetLayout make_set_layout(vk::Device device, std::span<vk::DescriptorSetLayoutBinding const> bindings) {
-	auto info = vk::DescriptorSetLayoutCreateInfo({}, static_cast<std::uint32_t>(bindings.size()), bindings.data());
-	return device.createDescriptorSetLayoutUnique(info);
+vk::PresentModeKHR select_mode(GpuInfo const& gpu, std::span<VSync const> desired) {
+	for (auto const vsync : desired) {
+		if (gpu.gpu.present_modes.test(vsync)) { return from_vsync(vsync); }
+	}
+	return vk::PresentModeKHR::eFifo;
 }
 
 constexpr int get_samples(AntiAliasing aa) {
@@ -54,6 +65,19 @@ constexpr int get_samples(AntiAliasing aa) {
 	case AntiAliasing::eNone:
 	default: return 1;
 	}
+}
+
+glm::mat4 projection(Extent const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
+	if (extent.x == 0 || extent.y == 0) { return {}; }
+	auto const half = glm::vec2(static_cast<float>(extent.x), static_cast<float>(extent.y)) * 0.5f;
+	return glm::ortho(-half.x, half.x, -half.y, half.y, nf.x, nf.y);
+}
+
+constexpr vk::Format texture_format(vk::Format surface) { return Renderer::isSrgb(surface) ? vk::Format::eR8G8B8A8Srgb : vk::Format::eR8G8B8A8Unorm; }
+
+vk::UniqueDescriptorSetLayout make_set_layout(vk::Device device, std::span<vk::DescriptorSetLayoutBinding const> bindings) {
+	auto info = vk::DescriptorSetLayoutCreateInfo({}, static_cast<std::uint32_t>(bindings.size()), bindings.data());
+	return device.createDescriptorSetLayoutUnique(info);
 }
 
 std::vector<vk::UniqueDescriptorSetLayout> make_set_layouts(vk::Device device) {
@@ -87,14 +111,18 @@ std::vector<vk::DescriptorSetLayout> make_set_layouts(std::span<vk::UniqueDescri
 	return ret;
 }
 
-struct VIStorage {
+[[maybe_unused]] constexpr std::string_view vsync_modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
+} // namespace
+
+namespace {
+struct VertexInputStorage {
 	std::vector<vk::VertexInputBindingDescription> bindings{};
 	std::vector<vk::VertexInputAttributeDescription> attributes{};
 
 	VertexInput operator()() const { return {bindings, attributes}; }
 
-	static VIStorage make() {
-		auto ret = VIStorage{};
+	static VertexInputStorage make() {
+		auto ret = VertexInputStorage{};
 		auto vertex = vk::VertexInputBindingDescription(0, sizeof(Vertex));
 		ret.bindings = {vertex};
 		auto xy = vk::VertexInputAttributeDescription(0, 0, vk::Format::eR32G32Sfloat, offsetof(Vertex, xy));
@@ -126,11 +154,11 @@ struct FrameSync {
 	explicit operator bool() const { return draw.get(); }
 	bool operator==(FrameSync const& rhs) const { return !draw && !rhs.draw; }
 
-	VKSync sync() const { return {*draw, *present, *drawn}; }
+	SwapchainSync sync() const { return {*draw, *present, *drawn}; }
 };
 
 struct SwapchainRenderer {
-	Vram vram{};
+	GfxDevice const* device{};
 
 	Renderer renderer{};
 	Rotator<FrameSync> frame_sync{};
@@ -138,37 +166,37 @@ struct SwapchainRenderer {
 	vk::UniqueCommandPool command_pool{};
 
 	Framebuffer framebuffer{};
-	VKImage present{};
+	ImageView present{};
 	Rgba clear{};
 	bool msaa{};
 
-	static SwapchainRenderer make(Vram const& vram, vk::Format format, std::size_t buffering = 2) {
-		auto ret = SwapchainRenderer{vram};
-		auto renderer = Renderer::make(vram.device.device, format, vram.colour_samples);
+	static SwapchainRenderer make(GfxDevice const* device, vk::Format format) {
+		assert(device);
+		auto ret = SwapchainRenderer{device};
+		auto renderer = Renderer::make(device->device.device, format, device->colour_samples);
 		if (!renderer.render_pass) { return {}; }
 		ret.renderer = std::move(renderer);
 
 		static constexpr auto flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
-		auto cpci = vk::CommandPoolCreateInfo(flags, vram.device.queue.family);
-		ret.command_pool = vram.device.device.createCommandPoolUnique(cpci);
+		auto cpci = vk::CommandPoolCreateInfo(flags, device->device.queue.family);
+		ret.command_pool = device->device.device.createCommandPoolUnique(cpci);
 
-		ret.vram.buffering = buffering;
-		auto const count = static_cast<std::uint32_t>(buffering);
-		auto primaries = vram.device.device.allocateCommandBuffers({*ret.command_pool, vk::CommandBufferLevel::ePrimary, count});
-		auto secondaries = vram.device.device.allocateCommandBuffers({*ret.command_pool, vk::CommandBufferLevel::eSecondary, count});
-		for (std::size_t i = 0; i < buffering; ++i) {
-			auto sync = FrameSync::make(vram.device.device);
+		auto const count = static_cast<std::uint32_t>(device->buffering);
+		auto primaries = device->device.device.allocateCommandBuffers({*ret.command_pool, vk::CommandBufferLevel::ePrimary, count});
+		auto secondaries = device->device.device.allocateCommandBuffers({*ret.command_pool, vk::CommandBufferLevel::eSecondary, count});
+		for (std::size_t i = 0; i < device->buffering; ++i) {
+			auto sync = FrameSync::make(device->device.device);
 			sync.cmd.primary = std::move(primaries[i]);
 			sync.cmd.secondary = std::move(secondaries[i]);
 			ret.frame_sync.push(std::move(sync));
 		}
 
-		if (vram.colour_samples > vk::SampleCountFlagBits::e1) {
+		if (device->colour_samples > vk::SampleCountFlagBits::e1) {
 			ret.msaa = true;
 			auto& image = ret.msaa_image;
-			image = {{vram}};
+			image = {.device = device};
 			image.set_colour();
-			image.info.info.samples = vram.colour_samples;
+			image.info.info.samples = device->colour_samples;
 			image.info.info.format = format;
 			VF_TRACE("vf::(internal)", trace::Type::eInfo, "Using custom MSAA render target");
 		}
@@ -177,18 +205,22 @@ struct SwapchainRenderer {
 	}
 
 	explicit operator bool() const { return static_cast<bool>(renderer.render_pass); }
-	VKSync sync() const { return frame_sync.get().sync(); }
+	SwapchainSync sync() const { return frame_sync.get().sync(); }
 
-	vk::CommandBuffer begin_render(VKImage acquired) {
+	vk::CommandBuffer begin_render(ImageView acquired) {
 		if (!renderer.render_pass) { return {}; }
 
 		auto& sync = frame_sync.get();
 		auto const extent = Extent{acquired.extent.width, acquired.extent.height};
-		vram.device.reset(*sync.drawn);
-		framebuffer.colour = acquired;
-		if (msaa) {
-			framebuffer.colour = msaa_image.refresh(extent);
-			framebuffer.resolve = acquired;
+		device->device.reset(*sync.drawn);
+		// TODO: fixup
+		{
+			framebuffer.colour = {acquired.image, acquired.view, acquired.extent};
+			if (msaa) {
+				auto refreshed = msaa_image.refresh(extent);
+				framebuffer.colour = {refreshed.image, refreshed.view, refreshed.extent};
+				framebuffer.resolve = {acquired.image, acquired.view, acquired.extent};
+			}
 		}
 		framebuffer.extent = vk::Extent2D(extent.x, extent.y);
 		sync.framebuffer = renderer.make_framebuffer(framebuffer);
@@ -211,13 +243,13 @@ struct SwapchainRenderer {
 		sync.cmd.secondary.end();
 		sync.cmd.primary.begin({vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
 
-		auto images = ktl::fixed_vector<VKImage, 2>{framebuffer.colour};
+		auto images = ktl::fixed_vector<ImageView, 2>{framebuffer.colour};
 		if (msaa) { images.push_back(framebuffer.resolve); }
 
 		auto frame = Renderer::Frame{renderer, framebuffer, sync.cmd.primary};
 		frame.undef_to_colour(images);
 		frame.render(clear, {&sync.cmd.secondary, 1});
-		frame.colour_to_present(present);
+		frame.colour_to_present({present.image, present.view, present.extent});
 
 		sync.cmd.primary.end();
 		framebuffer = {};
@@ -229,12 +261,24 @@ struct SwapchainRenderer {
 	void next() { frame_sync.next(); }
 };
 
-ShaderInput::Textures make_shader_textures(Vram const& vram) {
+vk::SamplerCreateInfo sampler_info(GfxDevice const* device, vk::SamplerAddressMode mode, vk::Filter filter) {
+	auto ret = vk::SamplerCreateInfo{};
+	if (!device->device_limits) { return ret; }
+	ret.minFilter = ret.magFilter = filter;
+	ret.anisotropyEnable = device->device_limits->maxSamplerAnisotropy > 0.0f;
+	ret.maxAnisotropy = device->device_limits->maxSamplerAnisotropy;
+	ret.borderColor = vk::BorderColor::eIntOpaqueBlack;
+	ret.mipmapMode = vk::SamplerMipmapMode::eNearest;
+	ret.addressModeU = ret.addressModeV = ret.addressModeW = mode;
+	return ret;
+}
+
+ShaderInput::Textures make_shader_textures(GfxDevice const* device) {
 	auto ret = ShaderInput::Textures{};
-	auto sci = sampler_info(vram, vk::SamplerAddressMode::eClampToBorder, vk::Filter::eNearest);
-	ret.sampler = vram.device.device.createSamplerUnique(sci);
-	ret.white = {{vram}};
-	ret.magenta = {{vram}};
+	auto sci = sampler_info(device, vk::SamplerAddressMode::eClampToBorder, vk::Filter::eNearest);
+	ret.sampler = device->device.device.createSamplerUnique(sci);
+	ret.white = {.device = device};
+	ret.magenta = {.device = device};
 	ret.white.set_texture(false);
 	ret.magenta.set_texture(false);
 
@@ -243,7 +287,7 @@ ShaderInput::Textures make_shader_textures(Vram const& vram) {
 	if (!ret.white.view || !ret.magenta.view) { return {}; }
 	std::byte imageBytes[4]{};
 	Bitmap::rgba_to_byte(white_v, imageBytes);
-	auto cb = GfxCommandBuffer(vram);
+	auto cb = GfxCommandBuffer(device);
 	cb.writer.write(ret.white.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
 	Bitmap::rgba_to_byte(magenta_v, imageBytes);
 	cb.writer.write(ret.magenta.image.get(), std::span<std::byte const>(imageBytes), {}, vk::ImageLayout::eShaderReadOnlyOptimal);
@@ -252,62 +296,24 @@ ShaderInput::Textures make_shader_textures(Vram const& vram) {
 }
 } // namespace
 
-glm::mat4 projection(Extent const extent, glm::vec2 const nf = {-100.0f, 100.0f}) {
-	if (extent.x == 0 || extent.y == 0) { return {}; }
-	auto const half = glm::vec2(static_cast<float>(extent.x), static_cast<float>(extent.y)) * 0.5f;
-	return glm::ortho(-half.x, half.x, -half.y, half.y, nf.x, nf.y);
-}
-
 struct VulkifyInstance::Impl {
 	std::shared_ptr<UniqueWindowInstance> win_inst{};
 	UniqueWindow window{};
-	VKInstance vulkan{};
-	UniqueVram vram{};
-	VKSurface surface{};
+	VulkanInstance vulkan{};
+	UniqueGfxDevice device{};
+	VulkanSwapchain swapchain{};
 	SwapchainRenderer renderer{};
 	FtUnique<FtLib> freetype{};
 
-	VKSurface::Acquire acquired{};
+	VulkanSwapchain::Acquire acquired{};
 	std::vector<vk::UniqueDescriptorSetLayout> set_layouts{};
-	VIStorage vertex_input{};
+	VertexInputStorage vertex_input{};
 	PipelineFactory pipeline_factory{};
 	DescriptorSetFactory set_factory{};
 	ShaderInput::Textures shader_textures{};
 	Camera camera{};
+	RenderPass render_pass{};
 };
-
-VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
-	g_window = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->file_drops};
-}
-
-VulkifyInstance::~VulkifyInstance() {
-	m_impl->vulkan.device->waitIdle();
-	g_window = {};
-	g_gamepads = {};
-}
-
-PhysicalDevice selectDevice(std::span<PhysicalDevice> devices, GpuSelector const* gpu_selector) {
-	assert(!devices.empty());
-	std::size_t index{};
-	if (gpu_selector) {
-		auto gpus = std::vector<Gpu>{};
-		gpus.reserve(devices.size());
-		for (auto const& device : devices) { gpus.push_back(device.gpu); }
-		auto const first = gpus.data();
-		auto const last = first + gpus.size();
-		if (auto gpu = gpu_selector->operator()(first, last); gpu < last) { index = static_cast<std::size_t>(gpu - first); }
-	}
-	return std::move(devices[index]);
-}
-
-[[maybe_unused]] constexpr std::string_view vsync_modes_v[] = {"On", "Adaptive", "TripleBuffer", "Off"};
-
-vk::PresentModeKHR selectMode(VKGpu const& gpu, std::span<VSync const> desired) {
-	for (auto const vsync : desired) {
-		if (gpu.gpu.present_modes.test(vsync)) { return from_vsync(vsync); }
-	}
-	return vk::PresentModeKHR::eFifo;
-}
 
 VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 	if (g_window.window) { return Error::eDuplicateInstance; }
@@ -319,10 +325,10 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 	auto window = make_window(create_info, win_inst->get()->get());
 	if (!window) { return Error::eGlfwFailure; }
 
-	auto freetype = FtLib::make();
+	auto freetype = FtUnique<FtLib>{FtLib::make()};
 	if (!freetype) { return Error::eFreetypeInitFailure; }
 
-	auto vkinfo = VKInstance::Info{};
+	auto vkinfo = VulkanInstance::Info{};
 	vkinfo.make_surface = [&window](vk::Instance inst) {
 		auto surface = VkSurfaceKHR{};
 		auto vkinst = static_cast<VkInstance>(inst);
@@ -332,51 +338,66 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 	};
 	vkinfo.instance_extensions = Window::Instance::extensions();
 	vkinfo.desired_vsyncs = create_info.desired_vsyncs;
-	auto builder = VKInstance::Builder::make(std::move(vkinfo));
+	auto builder = VulkanInstance::Builder::make(std::move(vkinfo));
 	if (!builder) { return builder.error(); }
 	if (builder->devices.empty()) { return Error::eNoVulkanSupport; }
-	auto selected = selectDevice(builder->devices, create_info.gpu_selector);
-	auto instance = builder.value()(std::move(selected));
-	if (!instance) { return instance.error(); }
+	auto selected = select_device(builder->devices, create_info.gpu_selector);
+	auto vulkan = builder.value()(std::move(selected));
+	if (!vulkan) { return vulkan.error(); }
 
-	auto vulkan = std::move(instance.value());
-	auto device = make_device(vulkan);
-	auto vram = UniqueVram::make(*vulkan.instance, device, get_samples(create_info.desired_aa));
-	if (!vram) { return Error::eVulkanInitFailure; }
-	vram.vram->ftlib = freetype.lib;
+	auto impl = ktl::make_unique<Impl>(Impl{std::move(*win_inst), std::move(window), std::move(*vulkan)});
+	{
+		impl->device = UniqueGfxDevice::make(impl->vulkan, freetype->lib, get_samples(create_info.desired_aa));
+		if (!impl->device) { return Error::eVulkanInitFailure; }
+		impl->device.device->buffering = 2;
+	}
+	{
+		bool const linear = create_info.instance_flags.test(InstanceFlag::eLinearSwapchain);
+		auto const extent = impl->window->framebuffer_size();
+		auto const mode = select_mode(impl->vulkan.gpu, create_info.desired_vsyncs);
+		VF_TRACEI("vf::(internal)", "VSync set to [{}]", vsync_modes_v[static_cast<int>(to_vsync(mode))]);
+		impl->swapchain = VulkanSwapchain::make(&impl->device.device.get(), impl->vulkan.gpu.formats, *impl->vulkan.surface, mode, extent, linear);
+		if (!impl->swapchain) { return Error::eVulkanInitFailure; }
+		impl->device.device->device.flags.assign(VulkanDevice::Flag::eLinearSwp, impl->swapchain.linear);
+	}
+	{
+		auto renderer = SwapchainRenderer::make(&impl->device.device.get(), impl->swapchain.info.imageFormat);
+		if (!renderer) { return Error::eVulkanInitFailure; }
+		impl->renderer = std::move(renderer);
+		impl->device.device->texture_format = texture_format(impl->swapchain.info.imageFormat);
+		impl->device.device->buffering = impl->renderer.frame_sync.storage.size();
+	}
+	{
+		impl->set_layouts = make_set_layouts(*impl->vulkan.device);
+		impl->vertex_input = VertexInputStorage::make();
+		auto const srr = create_info.instance_flags.test(InstanceFlag::eSuperSampling);
+		auto sl = make_set_layouts(impl->set_layouts);
+		auto const csamples = impl->device.device->colour_samples;
+		impl->pipeline_factory = PipelineFactory::make(impl->device.device->device, impl->vertex_input(), std::move(sl), csamples, srr);
+		if (!impl->pipeline_factory) { return Error::eVulkanInitFailure; }
+	}
 
-	auto impl = ktl::make_unique<Impl>(Impl{std::move(*win_inst), std::move(window), std::move(vulkan), std::move(vram)});
-	bool const linear = create_info.instance_flags.test(InstanceFlag::eLinearSwapchain);
-	auto const extent = impl->window->framebuffer_size();
-	auto const mode = selectMode(impl->vulkan.gpu, create_info.desired_vsyncs);
-	VF_TRACEI("vf::(internal)", "VSync set to [{}]", vsync_modes_v[static_cast<int>(to_vsync(mode))]);
-	impl->surface = VKSurface::make(device, impl->vulkan.gpu, *impl->vulkan.surface, mode, extent, linear);
-	if (!impl->surface) { return Error::eVulkanInitFailure; }
-	device.flags.assign(VKDevice::Flag::eLinearSwp, impl->surface.linear);
+	{
+		impl->set_factory = DescriptorSetFactory::make(impl->device.device, impl->pipeline_factory.set_layouts);
+		if (!impl->set_factory) { return Error::eVulkanInitFailure; }
 
-	auto renderer = SwapchainRenderer::make(impl->vram.vram, impl->surface.info.imageFormat);
-	if (!renderer) { return Error::eVulkanInitFailure; }
-	impl->renderer = std::move(renderer);
-	impl->vram.vram->textureFormat = texture_format(impl->surface.info.imageFormat);
+		impl->shader_textures = make_shader_textures(&impl->device.device.get());
+		if (!impl->shader_textures) { return Error::eVulkanInitFailure; }
+	}
 
-	impl->set_layouts = make_set_layouts(impl->surface.device.device);
-	impl->vertex_input = VIStorage::make();
-	auto const srr = create_info.instance_flags.test(InstanceFlag::eSuperSampling);
-	auto sl = make_set_layouts(impl->set_layouts);
-	auto const csamples = impl->vram.vram->colour_samples;
-	impl->pipeline_factory = PipelineFactory::make(impl->vram.vram->device, impl->vertex_input(), std::move(sl), csamples, srr);
-	if (!impl->pipeline_factory) { return Error::eVulkanInitFailure; }
-
-	impl->vram.vram->buffering = impl->renderer.frame_sync.storage.size();
-	impl->set_factory = DescriptorSetFactory::make(impl->vram.vram, impl->pipeline_factory.set_layouts);
-	if (!impl->set_factory) { return Error::eVulkanInitFailure; }
-
-	impl->shader_textures = make_shader_textures(impl->vram.vram);
-	if (!impl->shader_textures) { return Error::eVulkanInitFailure; }
-
-	impl->freetype = freetype;
+	impl->freetype = std::move(freetype);
 
 	return ktl::kunique_ptr<VulkifyInstance>(new VulkifyInstance(std::move(impl)));
+}
+
+VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
+	g_window = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->file_drops};
+}
+
+VulkifyInstance::~VulkifyInstance() {
+	m_impl->vulkan.device->waitIdle();
+	g_window = {};
+	g_gamepads = {};
 }
 
 Gpu const& VulkifyInstance::gpu() const { return m_impl->vulkan.gpu.gpu; }
@@ -388,7 +409,7 @@ bool VulkifyInstance::closing() const {
 }
 
 Extent VulkifyInstance::framebuffer_extent() const {
-	auto const ret = m_impl->surface.info.imageExtent;
+	auto const ret = m_impl->swapchain.info.imageExtent;
 	if (ret.width > 0 && ret.height > 0) { return {ret.width, ret.height}; }
 	return m_impl->window->framebuffer_size();
 }
@@ -408,7 +429,7 @@ MonitorList VulkifyInstance::monitors() const { return m_impl->window->monitors(
 WindowFlags VulkifyInstance::window_flags() const { return m_impl->window->flags(); }
 
 AntiAliasing VulkifyInstance::anti_aliasing() const {
-	switch (m_impl->vram.vram->colour_samples) {
+	switch (m_impl->device.device->colour_samples) {
 	case vk::SampleCountFlagBits::e16: return AntiAliasing::e16x;
 	case vk::SampleCountFlagBits::e8: return AntiAliasing::e8x;
 	case vk::SampleCountFlagBits::e4: return AntiAliasing::e4x;
@@ -418,7 +439,7 @@ AntiAliasing VulkifyInstance::anti_aliasing() const {
 	}
 }
 
-VSync VulkifyInstance::vsync() const { return to_vsync(m_impl->surface.info.presentMode); }
+VSync VulkifyInstance::vsync() const { return to_vsync(m_impl->swapchain.info.presentMode); }
 std::vector<Gpu> VulkifyInstance::gpu_list() const { return m_impl->vulkan.available_devices(); }
 void VulkifyInstance::set_position(glm::ivec2 xy) { m_impl->window->position(xy); }
 void VulkifyInstance::set_extent(Extent size) { m_impl->window->set_window_size(size); }
@@ -446,14 +467,14 @@ EventQueue VulkifyInstance::poll() {
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->file_drops};
 }
 
-Surface VulkifyInstance::begin_pass(Rgba clear) {
+vf::Surface VulkifyInstance::begin_pass(Rgba clear) {
 	if (m_impl->acquired) {
 		VF_TRACE("vf::(internal)", trace::Type::eWarn, "RenderPass already begun");
 		return {};
 	}
 
 	auto const sync = m_impl->renderer.sync();
-	m_impl->acquired = m_impl->surface.acquire(sync.draw, m_impl->window->framebuffer_size());
+	m_impl->acquired = m_impl->swapchain.acquire(sync.draw, m_impl->window->framebuffer_size());
 	auto const extent = Extent{m_impl->acquired.image.extent.width, m_impl->acquired.image.extent.height};
 	if (!m_impl->acquired) { return {}; }
 	auto& sr = m_impl->renderer;
@@ -461,15 +482,18 @@ Surface VulkifyInstance::begin_pass(Rgba clear) {
 	m_impl->vulkan.util->defer.decrement();
 	m_impl->renderer.clear = clear;
 
-	auto proj = m_impl->set_factory.postInc(0);
+	auto proj = m_impl->set_factory.post_increment(0);
 	auto const mat_p = projection(extent);
 	proj.write(0, &mat_p, sizeof(mat_p));
 
 	auto const input = ShaderInput{proj, &m_impl->shader_textures};
 	auto const cam = RenderCam{extent, &m_impl->camera};
-	auto const lwl = std::pair(m_impl->vram.vram->device_limits.lineWidthRange[0], m_impl->vram.vram->device_limits.lineWidthRange[1]);
+	auto const lwl = std::pair(m_impl->device.device->device_limits->lineWidthRange[0], m_impl->device.device->device_limits->lineWidthRange[1]);
 	auto* mutex = &m_impl->vulkan.util->mutex.render;
-	return RenderPass{this, &m_impl->pipeline_factory, &m_impl->set_factory, *sr.renderer.render_pass, std::move(cmd), input, cam, lwl, mutex};
+	auto const& device = m_impl->device.device.get();
+	m_impl->render_pass =
+		RenderPass{this, &device, &m_impl->pipeline_factory, &m_impl->set_factory, *sr.renderer.render_pass, std::move(cmd), input, cam, lwl, mutex};
+	return Surface{&m_impl->render_pass};
 }
 
 bool VulkifyInstance::end_pass() {
@@ -477,21 +501,14 @@ bool VulkifyInstance::end_pass() {
 	auto const cb = m_impl->renderer.end_render();
 	if (!cb) { return false; }
 	auto const sync = m_impl->renderer.sync();
-	m_impl->surface.submit(cb, sync);
-	m_impl->surface.present(m_impl->acquired, sync.present, m_impl->window->framebuffer_size());
+	m_impl->swapchain.submit(cb, sync);
+	m_impl->swapchain.present(m_impl->acquired, sync.present, m_impl->window->framebuffer_size());
 	m_impl->acquired = {};
 	m_impl->renderer.next();
 	m_impl->set_factory.next();
 	m_impl->acquired = {};
 	return true;
 }
-
-Vram const& VulkifyInstance::vram() const { return m_impl->vram.vram; }
-
-HeadlessInstance::HeadlessInstance(Time autoclose) : m_autoclose(autoclose) {}
-
-Vram const& HeadlessInstance::vram() const { return g_inactive.vram; }
-
 // gamepad
 
 GamepadMap Gamepad::map() { return Window::gamepads(); }
@@ -518,4 +535,13 @@ float Gamepad::operator()(Axis axis) const {
 }
 
 std::size_t GamepadMap::count() const { return static_cast<std::size_t>(std::count(std::begin(map), std::end(map), true)); }
+
+GfxDevice const& VulkifyInstance::gfx_device() const { return m_impl->device.device; }
+
+HeadlessInstance::HeadlessInstance(Time autoclose) : m_autoclose(autoclose) {}
+
+GfxDevice const& HeadlessInstance::gfx_device() const {
+	static auto const s_inactive = GfxDevice{};
+	return s_inactive;
+}
 } // namespace vf

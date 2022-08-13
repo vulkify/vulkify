@@ -1,13 +1,11 @@
 #pragma once
 #include <vulkify/graphics/atlas.hpp>
 #include <vulkify/ttf/character.hpp>
-#include <vulkify/ttf/ttf_handle.hpp>
 #include <memory>
 #include <span>
 
 namespace vf {
-class Context;
-struct GfxFont;
+class GfxFont;
 
 ///
 /// \brief TrueType Font
@@ -22,7 +20,7 @@ class Ttf {
 	Ttf& operator=(Ttf&&) noexcept;
 	~Ttf() noexcept;
 
-	explicit Ttf(Context const& context);
+	explicit Ttf(GfxDevice const& device);
 
 	explicit operator bool() const;
 
@@ -37,12 +35,12 @@ class Ttf {
 
 	Ptr<Atlas const> atlas(Height height = height_v) const;
 	Ptr<Texture const> texture(Height height = height_v) const;
-	TtfHandle handle() const { return {m_font.get()}; }
+	Handle<Ttf> handle() const;
 
   private:
-	void on_loaded();
+	void on_loaded(GfxFont& out_font);
 
 	std::unique_ptr<std::byte[]> m_file_data{};
-	std::unique_ptr<GfxFont> m_font{};
+	std::unique_ptr<GfxAllocation> m_allocation{};
 };
 } // namespace vf

@@ -1,4 +1,5 @@
 #pragma once
+#include <detail/gfx_device.hpp>
 #include <detail/rotator.hpp>
 #include <detail/set_writer.hpp>
 #include <detail/trace.hpp>
@@ -19,14 +20,14 @@ struct DescriptorAllocator {
 
 	static constexpr std::size_t block_size_v = 64;
 
-	Vram vram{};
+	GfxDevice vram{};
 	vk::DescriptorSetLayout layout{};
 	std::uint32_t number{};
 
 	Rotator<Pool, 4> pools{};
 	std::size_t index{};
 
-	static DescriptorAllocator make(Vram const& vram, vk::DescriptorSetLayout layout, std::uint32_t number) {
+	static DescriptorAllocator make(GfxDevice const& vram, vk::DescriptorSetLayout layout, std::uint32_t number) {
 		auto ret = DescriptorAllocator{vram, layout, number};
 		for (std::size_t i = 0; i < vram.buffering; ++i) {
 			auto pool = Pool{};
@@ -94,15 +95,17 @@ struct DescriptorSetFactory {
 
 	DescriptorAllocator allocators[sets_v]{};
 
-	static DescriptorSetFactory make(Vram const& vram, std::span<vk::DescriptorSetLayout const> layouts) {
+	static DescriptorSetFactory make(GfxDevice const& gfx_device, std::span<vk::DescriptorSetLayout const> layouts) {
 		auto ret = DescriptorSetFactory{};
-		for (auto const [layout, number] : ktl::enumerate<std::uint32_t>(layouts)) { ret.allocators[number] = DescriptorAllocator::make(vram, layout, number); }
+		for (auto const [layout, number] : ktl::enumerate<std::uint32_t>(layouts)) {
+			ret.allocators[number] = DescriptorAllocator::make(gfx_device, layout, number);
+		}
 		return ret;
 	}
 
 	explicit operator bool() const { return !allocators[0].pools.storage.empty(); }
 
-	SetWriter postInc(std::uint32_t set) {
+	SetWriter post_increment(std::uint32_t set) {
 		assert(set < sets_v);
 		auto& rot = allocators[set];
 		auto ret = rot.descriptor_set();

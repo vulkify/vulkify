@@ -155,12 +155,13 @@ void Window::Deleter::operator()(Window const& window) const {
 void Window::Deleter::operator()(Instance const&) const { glfwTerminate(); }
 
 UniqueWindow make_window(InstanceCreateInfo const& info, Window::Instance& instance) {
+	auto const title = info.title ? info.title : "";
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_DECORATED, info.window_flags.test(WindowFlag::eBorderless) ? GLFW_FALSE : GLFW_TRUE);
 	glfwWindowHint(GLFW_VISIBLE, info.instance_flags.test(InstanceFlag::eAutoShow) ? GLFW_TRUE : GLFW_FALSE);
 	glfwWindowHint(GLFW_MAXIMIZED, info.window_flags.test(WindowFlag::eMaximized) ? GLFW_TRUE : GLFW_FALSE);
 	glfwWindowHint(GLFW_RESIZABLE, info.window_flags.test(WindowFlag::eResizable) ? GLFW_TRUE : GLFW_FALSE);
-	auto ret = glfwCreateWindow(static_cast<int>(info.extent.x), static_cast<int>(info.extent.y), info.title, nullptr, nullptr);
+	auto ret = glfwCreateWindow(static_cast<int>(info.extent.x), static_cast<int>(info.extent.y), title, nullptr, nullptr);
 	attach_callbacks(ret);
 	return Window{ret, &instance};
 }

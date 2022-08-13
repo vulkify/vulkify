@@ -103,6 +103,7 @@ class Base {
 
 	vf::Context& context() { return *m_context; }
 	vf::Context const& context() const { return *m_context; }
+	vf::GfxDevice const& device() const { return m_context->device(); }
 
 	Env env{};
 	Input input{};
