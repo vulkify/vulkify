@@ -22,7 +22,7 @@ class Shaded : public vf::Primitive {
 
 	void draw(vf::Surface const& surface, vf::RenderState const& state) const override {
 		auto copy = state;
-		auto set = vf::DescriptorSet(*m_shader);
+		auto set = vf::DescriptorSet{m_shader};
 		set.write(uniform);
 		set.write(blend_texture);
 		copy.descriptor_set = &set;
@@ -42,7 +42,7 @@ class Shader : public Base {
 	bool load_shader() {
 		auto path = std::string_view("shaders/texture_mask.frag");
 		if (env.args.size() > 1) { path = env.args[1]; }
-		m_shader = vf::Shader(context());
+		m_shader = vf::Shader(device());
 		if (!m_shader.load(env.dataPath(path).c_str(), true)) {
 			log.error("Failed to load Shader [{}]", path);
 			return false;
@@ -56,7 +56,7 @@ class Shader : public Base {
 			log.error("Failed to load image [{}]", uri);
 			return false;
 		}
-		out = vf::Texture(context(), image);
+		out = vf::Texture(device(), image);
 		if (!out) {
 			log.error("Failed to load texture [{}]", uri);
 			return false;
@@ -83,7 +83,7 @@ class Shader : public Base {
 	}
 
 	ShadedMesh& make_quad(vf::Geometry geometry) {
-		auto& ret = scene.add(ShadedMesh(vf::Mesh(context()), m_shader));
+		auto& ret = scene.add(ShadedMesh(vf::Mesh(device()), m_shader));
 		ret.get().buffer.write(std::move(geometry));
 		ret.get().texture = m_textures.crate.handle();
 		return ret;

@@ -1,10 +1,9 @@
-#include <vulkify/context/context.hpp>
 #include <vulkify/context/frame.hpp>
 #include <vulkify/graphics/primitives/sprite.hpp>
 #include <vulkify/graphics/texture.hpp>
 
 namespace vf {
-Sprite::Sprite(Context const& context, glm::vec2 size) : Prop(context) { set_size(size); }
+Sprite::Sprite(GfxDevice const& device, glm::vec2 size) : Prop(device) { set_size(size); }
 
 Sprite& Sprite::set_size(glm::vec2 size) {
 	m_state.size = size;

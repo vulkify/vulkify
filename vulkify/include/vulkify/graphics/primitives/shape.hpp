@@ -10,7 +10,7 @@ class Texture;
 class Shape : public Prop {
   public:
 	Shape() = default;
-	explicit Shape(Context const& context);
+	explicit Shape(GfxDevice const& device);
 
 	virtual Rect bounds() const = 0;
 	void unset_silhouette() { m_silhouette.draw = false; }

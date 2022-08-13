@@ -43,7 +43,7 @@ class Texture : public GfxDeferred {
 	using Rect = TRect<std::uint32_t>;
 
 	Texture() = default;
-	explicit Texture(Context const& context, Image::View image = {}, CreateInfo const& create_info = {});
+	explicit Texture(GfxDevice const& device, Image::View image = {}, CreateInfo const& create_info = {});
 
 	Result<void> create(Image::View image);
 	Result<void> overwrite(Image::View image, Rect const& region);
@@ -59,7 +59,6 @@ class Texture : public GfxDeferred {
 	Handle<Texture> handle() const;
 
   private:
-	Texture(GfxDevice const* device, CreateInfo const& info);
 	Texture clone_image(GfxImage& out_image) const;
 
 	void refresh(GfxImage& out_image, Extent extent);

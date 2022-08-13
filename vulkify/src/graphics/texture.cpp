@@ -2,7 +2,6 @@
 #include <detail/gfx_command_buffer.hpp>
 #include <detail/gfx_device.hpp>
 #include <detail/trace.hpp>
-#include <vulkify/context/context.hpp>
 #include <vulkify/core/float_eq.hpp>
 #include <vulkify/graphics/texture.hpp>
 
@@ -35,8 +34,14 @@ void blit(ImageCache& in_cache, ImageCache& out_cache, Filtering filtering) {
 }
 } // namespace
 
-Texture::Texture(Context const& context, Image::View image, CreateInfo const& createInfo) : Texture(&context.device(), createInfo) {
-	if (!m_allocation) { return; }
+Texture::Texture(GfxDevice const& device, Image::View image, CreateInfo const& createInfo)
+	: GfxDeferred(&device), m_address_mode(createInfo.address_mode), m_filtering(createInfo.filtering) {
+	if (!device) { return; }
+	auto gfx_image = ktl::make_unique<GfxImage>(&device);
+	gfx_image->image.sampler = device.device.device.createSamplerUnique(device.sampler_info(get_mode(m_address_mode), get_filter(m_filtering)));
+	gfx_image->image.cache.set_texture(true);
+	gfx_image->image.cache.info.info.format = get_format(createInfo.format);
+	m_allocation = std::move(gfx_image);
 	create(image);
 }
 
@@ -109,20 +114,11 @@ Extent Texture::extent() const {
 	return {self->image.cache.info.info.extent.width, self->image.cache.info.info.extent.height};
 }
 
-Texture::Texture(GfxDevice const* device, CreateInfo const& createInfo)
-	: GfxDeferred(device), m_address_mode(createInfo.address_mode), m_filtering(createInfo.filtering) {
-	if (!device || !*device) { return; }
-	auto image = ktl::make_unique<GfxImage>(device);
-	image->image.sampler = device->device.device.createSamplerUnique(device->sampler_info(get_mode(m_address_mode), get_filter(m_filtering)));
-	image->image.cache.set_texture(true);
-	image->image.cache.info.info.format = get_format(createInfo.format);
-	m_allocation = std::move(image);
-}
-
 Handle<Texture> Texture::handle() const { return {m_allocation.get()}; }
 
 Texture Texture::clone_image(GfxImage& out_image) const {
-	auto ret = Texture{m_device, {m_address_mode, m_filtering}};
+	if (!m_device) { return {}; }
+	auto ret = Texture{*m_device, {}, {m_address_mode, m_filtering}};
 	if (!ret.m_allocation) { return ret; }
 
 	auto const ext = extent();

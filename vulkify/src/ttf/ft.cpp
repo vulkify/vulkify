@@ -2,7 +2,7 @@
 #include <detail/gfx_font.hpp>
 #include <detail/trace.hpp>
 #include <ttf/ft.hpp>
-#include <vulkify/context/context.hpp>
+#include <vulkify/core/float_eq.hpp>
 #include <vulkify/ttf/scribe.hpp>
 #include <vulkify/ttf/ttf.hpp>
 #include <exception>
@@ -147,9 +147,10 @@ Character GfxFont::get(Codepoint codepoint, Height height) {
 }
 
 GfxFont::Font& GfxFont::get_or_make(Height height) {
+	assert(device());
 	auto it = fonts.find(height);
 	if (it == fonts.end()) {
-		auto [i, _] = fonts.insert_or_assign(height, Font{Atlas{device(), initial_extent_v}});
+		auto [i, _] = fonts.insert_or_assign(height, Font{Atlas{*device(), initial_extent_v}});
 		it = i;
 		insert(it->second, {}, nullptr);
 	}
@@ -278,9 +279,9 @@ Ttf::Ttf(Ttf&&) noexcept = default;
 Ttf& Ttf::operator=(Ttf&&) noexcept = default;
 Ttf::~Ttf() noexcept = default;
 
-Ttf::Ttf(Context const& context) {
-	if (!context.device()) { return; }
-	m_allocation = std::make_unique<GfxFont>(&context.device());
+Ttf::Ttf(GfxDevice const& device) {
+	if (!device) { return; }
+	m_allocation = std::make_unique<GfxFont>(&device);
 }
 
 Ttf::operator bool() const { return m_allocation && m_allocation->device(); }

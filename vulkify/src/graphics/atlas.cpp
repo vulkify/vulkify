@@ -1,6 +1,5 @@
 #include <detail/gfx_buffer_image.hpp>
 #include <detail/gfx_command_buffer.hpp>
-#include <vulkify/context/context.hpp>
 #include <vulkify/graphics/atlas.hpp>
 
 namespace vf {
@@ -13,9 +12,7 @@ constexpr std::uint32_t pot(std::uint32_t const in) {
 }
 } // namespace
 
-Atlas::Atlas(Context const& context, Extent const initial, Rgba const rgba) : Atlas(&context.device(), initial, rgba) {}
-
-Atlas::Atlas(GfxDevice const* device, Extent const initial, Rgba const rgba) : m_texture(device, {}) {
+Atlas::Atlas(GfxDevice const& device, Extent const initial, Rgba const rgba) : m_texture(device, {}) {
 	if (m_texture.m_allocation) { m_texture.create(Bitmap(rgba, initial).image()); }
 }
 
@@ -56,7 +53,8 @@ bool Atlas::prepare(GfxCommandBuffer& cb, Extent const extent) {
 }
 
 bool Atlas::resize(GfxCommandBuffer& cb, Extent const target) {
-	auto texture = Texture(m_texture.m_device, {});
+	if (!m_texture.m_device) { return false; }
+	auto texture = Texture(*m_texture.m_device);
 	auto* src = static_cast<GfxImage*>(m_texture.m_allocation.get());
 	auto* dst = static_cast<GfxImage*>(texture.m_allocation.get());
 	if (!src || !dst) { return false; }

@@ -1,5 +1,6 @@
 #pragma once
 #include <ktl/fixed_pimpl.hpp>
+#include <ktl/not_null.hpp>
 #include <vulkify/graphics/drawable.hpp>
 #include <vulkify/graphics/render_state.hpp>
 #include <concepts>
@@ -20,7 +21,7 @@ class Surface {
 	static void add_draw_models(std::span<DrawInstance const> instances, Out out);
 
 	Surface() = default;
-	Surface(RenderPass const* render_pass) : m_render_pass(render_pass) { bind({}); }
+	Surface(ktl::not_null<RenderPass const*> render_pass) : m_render_pass(render_pass) { bind({}); }
 	Surface(Surface&& rhs) noexcept : Surface() { swap(rhs); }
 	Surface& operator=(Surface rhs) noexcept { return (swap(rhs), *this); }
 	~Surface();

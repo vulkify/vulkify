@@ -1,5 +1,4 @@
 #include <detail/gfx_buffer_image.hpp>
-#include <vulkify/context/context.hpp>
 #include <vulkify/graphics/geometry_buffer.hpp>
 
 namespace vf {
@@ -30,7 +29,7 @@ void write_geometry(BufferCache& vbo, BufferCache& ibo, Geometry const& geometry
 }
 } // namespace
 
-GeometryBuffer::GeometryBuffer(Context const& context) : GfxDeferred(&context.device()) {
+GeometryBuffer::GeometryBuffer(GfxDevice const& device) : GfxDeferred(&device) {
 	auto buffer = ktl::make_unique<GfxGeometryBuffer>(m_device);
 	auto& bufs = buffer->buffers;
 	bufs[0] = BufferCache(m_device, vk::BufferUsageFlagBits::eVertexBuffer);

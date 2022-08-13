@@ -5,7 +5,6 @@
 #include <span>
 
 namespace vf {
-class Context;
 class GfxFont;
 
 ///
@@ -21,7 +20,7 @@ class Ttf {
 	Ttf& operator=(Ttf&&) noexcept;
 	~Ttf() noexcept;
 
-	explicit Ttf(Context const& context);
+	explicit Ttf(GfxDevice const& device);
 
 	explicit operator bool() const;
 

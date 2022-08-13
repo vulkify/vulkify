@@ -1,6 +1,5 @@
 #include <detail/gfx_buffer_image.hpp>
 #include <detail/spir_v.hpp>
-#include <vulkify/context/context.hpp>
 #include <vulkify/graphics/shader.hpp>
 
 namespace vf {
@@ -9,9 +8,9 @@ Shader::Shader(Shader&&) noexcept = default;
 Shader& Shader::operator=(Shader&&) noexcept = default;
 Shader::~Shader() noexcept = default;
 
-Shader::Shader(Context const& context) {
-	if (!context.device()) { return; }
-	m_module = ktl::make_unique<GfxShaderModule>(&context.device());
+Shader::Shader(GfxDevice const& device) {
+	if (!device) { return; }
+	m_module = ktl::make_unique<GfxShaderModule>(&device);
 }
 
 Shader::operator bool() const { return m_module && m_module->module; }

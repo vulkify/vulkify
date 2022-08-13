@@ -10,7 +10,7 @@ class CircleShape : public Shape {
 	using State = PolygonCreateInfo;
 
 	CircleShape() = default;
-	explicit CircleShape(Context const& context, State initial = {});
+	explicit CircleShape(GfxDevice const& device, State initial = {});
 
 	Rect bounds() const override { return {{0.5f * diameter() * transform().scale, transform().position}}; }
 	State const& state() const { return m_state; }

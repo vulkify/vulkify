@@ -21,7 +21,7 @@ class Sprite : public Prop {
 	using UvIndex = std::uint32_t;
 
 	Sprite() = default;
-	explicit Sprite(Context const& context, glm::vec2 size = {100.0f, 100.0f});
+	explicit Sprite(GfxDevice const& device, glm::vec2 size = {100.0f, 100.0f});
 
 	Sprite& set_size(glm::vec2 size);
 	Sprite& set_sheet(Ptr<Sheet const> sheet, UvIndex index = {});

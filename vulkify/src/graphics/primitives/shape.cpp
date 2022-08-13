@@ -1,9 +1,9 @@
-#include <vulkify/context/context.hpp>
 #include <vulkify/graphics/primitives/shape.hpp>
+#include <vulkify/graphics/surface.hpp>
 #include <vulkify/instance/gpu.hpp>
 
 namespace vf {
-Shape::Shape(Context const& context) : Prop(context) { m_silhouette.buffer = GeometryBuffer{context}; }
+Shape::Shape(GfxDevice const& device) : Prop(device) { m_silhouette.buffer = GeometryBuffer{device}; }
 
 void Shape::draw(Surface const& surface, RenderState const& state) const {
 	if (m_silhouette.draw) {

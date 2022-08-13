@@ -12,7 +12,7 @@ class QuadShape : public Shape {
 	static constexpr auto name_v = "quad";
 
 	QuadShape() = default;
-	explicit QuadShape(Context const& context, State initial = {});
+	explicit QuadShape(GfxDevice const& device, State initial = {});
 
 	Rect bounds() const override { return {{size() * transform().scale, transform().position}}; }
 	State const& state() const { return m_state; }

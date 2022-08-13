@@ -6,7 +6,7 @@
 #include <span>
 
 namespace vf {
-class Context;
+struct GfxDevice;
 class GfxShaderModule;
 class Surface;
 
@@ -17,7 +17,7 @@ class Shader {
 	Shader& operator=(Shader&&) noexcept;
 	~Shader() noexcept;
 
-	Shader(Context const& context);
+	Shader(GfxDevice const& device);
 
 	explicit operator bool() const;
 

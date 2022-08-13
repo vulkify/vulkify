@@ -5,7 +5,7 @@
 #include <vulkify/graphics/handle.hpp>
 
 namespace vf {
-class Context;
+struct GfxDevice;
 
 ///
 /// \brief GPU Vertex (and index) buffer
@@ -13,7 +13,7 @@ class Context;
 class GeometryBuffer : public GfxDeferred {
   public:
 	GeometryBuffer() = default;
-	explicit GeometryBuffer(Context const& context);
+	explicit GeometryBuffer(GfxDevice const& device);
 
 	Result<void> write(Geometry geometry);
 

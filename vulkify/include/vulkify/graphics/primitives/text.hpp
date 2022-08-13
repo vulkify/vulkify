@@ -19,7 +19,7 @@ class Text : public Primitive {
 	};
 
 	Text() = default;
-	explicit Text(Context const& context);
+	explicit Text(GfxDevice const& device);
 
 	explicit operator bool() const;
 

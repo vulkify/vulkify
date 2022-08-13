@@ -10,7 +10,7 @@ namespace vf {
 class Prop : public Primitive {
   public:
 	Prop() = default;
-	explicit Prop(Context const& context) : m_buffer(context) {}
+	explicit Prop(GfxDevice const& device) : m_buffer(device) {}
 
 	Transform const& transform() const { return m_instance.transform; }
 	Transform& transform() { return m_instance.transform; }
