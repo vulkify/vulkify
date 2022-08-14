@@ -17,16 +17,14 @@ class Shader {
 
 	Shader(GfxDevice const& device);
 
-	explicit operator bool() const;
-
 	bool load(std::span<std::byte const> spirv);
 	bool load(char const* path, bool try_compile);
 
 	Handle<Shader> handle() const;
 
+	explicit operator bool() const;
+
   private:
 	ktl::kunique_ptr<class GfxShader> m_module{};
-
-	friend class Surface;
 };
 } // namespace vf

@@ -19,11 +19,12 @@ class InstancedMesh : public Primitive {
 	static InstancedMesh make_quad(GfxDevice const& device, QuadCreateInfo const& info = {}, Handle<Texture> texture = {});
 
 	InstancedMesh() = default;
+
 	InstancedMesh(GfxDevice const& device, Handle<Texture> texture = {}) : buffer(device), texture(texture) {}
 
-	Drawable drawable() const { return {storage, buffer.handle(), texture}; }
-
 	void draw(Surface const& surface, RenderState const& state = {}) const override { surface.draw(drawable(), state); }
+
+	Drawable drawable() const { return {storage, buffer.handle(), texture}; }
 
 	explicit operator bool() const { return static_cast<bool>(buffer); }
 

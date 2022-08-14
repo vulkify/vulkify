@@ -13,6 +13,7 @@ struct GfxDevice;
 class GeometryBuffer : public GfxDeferred {
   public:
 	GeometryBuffer() = default;
+
 	explicit GeometryBuffer(GfxDevice const& device);
 
 	Result<void> write(Geometry geometry);

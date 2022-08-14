@@ -1,10 +1,11 @@
 #pragma once
+#include <detail/defer_base.hpp>
 #include <vulkify/core/ptr.hpp>
 
 namespace vf {
 struct GfxDevice;
 
-class GfxAllocation {
+class GfxAllocation : public DeferBase {
   public:
 	enum class Type { eBuffer, eImage, eFont, eShader };
 
@@ -13,6 +14,8 @@ class GfxAllocation {
 
 	Ptr<GfxDevice const> device() const { return m_device; }
 	Type type() const { return m_type; }
+
+	explicit operator bool() const { return m_device != nullptr; }
 
   protected:
 	GfxAllocation(GfxDevice const* device, Type type) : m_device(device), m_type(type) {}

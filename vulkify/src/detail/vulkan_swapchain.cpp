@@ -1,3 +1,4 @@
+#include <detail/defer_queue.hpp>
 #include <detail/gfx_device.hpp>
 #include <detail/trace.hpp>
 #include <detail/vulkan_swapchain.hpp>

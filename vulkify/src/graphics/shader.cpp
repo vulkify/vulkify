@@ -13,8 +13,6 @@ Shader::Shader(GfxDevice const& device) {
 	m_module = ktl::make_unique<GfxShader>(&device);
 }
 
-Shader::operator bool() const { return m_module && m_module->module; }
-
 bool Shader::load(std::span<std::byte const> spirv) {
 	if (!m_module || !m_module->device()) { return false; }
 	auto spv = SpirV::make(spirv);
@@ -39,4 +37,5 @@ bool Shader::load(char const* path, bool tryCompile) {
 }
 
 Handle<Shader> Shader::handle() const { return {m_module.get()}; }
+Shader::operator bool() const { return m_module && *m_module; }
 } // namespace vf

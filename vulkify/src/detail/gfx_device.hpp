@@ -14,6 +14,7 @@ using FT_Library = FT_LibraryRec_*;
 namespace vf {
 enum class BlitFlag { eSrc, eDst, eLinearFilter };
 using BlitFlags = ktl::enum_flags<BlitFlag, std::uint8_t>;
+class DeferQueue;
 
 struct BlitCaps {
 	BlitFlags optimal{};

@@ -40,7 +40,7 @@ GeometryBuffer::GeometryBuffer(GfxDevice const& device) : GfxDeferred(&device) {
 Result<void> GeometryBuffer::write(Geometry geometry) {
 	if (geometry.vertices.empty()) { return Error::eInvalidArgument; }
 	auto* self = static_cast<GfxGeometryBuffer*>(m_allocation.get());
-	if (!self || !self->buffers[0] || !self->buffers[1]) { return Error::eInactiveInstance; }
+	if (!self || !*self) { return Error::eInactiveInstance; }
 	assert(self->type() == GfxAllocation::Type::eBuffer);
 
 	write_geometry(self->buffers[0], self->buffers[1], geometry);
@@ -53,7 +53,7 @@ Result<void> GeometryBuffer::write(Geometry geometry) {
 Geometry GeometryBuffer::geometry() const {
 	auto const* self = static_cast<GfxGeometryBuffer const*>(m_allocation.get());
 	if (!self) { return {}; }
-	assert(self->type() == GfxAllocation::Type::eBuffer && self->buffers[0] && self->buffers[1]);
+	assert(self->type() == GfxAllocation::Type::eBuffer && *self);
 	return from_bytes(self->buffers[0].data, self->buffers[1].data);
 }
 

@@ -22,8 +22,7 @@ struct ImageCache {
 
 	static constexpr Extent scale2D(Extent extent, float value) { return glm::vec2(extent) * value; }
 
-	explicit operator bool() const { return device && device->device.device; }
-	bool operator==(ImageCache const& rhs) const { return !image && !view && !rhs.image && !rhs.view; }
+	explicit operator bool() const { return device && device->device && image; }
 
 	vk::ImageCreateInfo& set_depth();
 	vk::ImageCreateInfo& set_colour();
@@ -48,8 +47,6 @@ struct BufferCache {
 	BufferCache() = default;
 	BufferCache(GfxDevice const* device, vk::BufferUsageFlagBits usage);
 
-	explicit operator bool() const { return device && !buffers.storage.empty(); }
-
 	VmaBuffer const& get(bool next) const;
 };
 
@@ -58,8 +55,6 @@ struct VulkanImage {
 	vk::UniqueSampler sampler{};
 
 	static VulkanImage make(GfxDevice const* device) { return VulkanImage{.cache = ImageCache{.device = device}}; }
-
-	bool operator==(VulkanImage const& rhs) const { return !sampler && !rhs.sampler && !cache.image && !rhs.cache.image; }
 };
 
 template <std::size_t Count>

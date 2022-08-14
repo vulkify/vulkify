@@ -284,7 +284,7 @@ Ttf::Ttf(GfxDevice const& device) {
 	m_allocation = std::make_unique<GfxFont>(&device);
 }
 
-Ttf::operator bool() const { return m_allocation && m_allocation->device(); }
+Ttf::operator bool() const { return m_allocation && *m_allocation; }
 
 bool Ttf::load(std::span<std::byte const> bytes) {
 	auto* font = static_cast<GfxFont*>(m_allocation.get());

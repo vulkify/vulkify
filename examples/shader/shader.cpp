@@ -43,7 +43,7 @@ class Shader : public Base {
 		auto path = std::string_view("shaders/texture_mask.frag");
 		if (env.args.size() > 1) { path = env.args[1]; }
 		m_shader = vf::Shader(device());
-		if (!m_shader.load(env.dataPath(path).c_str(), true)) {
+		if (!m_shader.load(env.data_path(path).c_str(), true)) {
 			log.error("Failed to load Shader [{}]", path);
 			return false;
 		}
@@ -52,7 +52,7 @@ class Shader : public Base {
 
 	bool load_texture(vf::Texture& out, std::string_view uri) const {
 		auto image = vf::Image{};
-		if (!image.load(env.dataPath(uri).c_str())) {
+		if (!image.load(env.data_path(uri).c_str())) {
 			log.error("Failed to load image [{}]", uri);
 			return false;
 		}

@@ -31,7 +31,7 @@
 
 #include <ktl/ktl_version.hpp>
 
-static_assert(ktl::version_v >= ktl::kversion{1, 4, 2});
+static_assert(ktl::version_v >= ktl::kversion{1, 4, 3});
 
 namespace vf {
 namespace {
@@ -434,9 +434,7 @@ void VulkifyInstance::set_icons(std::span<Icon const> icons) { m_impl->window->s
 void VulkifyInstance::set_windowed(Extent extent) { m_impl->window->set_windowed(extent); }
 void VulkifyInstance::set_fullscreen(Monitor const& monitor, Extent resolution) { m_impl->window->set_fullscreen(monitor, resolution); }
 void VulkifyInstance::update_window_flags(WindowFlags set, WindowFlags unset) { m_impl->window->update(set, unset); }
-
 Camera& VulkifyInstance::camera() { return m_impl->camera; }
-
 Cursor VulkifyInstance::make_cursor(Icon icon) { return m_impl->window->make_cursor(icon); }
 void VulkifyInstance::destroy_cursor(Cursor cursor) { m_impl->window->destroy_cursor(cursor); }
 bool VulkifyInstance::set_cursor(Cursor cursor) { return m_impl->window->set_cursor(cursor); }

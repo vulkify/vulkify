@@ -22,8 +22,6 @@ class Ttf {
 
 	explicit Ttf(GfxDevice const& device);
 
-	explicit operator bool() const;
-
 	bool load(std::span<std::byte const> bytes);
 	bool load(char const* path);
 
@@ -36,6 +34,8 @@ class Ttf {
 	Ptr<Atlas const> atlas(Height height = height_v) const;
 	Ptr<Texture const> texture(Height height = height_v) const;
 	Handle<Ttf> handle() const;
+
+	explicit operator bool() const;
 
   private:
 	void on_loaded(GfxFont& out_font);

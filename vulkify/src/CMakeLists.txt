@@ -22,6 +22,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   instance/vf_instance.cpp
 
   detail/command_pool.hpp
+  detail/defer_base.hpp
   detail/defer_queue.hpp
   detail/descriptor_set_factory.hpp
   detail/detail.cpp

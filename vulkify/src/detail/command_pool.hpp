@@ -1,6 +1,6 @@
 #pragma once
-#include <detail/defer_queue.hpp>
 #include <detail/vulkan_device.hpp>
+#include <ktl/kunique_ptr.hpp>
 #include <mutex>
 
 namespace vf {
@@ -25,7 +25,7 @@ class CommandPool {
 	CommandPool(VulkanDevice device = {}, std::size_t batch = 4);
 
 	vk::CommandBuffer acquire();
-	vk::Result release(vk::CommandBuffer&& cb, bool block, DeferQueue&& defer = {});
+	vk::Result release(vk::CommandBuffer&& cb, bool block);
 
 	void clear();
 
@@ -33,14 +33,14 @@ class CommandPool {
 
   private:
 	struct Cmd {
-		DeferQueue defer{};
 		vk::CommandBuffer cb{};
 		vk::Fence fence{};
 	};
 
-	FencePool m_fencePool;
+	FencePool m_fence_pool;
 	std::vector<Cmd> m_cbs{};
 	vk::UniqueCommandPool m_pool{};
+	ktl::kunique_ptr<std::mutex> m_mutex{};
 	std::uint32_t m_batch{};
 };
 

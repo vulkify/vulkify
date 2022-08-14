@@ -1,6 +1,23 @@
 set(ext_targets "")
 set(BUILD_SHARED_LIBS OFF)
 
+# ktl
+if(VULKIFY_INSTALL)
+  set(KTL_INSTALL ON)
+
+  if(NOT KTL_INSTALL)
+    message(WARNING "Invalid INSTALL flags")
+  endif()
+endif()
+
+include(FetchContent)
+FetchContent_Declare(ktl
+  GIT_REPOSITORY https://github.com/karnkaul/ktl
+  GIT_TAG 66d3807 # manually update this to keep commits pinned
+  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext/src/ktl"
+)
+FetchContent_MakeAvailable(ktl)
+
 file(ARCHIVE_EXTRACT
   INPUT "${CMAKE_CURRENT_SOURCE_DIR}/src.zip"
   DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}"

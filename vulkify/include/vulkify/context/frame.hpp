@@ -1,5 +1,6 @@
 #pragma once
 #include <vulkify/core/time.hpp>
+#include <vulkify/graphics/camera.hpp>
 #include <vulkify/graphics/primitive.hpp>
 #include <vulkify/graphics/surface.hpp>
 #include <vulkify/instance/event_queue.hpp>
@@ -19,6 +20,7 @@ class Frame {
 	void draw(Primitive const& primitive, DescriptorSet const& descriptorSet) const { draw(primitive, {.descriptor_set = &descriptorSet}); }
 
 	Surface const& surface() const { return m_surface; }
+	Camera& camera() const;
 
   private:
 	Frame(Surface&& surface, EventQueue poll, Time dt) noexcept : m_surface(std::move(surface)), m_poll(poll), m_dt(dt) {}

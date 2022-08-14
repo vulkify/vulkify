@@ -8,6 +8,7 @@ set(CMAKE_DEBUG_POSTFIX "-d")
 set(CMAKE_CXX_EXTENSIONS OFF) # disable compiler extensions
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "")
   set(CMAKE_BUILD_TYPE Debug) # ensure CMAKE_BUILD_TYPE is not empty
@@ -42,22 +43,8 @@ include(CheckPIESupported)
 check_pie_supported()
 include(cmake/platform.cmake) # set up helper cache variables
 
-# ktl
-if(VULKIFY_INSTALL)
-  set(KTL_INSTALL ON)
-
-  if(NOT KTL_INSTALL)
-    message(WARNING "Invalid INSTALL flags")
-  endif()
-endif()
-
-include(FetchContent)
-FetchContent_Declare(ktl
-  GIT_REPOSITORY https://github.com/karnkaul/ktl
-  GIT_TAG f4d88f2 # manually update this to keep commits pinned
-  SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext/src/ktl"
-)
-FetchContent_MakeAvailable(ktl)
+# external
+add_subdirectory(ext)
 
 # git operations
 find_package(Git QUIET)
@@ -65,10 +52,6 @@ find_package(Git QUIET)
 if(GIT_FOUND AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
   git_get_commit_hash(${PROJECT_NAME}_GIT_COMMIT_HASH) # store commit hash in ${PROJECT_NAME}_GIT_COMIT_HASH
 endif()
-
-# external
-add_subdirectory(ext)
-add_subdirectory(cmake/interface) # import interface library
 
 # header text
 if(is_root_project)
@@ -81,11 +64,7 @@ if(is_root_project)
   message(STATUS "[${CMAKE_SYSTEM_PROCESSOR}] [${PLATFORM}] [${CMAKE_GENERATOR}] [${CMAKE_CXX_COMPILER_ID}] [${build_config}]")
 endif()
 
-# compile commands
-if(is_root_project AND "${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-  message(STATUS "Exporting compile commands")
-endif()
+add_subdirectory(cmake/interface) # import interface library
 
 # library
 add_subdirectory(vulkify)

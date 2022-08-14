@@ -33,6 +33,8 @@ class Atlas {
 	Extent extent() const { return texture().extent(); }
 	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
 
+	explicit operator bool() const { return static_cast<bool>(m_texture); }
+
   private:
 	static constexpr glm::uvec2 pad_v = {1, 1};
 
@@ -48,8 +50,6 @@ class Atlas {
 		glm::uvec2 head{pad_v};
 		std::uint32_t nextY{};
 	} m_state{};
-
-	friend class GfxFont;
 };
 
 ///

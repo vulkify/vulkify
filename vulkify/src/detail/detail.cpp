@@ -15,15 +15,29 @@
 namespace vf {
 using namespace std::string_view_literals;
 
+void DeferQueue::push_direct(Entry&& entry, int delay) {
+	if (entry) {
+		entry->delay = delay;
+		auto lock = std::scoped_lock(*m_mutex);
+		m_entries.push_back(std::move(entry));
+	}
+}
+
 void DeferQueue::decrement() {
-	std::erase_if(entries, [this](Entry& e) {
+	auto lock = std::scoped_lock(*m_mutex);
+	std::erase_if(m_entries, [this](Entry& e) {
 		if (--e->delay <= 0) {
-			expired.push_back(std::move(e));
+			m_expired.push_back(std::move(e));
 			return true;
 		}
 		return false;
 	});
-	expired.clear();
+	m_expired.clear();
+}
+
+void DeferQueue::clear() {
+	auto lock = std::scoped_lock(*m_mutex);
+	m_entries.clear();
 }
 
 /// Device
@@ -288,15 +302,17 @@ vk::Fence FencePool::next() {
 
 vk::UniqueFence FencePool::make_fence() const { return m_device.device.createFenceUnique({vk::FenceCreateFlagBits::eSignaled}); }
 
-CommandPool::CommandPool(VulkanDevice device, std::size_t batch) : m_device(device), m_fencePool(device, 0U), m_batch(static_cast<std::uint32_t>(batch)) {
+CommandPool::CommandPool(VulkanDevice device, std::size_t batch) : m_device(device), m_fence_pool(device, 0U), m_batch(static_cast<std::uint32_t>(batch)) {
 	if (!m_device) { return; }
 	m_pool = m_device.device.createCommandPoolUnique({pool_flags_v, m_device.queue.family});
+	m_mutex = ktl::make_unique<std::mutex>();
 	assert(m_pool);
 }
 
 vk::CommandBuffer CommandPool::acquire() {
 	if (!m_device || !m_pool) { return {}; }
 	Cmd cmd;
+	auto lock = std::scoped_lock(*m_mutex);
 	for (auto& cb : m_cbs) {
 		if (!m_device.busy(cb.fence)) {
 			std::swap(cb, m_cbs.back());
@@ -308,7 +324,7 @@ vk::CommandBuffer CommandPool::acquire() {
 		auto const info = vk::CommandBufferAllocateInfo(*m_pool, vk::CommandBufferLevel::ePrimary, m_batch);
 		auto cbs = m_device.device.allocateCommandBuffers(info);
 		m_cbs.reserve(m_cbs.size() + cbs.size());
-		for (auto const cb : cbs) { m_cbs.push_back(Cmd{{}, cb, {}}); }
+		for (auto const cb : cbs) { m_cbs.push_back(Cmd{cb}); }
 		cmd = std::move(m_cbs.back());
 	}
 	m_cbs.pop_back();
@@ -317,22 +333,20 @@ vk::CommandBuffer CommandPool::acquire() {
 	return ret;
 }
 
-vk::Result CommandPool::release(vk::CommandBuffer&& cb, bool block, DeferQueue&& defer) {
+vk::Result CommandPool::release(vk::CommandBuffer&& cb, bool block) {
 	auto ret = vk::Result::eErrorDeviceLost;
 	if (!m_device) { return ret; }
-	assert(!std::any_of(m_cbs.begin(), m_cbs.end(), [c = cb](Cmd const& cmd) { return cmd.cb == c; }));
 	cb.end();
-	Cmd cmd{std::move(defer), cb, m_fencePool.next()};
+	auto lock = std::scoped_lock(*m_mutex);
+	assert(!std::any_of(m_cbs.begin(), m_cbs.end(), [c = cb](Cmd const& cmd) { return cmd.cb == c; }));
+	Cmd cmd{cb, m_fence_pool.next()};
 	vk::SubmitInfo const si(0U, nullptr, {}, 1U, &cb);
 	{
 		auto lock = std::scoped_lock(*m_device.queue_mutex);
 		ret = m_device.queue.queue.submit(1, &si, cmd.fence);
 	}
 	if (ret == vk::Result::eSuccess) {
-		if (block) {
-			m_device.wait(cmd.fence);
-			cmd.defer.entries.clear();
-		}
+		if (block) { m_device.wait(cmd.fence); }
 	} else {
 		m_device.reset(cmd.fence, {});
 	}
@@ -445,7 +459,7 @@ UniqueGfxDevice UniqueGfxDevice::make(VulkanInstance const& instance, FT_Library
 void GfxDevice::Deleter::operator()(GfxDevice const& device) const {
 	if (!device.device) { return; }
 	device.command_factory->clear();
-	device.defer->entries.clear();
+	device.defer->clear();
 	vmaDestroyAllocator(device.allocator);
 }
 
@@ -516,11 +530,13 @@ GfxDeferred& GfxDeferred::operator=(GfxDeferred&&) noexcept = default;
 GfxDeferred::~GfxDeferred() { std::move(*this).release(); }
 
 GfxDeferred::GfxDeferred(GfxDevice const* device) noexcept : m_device(device) {}
+GfxDeferred::operator bool() const { return m_allocation && *m_allocation; }
+
 /// /GfxDeferred
 
 void GfxDeferred::release() && {
 	if (!m_allocation || !m_allocation->device() || !m_allocation->device()->defer) { return; }
-	m_allocation->device()->defer->push(std::move(m_allocation));
+	m_allocation->device()->defer->push_direct(std::move(m_allocation));
 }
 
 /// GfxBuffer/Image

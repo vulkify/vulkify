@@ -25,10 +25,10 @@ void Base::Env::init() {
 	if (paths.data.empty()) { paths.data = stdfs::current_path().generic_string(); }
 }
 
-std::string Base::Env::dataPath(std::string_view uri) const { return (stdfs::path(paths.data) / uri).generic_string(); }
+std::string Base::Env::data_path(std::string_view uri) const { return (stdfs::path(paths.data) / uri).generic_string(); }
 
 std::vector<std::byte> Base::Env::bytes(std::string_view uri) const {
-	if (auto file = std::ifstream(dataPath(uri), std::ios::ate | std::ios::binary)) {
+	if (auto file = std::ifstream(data_path(uri), std::ios::ate | std::ios::binary)) {
 		auto const size = file.tellg();
 		file.seekg({});
 		auto ret = std::vector<std::byte>(static_cast<std::size_t>(size));
@@ -40,7 +40,7 @@ std::vector<std::byte> Base::Env::bytes(std::string_view uri) const {
 
 std::string Base::Env::string(std::string_view uri) const {
 	auto ret = std::string{};
-	if (auto file = std::ifstream(dataPath(uri))) {
+	if (auto file = std::ifstream(data_path(uri))) {
 		for (auto line = std::string{}; std::getline(file, line); line.clear()) {
 			ret += std::move(line);
 			ret += '\n';
@@ -80,7 +80,7 @@ bool Base::Input::update(vf::EventQueue queue) {
 	return true;
 }
 
-KeyAction Base::Input::keyAction(vf::Key key) const {
+KeyAction Base::Input::key_action(vf::Key key) const {
 	if (auto it = keyStates.find(key); it != keyStates.end()) { return it->second.action; }
 	return KeyAction::eNone;
 }
@@ -126,7 +126,7 @@ int Base::run() {
 		if (!setup()) { return EXIT_FAILURE; }
 		m_context->show();
 		while (!m_context->closing()) {
-			auto frame = m_context->frame();
+			auto frame = m_context->frame(clear);
 			if (!input.update(frame.poll())) { break; }
 			tick(frame.dt());
 			render(frame);

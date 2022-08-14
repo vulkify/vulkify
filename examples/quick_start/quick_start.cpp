@@ -173,7 +173,7 @@ void test(vf::Context context) {
 
 		if (auto pad = vf::Gamepad{0}) {
 			auto const dx = pad(vf::GamepadAxis::eLeftX) * frame.dt().count() * 100.0f;
-			context.camera().position.x += dx;
+			frame.camera().position.x += dx;
 		}
 
 		for (auto [star, index] : ktl::enumerate(stars.storage)) {

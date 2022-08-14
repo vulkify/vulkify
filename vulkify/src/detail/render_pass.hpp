@@ -41,7 +41,7 @@ struct ShaderInput {
 
 struct RenderCam {
 	glm::vec2 extent{};
-	Camera const* camera{};
+	Camera* camera{};
 };
 
 struct RenderPass {

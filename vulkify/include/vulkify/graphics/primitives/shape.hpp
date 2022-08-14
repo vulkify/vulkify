@@ -10,6 +10,7 @@ class Texture;
 class Shape : public Prop {
   public:
 	Shape() = default;
+
 	explicit Shape(GfxDevice const& device);
 
 	virtual Rect bounds() const = 0;

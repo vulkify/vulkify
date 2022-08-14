@@ -18,7 +18,7 @@ class GfxDeferred {
 	GfxDeferred(GfxDeferred const&) = delete;
 	GfxDeferred& operator=(GfxDeferred const&) = delete;
 
-	explicit operator bool() const { return m_allocation != nullptr; }
+	explicit operator bool() const;
 
   protected:
 	GfxDeferred(GfxDevice const* device) noexcept;

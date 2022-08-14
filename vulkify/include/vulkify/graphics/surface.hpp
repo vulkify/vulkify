@@ -36,6 +36,8 @@ class Surface {
 	bool draw(std::span<DrawModel const> models, Drawable const& drawable, RenderState const& state) const;
 
 	RenderPass const* m_render_pass{};
+
+	friend class Frame;
 };
 
 // impl
