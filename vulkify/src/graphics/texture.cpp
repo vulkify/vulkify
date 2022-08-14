@@ -42,6 +42,10 @@ Texture::Texture(GfxDevice const& device, Image::View image, CreateInfo const& c
 	gfx_image->image.cache.set_texture(true);
 	gfx_image->image.cache.info.info.format = get_format(createInfo.format);
 	m_allocation = std::move(gfx_image);
+
+	static constexpr auto white_byte_v = static_cast<std::byte>(0xff);
+	static constexpr std::byte white_v[] = {white_byte_v, white_byte_v, white_byte_v, white_byte_v};
+	if (image.data.empty()) { image = {white_v, {1, 1}}; }
 	create(image);
 }
 

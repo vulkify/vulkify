@@ -1,31 +1,26 @@
 #pragma once
 #include <ktl/kunique_ptr.hpp>
+#include <vulkify/graphics/gfx_resource.hpp>
 
 namespace vf {
-struct GfxDevice;
-class GfxAllocation;
-
 ///
-/// \brief Low level GPU resource allocation
+/// \brief GPU resource owning a GfxAllocation whose destruction will be deferred
 ///
-class GfxDeferred {
+class GfxDeferred : public GfxResource {
   public:
 	GfxDeferred() noexcept;
 	GfxDeferred(GfxDeferred&&) noexcept;
 	GfxDeferred& operator=(GfxDeferred&&) noexcept;
-	virtual ~GfxDeferred();
+	~GfxDeferred() override;
 
 	GfxDeferred(GfxDeferred const&) = delete;
 	GfxDeferred& operator=(GfxDeferred const&) = delete;
 
-	explicit operator bool() const;
-
   protected:
-	GfxDeferred(GfxDevice const* device) noexcept;
+	GfxDeferred(Ptr<GfxDevice const> device) noexcept;
 
 	void release() &&;
 
-	ktl::kunique_ptr<GfxAllocation> m_allocation{};
-	GfxDevice const* m_device{};
+	ktl::kunique_ptr<class GfxAllocation> m_allocation{};
 };
 } // namespace vf

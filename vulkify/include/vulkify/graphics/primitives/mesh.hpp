@@ -14,19 +14,17 @@ concept InstancedMeshStorage = std::convertible_to<T, std::span<DrawInstance con
 /// \brief Low level primitive with public GeometryBuffer, Handle<Texture>, and std::vector<DrawInstance> (customizable)
 ///
 template <InstancedMeshStorage Storage = std::vector<DrawInstance>>
-class InstancedMesh : public Primitive {
+class InstancedMesh : public Primitive, public GfxResource {
   public:
 	static InstancedMesh make_quad(GfxDevice const& device, QuadCreateInfo const& info = {}, Handle<Texture> texture = {});
 
 	InstancedMesh() = default;
 
-	InstancedMesh(GfxDevice const& device, Handle<Texture> texture = {}) : buffer(device), texture(texture) {}
+	InstancedMesh(GfxDevice const& device, Handle<Texture> texture = {}) : GfxResource(&device), buffer(device), texture(texture) {}
 
 	void draw(Surface const& surface, RenderState const& state = {}) const override { surface.draw(drawable(), state); }
 
 	Drawable drawable() const { return {storage, buffer.handle(), texture}; }
-
-	explicit operator bool() const { return static_cast<bool>(buffer); }
 
 	GeometryBuffer buffer{};
 	Handle<Texture> texture{};

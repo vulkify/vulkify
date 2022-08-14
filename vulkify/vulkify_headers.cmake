@@ -26,6 +26,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/drawable.hpp
   include/vulkify/graphics/geometry_buffer.hpp
   include/vulkify/graphics/geometry.hpp
+  include/vulkify/graphics/gfx_resource.hpp
   include/vulkify/graphics/image.hpp
   include/vulkify/graphics/primitive.hpp
   include/vulkify/graphics/render_state.hpp

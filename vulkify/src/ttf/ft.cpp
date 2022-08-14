@@ -279,12 +279,10 @@ Ttf::Ttf(Ttf&&) noexcept = default;
 Ttf& Ttf::operator=(Ttf&&) noexcept = default;
 Ttf::~Ttf() noexcept = default;
 
-Ttf::Ttf(GfxDevice const& device) {
+Ttf::Ttf(GfxDevice const& device) : GfxResource(&device) {
 	if (!device) { return; }
-	m_allocation = std::make_unique<GfxFont>(&device);
+	m_allocation = std::make_unique<GfxFont>(m_device);
 }
-
-Ttf::operator bool() const { return m_allocation && *m_allocation; }
 
 bool Ttf::load(std::span<std::byte const> bytes) {
 	auto* font = static_cast<GfxFont*>(m_allocation.get());

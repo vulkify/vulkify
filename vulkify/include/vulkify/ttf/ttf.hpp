@@ -10,7 +10,7 @@ class GfxFont;
 ///
 /// \brief TrueType Font
 ///
-class Ttf {
+class Ttf : public GfxResource {
   public:
 	using Height = Glyph::Height;
 	static constexpr auto height_v = Glyph::height_v;
@@ -34,8 +34,6 @@ class Ttf {
 	Ptr<Atlas const> atlas(Height height = height_v) const;
 	Ptr<Texture const> texture(Height height = height_v) const;
 	Handle<Ttf> handle() const;
-
-	explicit operator bool() const;
 
   private:
 	void on_loaded(GfxFont& out_font);

@@ -8,9 +8,9 @@ Shader::Shader(Shader&&) noexcept = default;
 Shader& Shader::operator=(Shader&&) noexcept = default;
 Shader::~Shader() noexcept = default;
 
-Shader::Shader(GfxDevice const& device) {
+Shader::Shader(GfxDevice const& device) : GfxResource(&device) {
 	if (!device) { return; }
-	m_module = ktl::make_unique<GfxShader>(&device);
+	m_module = ktl::make_unique<GfxShader>(m_device);
 }
 
 bool Shader::load(std::span<std::byte const> spirv) {
@@ -37,5 +37,4 @@ bool Shader::load(char const* path, bool tryCompile) {
 }
 
 Handle<Shader> Shader::handle() const { return {m_module.get()}; }
-Shader::operator bool() const { return m_module && *m_module; }
 } // namespace vf

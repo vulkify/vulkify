@@ -8,7 +8,7 @@
 namespace vf {
 class Ttf;
 
-class Text : public Primitive {
+class Text : public Primitive, public GfxResource {
   public:
 	using Height = Glyph::Height;
 
@@ -21,8 +21,6 @@ class Text : public Primitive {
 
 	Text() = default;
 	explicit Text(GfxDevice const& device);
-
-	explicit operator bool() const;
 
 	Rgba& tint() { return m_mesh.t.storage.tint; }
 	Rgba const& tint() const { return m_mesh.get().storage.tint; }

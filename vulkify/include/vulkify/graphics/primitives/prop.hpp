@@ -7,11 +7,11 @@ namespace vf {
 ///
 /// \brief Abstract Primitive with protected GeometryBuffer, Handle<Texture>, and DrawInstance
 ///
-class Prop : public Primitive {
+class Prop : public Primitive, public GfxResource {
   public:
 	Prop() = default;
 
-	explicit Prop(GfxDevice const& device) : m_buffer(device) {}
+	explicit Prop(GfxDevice const& device) : GfxResource(&device), m_buffer(device) {}
 
 	Transform const& transform() const { return m_instance.transform; }
 	Transform& transform() { return m_instance.transform; }
@@ -21,8 +21,6 @@ class Prop : public Primitive {
 	Handle<Texture>& texture() { return m_texture; }
 	Geometry geometry() const { return m_buffer.geometry(); }
 	GeometryBuffer const& buffer() const { return m_buffer; }
-
-	explicit operator bool() const { return static_cast<bool>(m_buffer); }
 
   protected:
 	GeometryBuffer m_buffer{};

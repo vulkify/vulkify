@@ -529,9 +529,7 @@ GfxDeferred::GfxDeferred(GfxDeferred&&) noexcept = default;
 GfxDeferred& GfxDeferred::operator=(GfxDeferred&&) noexcept = default;
 GfxDeferred::~GfxDeferred() { std::move(*this).release(); }
 
-GfxDeferred::GfxDeferred(GfxDevice const* device) noexcept : m_device(device) {}
-GfxDeferred::operator bool() const { return m_allocation && *m_allocation; }
-
+GfxDeferred::GfxDeferred(GfxDevice const* device) noexcept : GfxResource(device) {}
 /// /GfxDeferred
 
 void GfxDeferred::release() && {

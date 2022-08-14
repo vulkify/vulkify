@@ -41,6 +41,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/spir_v.cpp
   detail/trace.cpp
   detail/trace.hpp
+  detail/verify.cpp
   detail/vulkan_device.hpp
   detail/vulkan_instance.hpp
   detail/vulkan_swapchain.cpp

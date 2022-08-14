@@ -23,9 +23,7 @@ constexpr Scribe::Pivot pivot(Text::Align align) {
 }
 } // namespace
 
-Text::Text(GfxDevice const& device) { m_mesh.get() = vf::Mesh{device}; }
-
-Text::operator bool() const { return m_ttf && m_ttf.allocation && m_mesh.get(); }
+Text::Text(GfxDevice const& device) : GfxResource(&device) { m_mesh.get() = vf::Mesh{device}; }
 
 Text& Text::set_ttf(ktl::not_null<Ttf*> ttf) {
 	if (*ttf) { return set_ttf(ttf->handle()); }
