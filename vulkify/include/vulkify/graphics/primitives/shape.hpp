@@ -10,8 +10,10 @@ class Texture;
 class Shape : public Prop {
   public:
 	Shape() = default;
-	explicit Shape(Context const& context);
 
+	explicit Shape(GfxDevice const& device);
+
+	virtual Rect bounds() const = 0;
 	void unset_silhouette() { m_silhouette.draw = false; }
 
 	void draw(Surface const& surface, RenderState const& state = {}) const override;
@@ -19,7 +21,7 @@ class Shape : public Prop {
   protected:
 	struct {
 		GeometryBuffer buffer{};
-		vf::Rgba tint{};
+		Rgba tint{};
 		bool draw{};
 	} m_silhouette{};
 };

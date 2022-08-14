@@ -18,10 +18,10 @@ class Sprite : public Prop {
 	///
 	/// \brief Index into a sprite sheet's list of UVs
 	///
-	using UvIndex = std::uint32_t;
+	enum struct UvIndex : std::uint32_t { eDefault = 0 };
 
 	Sprite() = default;
-	explicit Sprite(Context const& context, glm::vec2 size = {100.0f, 100.0f});
+	explicit Sprite(GfxDevice const& device, glm::vec2 size = {100.0f, 100.0f});
 
 	Sprite& set_size(glm::vec2 size);
 	Sprite& set_sheet(Ptr<Sheet const> sheet, UvIndex index = {});
@@ -43,11 +43,11 @@ class Sprite : public Prop {
 };
 
 ///
-/// \brief Stores a list of UVs and a TextureHandle
+/// \brief Stores a list of UVs and a Handle<Texture>
 ///
 class Sprite::Sheet {
   public:
-	TextureHandle texture() const { return m_texture; }
+	Handle<Texture> texture() const { return m_texture; }
 
 	///
 	/// \brief Add a custom UV rect and obtain its corresponding UvIndex
@@ -68,10 +68,10 @@ class Sprite::Sheet {
 	/// 	assigned in a monotonically increasing order, left to right, top to bottom: [0, uv_count()).
 	///
 	Sheet& set_uvs(ktl::not_null<Texture const*> texture, std::uint32_t rows = 1, std::uint32_t columns = 1, glm::uvec2 pad = {});
-	Sheet& set_texture(TextureHandle texture);
+	Sheet& set_texture(Handle<Texture> texture);
 
   protected:
 	std::vector<UvRect> m_uvs{};
-	TextureHandle m_texture{};
+	Handle<Texture> m_texture{};
 };
 } // namespace vf

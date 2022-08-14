@@ -1,6 +1,5 @@
 #include <detail/pipeline_factory.hpp>
 #include <detail/trace.hpp>
-#include <detail/vk_device.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <spir_v/default.frag.hpp>
 #include <spir_v/default.vert.hpp>
@@ -14,7 +13,7 @@ bool make_default_shaders(vk::Device device, vk::UniqueShaderModule& vert, vk::U
 }
 } // namespace
 
-PipelineFactory PipelineFactory::make(VKDevice const& device, VertexInput vertex_input, SetLayouts set_layouts, vk::SampleCountFlagBits samples, bool srr) {
+PipelineFactory PipelineFactory::make(VulkanDevice const& device, VertexInput vertex_input, SetLayouts set_layouts, vk::SampleCountFlagBits samples, bool srr) {
 	if (!device) { return {}; }
 	auto ret = PipelineFactory{};
 	if (!make_default_shaders(device.device, ret.default_shaders.vert, ret.default_shaders.frag)) {

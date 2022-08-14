@@ -1,7 +1,18 @@
-#include <detail/shared_impl.hpp>
+#include <detail/gfx_device.hpp>
+#include <detail/render_pass.hpp>
 #include <vulkify/context/context.hpp>
+#include <vulkify/context/frame.hpp>
+#include <vulkify/instance/vf_instance.hpp>
 
 namespace vf {
+namespace {
+struct {
+	Camera camera{};
+} g_dummy{};
+} // namespace
+
+Camera& Frame::camera() const { return m_surface.m_render_pass->cam.camera ? *m_surface.m_render_pass->cam.camera : g_dummy.camera; }
+
 Context::Context(UInstance&& instance) noexcept : m_instance(std::move(instance)) {}
 
 auto Context::make(UInstance&& instance) -> Result {

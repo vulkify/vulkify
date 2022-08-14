@@ -2,7 +2,7 @@
 #include <vulkify/graphics/texture.hpp>
 
 namespace vf {
-CircleShape::CircleShape(Context const& context, State initial) : Shape(context) { set_state(std::move(initial)); }
+CircleShape::CircleShape(GfxDevice const& device, State initial) : Shape(device) { set_state(std::move(initial)); }
 
 CircleShape& CircleShape::set_state(State state) {
 	m_state = std::move(state);
@@ -23,7 +23,7 @@ CircleShape& CircleShape::set_texture(Ptr<Texture const> texture, bool resize_to
 	return *this;
 }
 
-CircleShape& CircleShape::set_silhouette(float extrude, vf::Rgba tint) {
+CircleShape& CircleShape::set_silhouette(float extrude, Rgba tint) {
 	if (extrude > 0.0f) {
 		auto state = m_state;
 		state.diameter += extrude;

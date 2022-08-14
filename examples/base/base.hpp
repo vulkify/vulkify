@@ -22,7 +22,6 @@ class Base {
 	int operator()();
 	int operator()(int argc, char** argv);
 
-  protected:
 	struct Env {
 		struct {
 			std::string exe{};
@@ -32,7 +31,7 @@ class Base {
 		std::vector<std::string_view> args{};
 
 		void init();
-		std::string dataPath(std::string_view uri) const;
+		std::string data_path(std::string_view uri) const;
 		std::vector<std::byte> bytes(std::string_view uri) const;
 		std::string string(std::string_view uri) const;
 	};
@@ -43,11 +42,11 @@ class Base {
 		void onKey(vf::KeyEvent const& key);
 		bool update(vf::EventQueue queue);
 
-		KeyAction keyAction(vf::Key key) const;
+		KeyAction key_action(vf::Key key) const;
 		vf::Mods mods(vf::Key key) const;
-		bool pressed(vf::Key key) const { return keyAction(key) == KeyAction::ePressed; }
-		bool held(vf::Key key) const { return keyAction(key) == KeyAction::eHeld; }
-		bool released(vf::Key key) const { return keyAction(key) == KeyAction::eReleased; }
+		bool pressed(vf::Key key) const { return key_action(key) == KeyAction::ePressed; }
+		bool held(vf::Key key) const { return key_action(key) == KeyAction::eHeld; }
+		bool released(vf::Key key) const { return key_action(key) == KeyAction::eReleased; }
 	};
 
 	struct Scene {
@@ -103,13 +102,15 @@ class Base {
 
 	vf::Context& context() { return *m_context; }
 	vf::Context const& context() const { return *m_context; }
+	vf::GfxDevice const& device() const { return m_context->device(); }
 
+  protected:
 	Env env{};
 	Input input{};
 	Scene scene{};
 	[[no_unique_address]] Logger log{};
+	vf::Rgba clear{vf::black_v};
 
-  private:
 	virtual std::string title() const { return "Example"; }
 	virtual void configure(vf::Builder&) {}
 	virtual bool setup() { return true; }
@@ -118,6 +119,7 @@ class Base {
 		for (auto const& primitive : scene.primitives) { frame.draw(*primitive); }
 	}
 
+  private:
 	int run();
 };
 } // namespace example

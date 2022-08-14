@@ -5,13 +5,12 @@
 #include <span>
 
 namespace vf {
-class Context;
 class GfxFont;
 
 ///
 /// \brief TrueType Font
 ///
-class Ttf {
+class Ttf : public GfxResource {
   public:
 	using Height = Glyph::Height;
 	static constexpr auto height_v = Glyph::height_v;
@@ -21,9 +20,7 @@ class Ttf {
 	Ttf& operator=(Ttf&&) noexcept;
 	~Ttf() noexcept;
 
-	explicit Ttf(Context const& context);
-
-	explicit operator bool() const;
+	explicit Ttf(GfxDevice const& device);
 
 	bool load(std::span<std::byte const> bytes);
 	bool load(char const* path);
@@ -36,12 +33,12 @@ class Ttf {
 
 	Ptr<Atlas const> atlas(Height height = height_v) const;
 	Ptr<Texture const> texture(Height height = height_v) const;
-	Ptr<GfxFont> font() const { return m_font.get(); }
+	Handle<Ttf> handle() const;
 
   private:
-	void on_loaded();
+	void on_loaded(GfxFont& out_font);
 
 	std::unique_ptr<std::byte[]> m_file_data{};
-	std::unique_ptr<GfxFont> m_font{};
+	std::unique_ptr<GfxAllocation> m_allocation{};
 };
 } // namespace vf

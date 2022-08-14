@@ -5,7 +5,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/core/dirty_flag.hpp
   include/vulkify/core/float_eq.hpp
   include/vulkify/core/nvec.hpp
-  include/vulkify/core/per_thread.hpp
+  include/vulkify/core/pool.hpp
   include/vulkify/core/ptr.hpp
   include/vulkify/core/radian.hpp
   include/vulkify/core/result.hpp
@@ -24,15 +24,14 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/camera.hpp
   include/vulkify/graphics/descriptor_set.hpp
   include/vulkify/graphics/drawable.hpp
+  include/vulkify/graphics/geometry_buffer.hpp
   include/vulkify/graphics/geometry.hpp
+  include/vulkify/graphics/gfx_resource.hpp
   include/vulkify/graphics/image.hpp
   include/vulkify/graphics/primitive.hpp
   include/vulkify/graphics/render_state.hpp
   include/vulkify/graphics/shader.hpp
   include/vulkify/graphics/surface.hpp
-
-  include/vulkify/graphics/geometry_buffer.hpp
-  include/vulkify/graphics/texture_handle.hpp
   include/vulkify/graphics/texture.hpp
 
   include/vulkify/graphics/primitives/all.hpp
@@ -45,7 +44,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/primitives/text.hpp
 
   include/vulkify/graphics/detail/draw_model.hpp
-  include/vulkify/graphics/detail/resource.hpp
+  include/vulkify/graphics/detail/gfx_deferred.hpp
 
   include/vulkify/instance/cursor.hpp
   include/vulkify/instance/event_queue.hpp

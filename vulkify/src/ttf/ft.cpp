@@ -1,8 +1,8 @@
+#include <detail/gfx_device.hpp>
 #include <detail/gfx_font.hpp>
 #include <detail/trace.hpp>
-#include <detail/vram.hpp>
 #include <ttf/ft.hpp>
-#include <vulkify/context/context.hpp>
+#include <vulkify/core/float_eq.hpp>
 #include <vulkify/ttf/scribe.hpp>
 #include <vulkify/ttf/ttf.hpp>
 #include <exception>
@@ -128,12 +128,11 @@ void FtDeleter::operator()(FtFace const& face) const noexcept { FT_Done_Face(fac
 
 static constexpr auto initial_extent_v = glm::uvec2(512, 128);
 
-GfxFont::GfxFont(Context const& context) {
-	if (!context.vram().ftlib) { return; }
-	m_face.vram = &context.vram();
+GfxFont::GfxFont(GfxDevice const* device) : GfxAllocation(device, GfxAllocation::Type::eFont) {
+	if (!device->ftlib) { return; }
 }
 
-GfxFont::operator bool() const { return m_face.vram && m_face.face; }
+GfxFont::operator bool() const { return device() && face->face; }
 
 Character GfxFont::get(Codepoint codepoint, Height height) {
 	if (!*this) { return {}; }
@@ -148,18 +147,19 @@ Character GfxFont::get(Codepoint codepoint, Height height) {
 }
 
 GfxFont::Font& GfxFont::get_or_make(Height height) {
-	auto it = m_fonts.find(height);
-	if (it == m_fonts.end()) {
-		auto [i, _] = m_fonts.insert_or_assign(height, Font{Atlas(*m_face.vram, initial_extent_v)});
+	assert(device());
+	auto it = fonts.find(height);
+	if (it == fonts.end()) {
+		auto [i, _] = fonts.insert_or_assign(height, Font{Atlas{*device(), initial_extent_v}});
 		it = i;
 		insert(it->second, {}, nullptr);
 	}
-	m_face.face->set_pixel_size({0, height});
+	face->set_pixel_size({0, height});
 	return it->second;
 }
 
 GfxFont::Entry& GfxFont::insert(Font& out_font, Codepoint const codepoint, Atlas::Bulk* bulk) {
-	auto const slot = m_face.face->slot(codepoint);
+	auto const slot = face->slot(codepoint);
 	auto entry = Entry{};
 	if (slot.has_bitmap()) {
 		auto const image = Image::View{slot.pixmap, slot.metrics.extent};
@@ -175,92 +175,13 @@ GfxFont::Entry& GfxFont::insert(Font& out_font, Codepoint const codepoint, Atlas
 }
 
 Ptr<Atlas const> GfxFont::atlas(Height height) const {
-	if (auto it = m_fonts.find(height); it != m_fonts.end()) { return &it->second.atlas; }
+	if (auto it = fonts.find(height); it != fonts.end()) { return &it->second.atlas; }
 	return {};
 }
 
 Ptr<Texture const> GfxFont::texture(Height height) const {
 	if (auto a = atlas(height)) { return &a->texture(); }
 	return {};
-}
-
-Ttf::Ttf() noexcept = default;
-Ttf::Ttf(Ttf&&) noexcept = default;
-Ttf& Ttf::operator=(Ttf&&) noexcept = default;
-Ttf::~Ttf() noexcept = default;
-
-Ttf::Ttf(Context const& context) : m_font(std::make_unique<GfxFont>(context)) {}
-
-Ttf::operator bool() const { return m_font && *m_font; }
-
-bool Ttf::load(std::span<std::byte const> bytes) {
-	if (!m_font || !m_font->m_face.vram) { return false; }
-	auto data = std::make_unique<std::byte[]>(bytes.size());
-	std::memcpy(data.get(), bytes.data(), bytes.size());
-	if (auto face = FtFace::make(m_font->m_face.vram->ftlib, {data.get(), bytes.size()})) {
-		m_font->m_face.face = face;
-		m_file_data = std::move(data);
-		on_loaded();
-		return true;
-	}
-	return false;
-}
-
-bool Ttf::load(char const* path) {
-	if (!m_font || !m_font->m_face.vram) { return false; }
-	if (auto face = FtFace::make(m_font->m_face.vram->ftlib, path)) {
-		m_font->m_face.face = face;
-		on_loaded();
-		return true;
-	}
-	return false;
-}
-
-bool Ttf::contains(Codepoint codepoint, Height height) const {
-	if (!m_font) { return false; }
-	if (auto it = m_font->m_fonts.find(height); it != m_font->m_fonts.end()) { return it->second.map.contains(codepoint); }
-	return false;
-}
-
-Character Ttf::find(Codepoint codepoint, Height height) const {
-	if (!*this) { return {}; }
-	auto font_it = m_font->m_fonts.find(height);
-	if (font_it == m_font->m_fonts.end()) { return {}; }
-
-	auto& font = font_it->second;
-	auto entry_it = font.map.find(codepoint);
-	if (entry_it == font.map.end()) { return {}; }
-
-	auto& entry = entry_it->second;
-	return {&entry.glyph, font.atlas.uv(entry.coords)};
-}
-
-Character Ttf::get(Codepoint codepoint, Height height) {
-	if (!*this) { return {}; }
-	return m_font->get(codepoint, height);
-}
-
-std::size_t Ttf::preload(std::span<Codepoint const> codepoints, Height const height) {
-	if (!m_font || !m_font->m_face.face) { return {}; }
-	auto ret = std::size_t{};
-	auto& font = m_font->get_or_make(height);
-	auto bulk = Atlas::Bulk{font.atlas};
-	for (auto const codepoint : codepoints) {
-		if (font.map.contains(codepoint)) { continue; }
-		m_font->insert(font, codepoint, &bulk);
-		++ret;
-	}
-	return ret;
-}
-
-Ptr<Atlas const> Ttf::atlas(Height height) const { return m_font ? m_font->atlas(height) : nullptr; }
-
-Ptr<Texture const> Ttf::texture(Height height) const { return m_font ? m_font->texture(height) : nullptr; }
-
-void Ttf::on_loaded() {
-	assert(m_font->m_face.vram);
-	m_font->m_fonts.clear();
-	m_font->get_or_make(height_v);
 }
 
 Character Pen::character(Codepoint codepoint) const {
@@ -351,5 +272,99 @@ float Scribe::line_height() const {
 Scribe& Scribe::line_break() {
 	origin.y -= line_height();
 	return *this;
+}
+
+Ttf::Ttf() noexcept = default;
+Ttf::Ttf(Ttf&&) noexcept = default;
+Ttf& Ttf::operator=(Ttf&&) noexcept = default;
+Ttf::~Ttf() noexcept = default;
+
+Ttf::Ttf(GfxDevice const& device) : GfxResource(&device) {
+	if (!device) { return; }
+	m_allocation = std::make_unique<GfxFont>(m_device);
+}
+
+bool Ttf::load(std::span<std::byte const> bytes) {
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
+	if (!font || !font->device()->ftlib) { return false; }
+	auto data = std::make_unique<std::byte[]>(bytes.size());
+	std::memcpy(data.get(), bytes.data(), bytes.size());
+	if (auto face = FtFace::make(font->device()->ftlib, {data.get(), bytes.size()})) {
+		font->face = face;
+		m_file_data = std::move(data);
+		on_loaded(*font);
+		return true;
+	}
+	return false;
+}
+
+bool Ttf::load(char const* path) {
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
+	if (!font || !font->device()->ftlib) { return false; }
+	if (auto face = FtFace::make(font->device()->ftlib, path)) {
+		font->face = face;
+		on_loaded(*font);
+		return true;
+	}
+	return false;
+}
+
+bool Ttf::contains(Codepoint codepoint, Height height) const {
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
+	if (!font) { return false; }
+	if (auto it = font->fonts.find(height); it != font->fonts.end()) { return it->second.map.contains(codepoint); }
+	return false;
+}
+
+Character Ttf::find(Codepoint codepoint, Height height) const {
+	auto* gfx_font = static_cast<GfxFont*>(m_allocation.get());
+	if (!gfx_font) { return {}; }
+	auto font_it = gfx_font->fonts.find(height);
+	if (font_it == gfx_font->fonts.end()) { return {}; }
+
+	auto& font = font_it->second;
+	auto entry_it = font.map.find(codepoint);
+	if (entry_it == font.map.end()) { return {}; }
+
+	auto& entry = entry_it->second;
+	return {&entry.glyph, font.atlas.uv(entry.coords)};
+}
+
+Character Ttf::get(Codepoint codepoint, Height height) {
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
+	if (!font) { return {}; }
+	return font->get(codepoint, height);
+}
+
+std::size_t Ttf::preload(std::span<Codepoint const> codepoints, Height const height) {
+	auto* gfx_font = static_cast<GfxFont*>(m_allocation.get());
+	if (!gfx_font) { return {}; }
+	auto ret = std::size_t{};
+	auto& font = gfx_font->get_or_make(height);
+	auto bulk = Atlas::Bulk{font.atlas};
+	for (auto const codepoint : codepoints) {
+		if (font.map.contains(codepoint)) { continue; }
+		gfx_font->insert(font, codepoint, &bulk);
+		++ret;
+	}
+	return ret;
+}
+
+Ptr<Atlas const> Ttf::atlas(Height height) const {
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
+	return font ? font->atlas(height) : nullptr;
+}
+
+Ptr<Texture const> Ttf::texture(Height height) const {
+	auto* font = static_cast<GfxFont*>(m_allocation.get());
+	return font ? font->texture(height) : nullptr;
+}
+
+Handle<Ttf> Ttf::handle() const { return {m_allocation.get()}; }
+
+void Ttf::on_loaded(GfxFont& out_font) {
+	assert(out_font.device());
+	out_font.fonts.clear();
+	out_font.get_or_make(height_v);
 }
 } // namespace vf

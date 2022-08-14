@@ -1,5 +1,5 @@
-#include <detail/shared_impl.hpp>
-#include <vulkify/context/context.hpp>
+#include <detail/gfx_allocations.hpp>
+#include <detail/gfx_command_buffer.hpp>
 #include <vulkify/graphics/atlas.hpp>
 
 namespace vf {
@@ -12,9 +12,7 @@ constexpr std::uint32_t pot(std::uint32_t const in) {
 }
 } // namespace
 
-Atlas::Atlas(Context const& context, Extent const initial, Rgba const rgba) : Atlas(context.vram(), initial, rgba) {}
-
-Atlas::Atlas(Vram const& vram, Extent const initial, Rgba const rgba) : m_texture(vram, {}) {
+Atlas::Atlas(GfxDevice const& device, Extent const initial, Rgba const rgba) : m_texture(device, {}) {
 	if (m_texture.m_allocation) { m_texture.create(Bitmap(rgba, initial).image()); }
 }
 
@@ -22,7 +20,7 @@ QuadTexCoords Atlas::add(Image::View const image) {
 	if (!m_texture) { return {}; }
 	if (image.extent.x == 0 || image.extent.y == 0 || image.data.empty()) { return {}; }
 
-	auto cb = GfxCommandBuffer(m_texture.vram());
+	auto cb = GfxCommandBuffer{m_texture.m_device};
 	if (!prepare(cb, image.extent)) { return {}; }
 	auto ret = insert(cb, image);
 
@@ -30,9 +28,11 @@ QuadTexCoords Atlas::add(Image::View const image) {
 }
 
 void Atlas::clear(Rgba const rgba) {
-	if (!m_texture) { return; }
-	auto cb = GfxCommandBuffer(m_texture.vram());
-	cb.writer.clear(m_texture.m_allocation->image.cache.image, rgba);
+	if (!m_texture.m_allocation) { return; }
+	auto* image = static_cast<GfxImage*>(m_texture.m_allocation.get());
+	assert(image->type() == GfxAllocation::Type::eImage);
+	auto cb = GfxCommandBuffer{m_texture.m_device};
+	cb.writer.clear(image->image.cache.image, rgba);
 	m_state = {};
 }
 
@@ -54,14 +54,16 @@ bool Atlas::prepare(GfxCommandBuffer& cb, Extent const extent) {
 }
 
 bool Atlas::resize(GfxCommandBuffer& cb, Extent const target) {
-	auto const& vram = m_texture.vram();
-	auto texture = Texture(vram, {});
-	texture.refresh({pot(target.x), pot(target.y)});
+	if (!m_texture.m_device) { return false; }
+	auto texture = Texture(*m_texture.m_device);
+	auto* src = static_cast<GfxImage*>(m_texture.m_allocation.get());
+	auto* dst = static_cast<GfxImage*>(texture.m_allocation.get());
+	if (!src || !dst) { return false; }
+	assert(src->type() == GfxAllocation::Type::eImage && dst->type() == GfxAllocation::Type::eImage);
+	texture.refresh(*dst, {pot(target.x), pot(target.y)});
 	static constexpr auto layout = vk::ImageLayout::eShaderReadOnlyOptimal;
 	auto rect = TRect<std::uint32_t>{m_texture.extent()};
-	auto src = m_texture.m_allocation.get()->image.cache.image.get();
-	auto dst = texture.m_allocation.get()->image.cache.image.get();
-	auto const ret = cb.writer.blit(src, dst, rect, rect, vk::Filter::eLinear, {layout, layout});
+	auto const ret = cb.writer.blit(src->image.cache.image.get(), dst->image.cache.image.get(), rect, rect, vk::Filter::eLinear, {layout, layout});
 	if (ret) { m_texture = std::move(texture); }
 	return ret;
 }
@@ -71,7 +73,11 @@ bool Atlas::overwrite(GfxCommandBuffer& cb, Image::View image, Texture::Rect con
 		static_cast<std::uint32_t>(region.offset.y) + region.extent.y > extent().y) {
 		return false;
 	}
-	return cb.writer.write(m_texture.m_allocation->image.cache.image, image.data, region, vk::ImageLayout::eShaderReadOnlyOptimal);
+	if (!m_texture.m_allocation) { return false; }
+	auto* self = static_cast<GfxImage*>(m_texture.m_allocation.get());
+	if (!self) { return false; }
+	assert(self->type() == GfxAllocation::Type::eImage);
+	return cb.writer.write(self->image.cache.image, image.data, region, vk::ImageLayout::eShaderReadOnlyOptimal);
 }
 
 QuadTexCoords Atlas::insert(GfxCommandBuffer& cb, Image::View image) {
@@ -85,7 +91,7 @@ QuadTexCoords Atlas::insert(GfxCommandBuffer& cb, Image::View image) {
 	return ret;
 }
 
-Atlas::Bulk::Bulk(Atlas& atlas) : m_impl(ktl::make_unique<GfxCommandBuffer>(atlas.texture().vram())), m_atlas(atlas) {}
+Atlas::Bulk::Bulk(Atlas& atlas) : m_impl(ktl::make_unique<GfxCommandBuffer>(atlas.texture().m_device)), m_atlas(atlas) {}
 Atlas::Bulk::~Bulk() = default;
 
 QuadTexCoords Atlas::Bulk::add(Image::View image) {

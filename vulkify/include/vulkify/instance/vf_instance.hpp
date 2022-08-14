@@ -14,7 +14,7 @@ class VulkifyInstance : public Instance {
 
 	~VulkifyInstance();
 
-	Vram const& vram() const override;
+	GfxDevice const& gfx_device() const override;
 	Gpu const& gpu() const override;
 	bool closing() const override;
 	glm::uvec2 framebuffer_extent() const override;

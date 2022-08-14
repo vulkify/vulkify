@@ -1,7 +1,7 @@
 #include <detail/descriptor_set_factory.hpp>
+#include <detail/gfx_allocations.hpp>
 #include <detail/pipeline_factory.hpp>
 #include <detail/render_pass.hpp>
-#include <detail/shared_impl.hpp>
 #include <detail/trace.hpp>
 #include <ktl/fixed_vector.hpp>
 #include <vulkify/graphics/drawable.hpp>
@@ -35,7 +35,17 @@ constexpr vk::PrimitiveTopology topology(Topology topo) {
 [[maybe_unused]] constexpr auto name_v = "vf::(internal)";
 } // namespace
 
-HTexture RenderPass::white_texture() const { return HTexture{*shader_input.textures->white.view, *shader_input.textures->sampler}; }
+DescriptorSet::DescriptorSet(ktl::not_null<Shader const*> shader) : m_shader(shader->handle()) {}
+
+CombinedImageSampler RenderPass::image_sampler(Handle<Texture> texture) const {
+	auto const image = static_cast<GfxImage const*>(texture.allocation);
+	if (!image) { return white_texture(); }
+	assert(image->type() == GfxAllocation::Type::eImage);
+	if (image->image.cache.view && image->image.sampler) { return CombinedImageSampler{*image->image.cache.view, *image->image.sampler}; }
+	return white_texture();
+}
+
+CombinedImageSampler RenderPass::white_texture() const { return CombinedImageSampler{*shader_input.textures->white.view, *shader_input.textures->sampler}; }
 
 void RenderPass::write_view(SetWriter& set) const {
 	if (!set) {
@@ -48,8 +58,8 @@ void RenderPass::write_view(SetWriter& set) const {
 	set.write(shader_input.one.bindings.ubo, &dm, sizeof(dm));
 }
 
-void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instances, TextureHandle const& texture) const {
-	auto const tex = texture.handle.contains<HTexture>() ? texture.handle.get<HTexture>() : white_texture();
+void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instances, Handle<Texture> texture) const {
+	auto const tex = image_sampler(texture);
 	if (!set || instances.empty() || !tex.sampler || !tex.view) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write models set");
 		return;
@@ -60,8 +70,8 @@ void RenderPass::write_models(SetWriter& set, std::span<DrawModel const> instanc
 	set.bind(command_buffer, bound);
 }
 
-void RenderPass::write_custom(SetWriter& set, std::span<std::byte const> ubo, TextureHandle const& texture) const {
-	auto const tex = texture.handle.contains<HTexture>() ? texture.handle.get<HTexture>() : white_texture();
+void RenderPass::write_custom(SetWriter& set, std::span<std::byte const> ubo, Handle<Texture> texture) const {
+	auto const tex = image_sampler(texture);
 	if (!set || !tex.sampler || !tex.view) {
 		VF_TRACE(name_v, trace::Type::eWarn, "Failed to write custom set");
 		return;
@@ -94,19 +104,14 @@ void RenderPass::set_viewport() const {
 	command_buffer.setViewport(0, vk::Viewport(vp.offset.x, vp.offset.y + vp.extent.y, vp.extent.x, -vp.extent.y)); // flip x / negative y
 }
 
-Surface::Surface() noexcept = default;
-Surface::Surface(RenderPass render_pass) : m_render_pass(std::move(render_pass)) { bind({}); }
-Surface::Surface(Surface&& rhs) noexcept : Surface() { std::swap(m_render_pass, rhs.m_render_pass); }
-Surface& Surface::operator=(Surface&& rhs) noexcept = default;
-
 Surface::~Surface() {
-	if (m_render_pass->instance) { m_render_pass->instance.value->end_pass(); }
+	if (m_render_pass && m_render_pass->instance) { m_render_pass->instance.value->end_pass(); }
 }
 
-Surface::operator bool() const { return m_render_pass->instance; }
+Surface::operator bool() const { return m_render_pass && m_render_pass->instance; }
 
 bool Surface::draw(Drawable const& drawable, RenderState const& state) const {
-	if (!m_render_pass->pipeline_factory || !m_render_pass->render_pass) { return false; }
+	if (!m_render_pass || !m_render_pass->pipeline_factory || !m_render_pass->render_pass) { return false; }
 	if (drawable.instances.empty() || !drawable.buffer) { return false; }
 	if (drawable.instances.size() <= small_buffer_v) {
 		auto buffer = ktl::fixed_vector<DrawModel, small_buffer_v>{};
@@ -121,8 +126,12 @@ bool Surface::draw(Drawable const& drawable, RenderState const& state) const {
 }
 
 bool Surface::bind(RenderState const& state) const {
+	if (!m_render_pass) { return false; }
 	auto program = PipelineFactory::Spec::ShaderProgram{};
-	if (state.descriptor_set) { program.frag = *state.descriptor_set->m_shader->m_module->module; }
+	if (state.descriptor_set && state.descriptor_set->m_shader && state.descriptor_set->m_shader.allocation) {
+		assert(state.descriptor_set->m_shader.allocation->type() == GfxAllocation::Type::eShader);
+		program.frag = *static_cast<GfxShader const*>(state.descriptor_set->m_shader.allocation)->module;
+	}
 	auto const spec = PipelineFactory::Spec{program, polygon_mode(state.pipeline.polygon_mode), topology(state.pipeline.topology)};
 	auto const [pipe, layout] = m_render_pass->pipeline_factory->pipeline(spec, m_render_pass->render_pass);
 	if (!pipe || !layout) { return false; }
@@ -131,16 +140,17 @@ bool Surface::bind(RenderState const& state) const {
 }
 
 bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, RenderState const& state) const {
-	if (!m_render_pass->pipeline_factory || !m_render_pass->render_pass || !m_render_pass->render_mutex) { return false; }
+	if (!m_render_pass || !m_render_pass->pipeline_factory || !m_render_pass->render_pass || !m_render_pass->render_mutex) { return false; }
+	if (drawable.instances.empty() || !drawable.buffer) { return false; }
 	auto lock = std::scoped_lock(*m_render_pass->render_mutex);
 	if (!bind(state)) { return false; }
 
-	auto set = m_render_pass->set_factory->postInc(m_render_pass->shader_input.one.set);
+	auto set = m_render_pass->set_factory->post_increment(m_render_pass->shader_input.one.set);
 	if (!set) { return false; }
 	m_render_pass->write_view(set);
 	m_render_pass->write_models(set, models, drawable.texture);
 	if (state.descriptor_set) {
-		set = m_render_pass->set_factory->postInc(m_render_pass->shader_input.two.set);
+		set = m_render_pass->set_factory->post_increment(m_render_pass->shader_input.two.set);
 		if (!set) { return false; }
 		m_render_pass->write_custom(set, state.descriptor_set->m_data.bytes, state.descriptor_set->m_data.texture);
 	}
@@ -148,16 +158,17 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, 
 	auto const lineWidth = std::clamp(state.pipeline.line_width, m_render_pass->line_width_limit.first, m_render_pass->line_width_limit.second);
 	m_render_pass->command_buffer.setLineWidth(lineWidth);
 
-	auto const& vbo = drawable.buffer.resource().buffers[0].get(true);
+	auto const* gbo = static_cast<GfxGeometryBuffer const*>(drawable.buffer.allocation);
+	assert(gbo && gbo->type() == GfxAllocation::Type::eBuffer);
+	auto const& vbo = gbo->buffers[0].get(true);
 	m_render_pass->command_buffer.bindVertexBuffers(0, vbo.resource, vk::DeviceSize{});
-	auto const counts = drawable.buffer.counts();
 	auto const instanceCount = static_cast<std::uint32_t>(models.size());
-	if (counts.indices > 0) {
-		auto const& ibo = drawable.buffer.resource().buffers[1].get(true);
+	if (gbo->indices > 0) {
+		auto const& ibo = gbo->buffers[1].get(true);
 		m_render_pass->command_buffer.bindIndexBuffer(ibo.resource, vk::DeviceSize{}, vk::IndexType::eUint32);
-		m_render_pass->command_buffer.drawIndexed(counts.indices, instanceCount, 0, 0, 0);
+		m_render_pass->command_buffer.drawIndexed(gbo->indices, instanceCount, 0, 0, 0);
 	} else {
-		m_render_pass->command_buffer.draw(counts.vertices, instanceCount, 0, 0);
+		m_render_pass->command_buffer.draw(gbo->vertices, instanceCount, 0, 0);
 	}
 	return true;
 }

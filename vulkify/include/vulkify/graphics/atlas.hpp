@@ -3,6 +3,9 @@
 #include <vulkify/graphics/texture.hpp>
 
 namespace vf {
+struct GfxDevice;
+class GfxFont;
+
 ///
 /// \brief Expandable Texture Atlas
 ///
@@ -15,7 +18,7 @@ class Atlas {
 	class Bulk;
 
 	Atlas() = default;
-	explicit Atlas(Context const& context, Extent initial = initial_v, Rgba rgba = clear_v);
+	explicit Atlas(GfxDevice const& device, Extent initial = initial_v, Rgba rgba = clear_v);
 
 	///
 	/// \brief Add image to atlas and obtain associated texture coordinates
@@ -30,10 +33,10 @@ class Atlas {
 	Extent extent() const { return texture().extent(); }
 	UvRect uv(QuadTexCoords const coords) const { return coords.uv(extent()); }
 
+	explicit operator bool() const { return static_cast<bool>(m_texture); }
+
   private:
 	static constexpr glm::uvec2 pad_v = {1, 1};
-
-	Atlas(Vram const& vram, Extent initial = initial_v, Rgba rgba = clear_v);
 
 	void next_line();
 	bool prepare(struct GfxCommandBuffer& cb, Extent extent);
@@ -47,8 +50,6 @@ class Atlas {
 		glm::uvec2 head{pad_v};
 		std::uint32_t nextY{};
 	} m_state{};
-
-	friend class GfxFont;
 };
 
 ///

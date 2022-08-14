@@ -1,30 +1,29 @@
 #pragma once
-#include <ktl/fixed_pimpl.hpp>
+#include <ktl/kunique_ptr.hpp>
+#include <vulkify/graphics/gfx_resource.hpp>
+#include <vulkify/graphics/handle.hpp>
 #include <cstddef>
 #include <istream>
 #include <span>
 
 namespace vf {
-class Context;
-struct GfxShaderModule;
+struct GfxDevice;
 
-class Shader {
+class Shader : public GfxResource {
   public:
 	Shader() noexcept;
 	Shader(Shader&&) noexcept;
 	Shader& operator=(Shader&&) noexcept;
 	~Shader() noexcept;
 
-	Shader(Context const& context);
-
-	explicit operator bool() const;
+	explicit Shader(GfxDevice const& device);
 
 	bool load(std::span<std::byte const> spirv);
 	bool load(char const* path, bool try_compile);
 
-  private:
-	ktl::fixed_pimpl<GfxShaderModule, 64> m_module;
+	Handle<Shader> handle() const;
 
-	friend class Surface;
+  private:
+	ktl::kunique_ptr<class GfxShader> m_module{};
 };
 } // namespace vf

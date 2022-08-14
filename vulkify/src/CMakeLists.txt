@@ -4,8 +4,6 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   core/rgba.cpp
 
-  graphics/detail/resource.cpp
-
   graphics/atlas.cpp
   graphics/bitmap.cpp
   graphics/geometry_buffer.cpp
@@ -23,10 +21,15 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   instance/vf_instance.cpp
 
-  detail/cache.hpp
   detail/command_pool.hpp
+  detail/defer_base.hpp
   detail/defer_queue.hpp
   detail/descriptor_set_factory.hpp
+  detail/detail.cpp
+  detail/gfx_allocation.hpp
+  detail/gfx_allocations.hpp
+  detail/gfx_command_buffer.hpp
+  detail/gfx_device.hpp
   detail/gfx_font.hpp
   detail/pipeline_factory.cpp
   detail/pipeline_factory.hpp
@@ -35,17 +38,14 @@ target_sources(${PROJECT_NAME} PRIVATE
   detail/renderer.hpp
   detail/rotator.hpp
   detail/set_writer.hpp
-  detail/shared_impl.hpp
   detail/spir_v.cpp
   detail/trace.cpp
   detail/trace.hpp
-  detail/vk_device.hpp
-  detail/vk_instance.cpp
-  detail/vk_instance.hpp
-  detail/vk_surface.cpp
-  detail/vk_surface.hpp
-  detail/vram.cpp
-  detail/vram.hpp
+  detail/verify.cpp
+  detail/vulkan_device.hpp
+  detail/vulkan_instance.hpp
+  detail/vulkan_swapchain.cpp
+  detail/vulkan_swapchain.hpp
 
   detail/window/window.hpp
   detail/window/window.cpp

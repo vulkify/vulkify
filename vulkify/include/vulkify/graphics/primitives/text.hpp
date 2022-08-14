@@ -1,15 +1,16 @@
 #pragma once
 #include <ktl/not_null.hpp>
 #include <vulkify/core/dirty_flag.hpp>
+#include <vulkify/graphics/handle.hpp>
 #include <vulkify/graphics/primitives/mesh.hpp>
+#include <vulkify/ttf/glyph.hpp>
 
 namespace vf {
 class Ttf;
-class GfxFont;
 
-class Text : public Primitive {
+class Text : public Primitive, public GfxResource {
   public:
-	using Height = std::uint32_t;
+	using Height = Glyph::Height;
 
 	enum class Horz { eLeft, eCentre, eRight };
 	enum class Vert { eDown, eMid, eUp };
@@ -19,20 +20,18 @@ class Text : public Primitive {
 	};
 
 	Text() = default;
-	explicit Text(Context const& context);
-
-	explicit operator bool() const;
+	explicit Text(GfxDevice const& device);
 
 	Rgba& tint() { return m_mesh.t.storage.tint; }
 	Rgba const& tint() const { return m_mesh.get().storage.tint; }
 	Transform& transform() { return m_mesh.get().storage.transform; }
 	Transform const& transform() const { return m_mesh.get().storage.transform; }
-	std::string const& string() const& { return m_text; }
+	std::string_view string() const { return m_text; }
 	Align align() const { return m_align; }
 	Height height() const { return m_height; }
 
-	Text& set_font(ktl::not_null<Ttf*> ttf);
-	Text& set_font(ktl::not_null<GfxFont*> font);
+	Text& set_ttf(ktl::not_null<Ttf*> ttf);
+	Text& set_ttf(Handle<Ttf> ttf);
 	Text& set_string(std::string string);
 	Text& append(std::string string);
 	Text& append(char ch);
@@ -48,6 +47,6 @@ class Text : public Primitive {
 	std::string m_text{};
 	Align m_align{};
 	Height m_height{60};
-	Ptr<GfxFont> m_font{};
+	Handle<Ttf> m_ttf{};
 };
 } // namespace vf

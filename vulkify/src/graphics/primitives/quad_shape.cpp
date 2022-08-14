@@ -2,7 +2,7 @@
 #include <vulkify/graphics/texture.hpp>
 
 namespace vf {
-QuadShape::QuadShape(Context const& context, State initial) : Shape(context) { set_state(std::move(initial)); }
+QuadShape::QuadShape(GfxDevice const& device, State initial) : Shape(device) { set_state(std::move(initial)); }
 
 QuadShape& QuadShape::set_state(State state) {
 	m_state = std::move(state);
@@ -22,7 +22,7 @@ QuadShape& QuadShape::set_texture(Ptr<Texture const> texture, bool resize_to_mat
 	return *this;
 }
 
-QuadShape& QuadShape::set_silhouette(float extrude, vf::Rgba tint) {
+QuadShape& QuadShape::set_silhouette(float extrude, Rgba tint) {
 	if (extrude > 0.0f) {
 		auto state = m_state;
 		state.size += extrude;

@@ -29,7 +29,7 @@ class Context {
 	CursorMode cursor_mode() const { return m_instance->cursor_mode(); }
 	MonitorList monitors() const { return m_instance->monitors(); }
 	WindowFlags window_flags() const { return m_instance->window_flags(); }
-	Camera& camera() const { return m_instance->camera(); }
+	Camera const& camera() const { return m_instance->camera(); }
 	Rect area() const { return Rect{{m_instance->framebuffer_extent()}}; }
 	AntiAliasing anti_aliasing() const { return m_instance->anti_aliasing(); }
 	VSync vsync() const { return m_instance->vsync(); }
@@ -50,7 +50,7 @@ class Context {
 	glm::mat3 unprojection() const;
 	glm::vec2 unproject(glm::vec2 point) const { return unprojection() * glm::vec3(point, 1.0f); }
 
-	Vram const& vram() const { return m_instance->vram(); }
+	GfxDevice const& device() const { return m_instance->gfx_device(); }
 
   private:
 	Context(UInstance&& instance) noexcept;

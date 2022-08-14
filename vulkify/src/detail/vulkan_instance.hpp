@@ -1,7 +1,7 @@
 #pragma once
-#include <detail/vk_device.hpp>
+#include <detail/defer_queue.hpp>
+#include <detail/vulkan_device.hpp>
 #include <ktl/async/kfunction.hpp>
-#include <ktl/kunique_ptr.hpp>
 #include <vulkify/core/defines.hpp>
 #include <vulkify/core/result.hpp>
 #include <vulkify/instance/gpu.hpp>
@@ -11,7 +11,7 @@
 namespace vf {
 using MakeSurface = ktl::kfunction<vk::SurfaceKHR(vk::Instance)>;
 
-struct VKGpu {
+struct GpuInfo {
 	vk::PhysicalDeviceProperties properties{};
 	std::vector<vk::SurfaceFormatKHR> formats{};
 	vk::PhysicalDevice device{};
@@ -27,14 +27,9 @@ struct PhysicalDevice {
 	auto operator<=>(PhysicalDevice const& rhs) const { return score <=> rhs.score; }
 };
 
-struct VKSync {
-	vk::Semaphore draw{};
-	vk::Semaphore present{};
-	vk::Fence drawn{};
-};
-
-struct VKInstance {
+struct VulkanInstance {
 	struct Util {
+		vk::PhysicalDeviceLimits device_limits{};
 		DeferQueue defer{};
 		struct {
 			std::mutex queue{};
@@ -52,22 +47,22 @@ struct VKInstance {
 
 	vk::UniqueInstance instance{};
 	vk::UniqueDebugUtilsMessengerEXT messenger{};
-	VKGpu gpu{};
+	GpuInfo gpu{};
 	vk::UniqueDevice device{};
 	vk::UniqueSurfaceKHR surface{};
-	VKQueue queue{};
+	Queue queue{};
 	ktl::kunique_ptr<Util> util{};
 
 	std::vector<Gpu> available_devices() const;
 };
 
-struct VKInstance::Builder {
-	VKInstance instance{};
+struct VulkanInstance::Builder {
+	VulkanInstance instance{};
 	std::vector<PhysicalDevice> devices{};
 	bool validation{};
 
 	static Result<Builder> make(Info info, bool validation = debug_v);
 
-	Result<VKInstance> operator()(PhysicalDevice&& selected);
+	Result<VulkanInstance> operator()(PhysicalDevice&& selected);
 };
 } // namespace vf

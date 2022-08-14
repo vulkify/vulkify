@@ -1,6 +1,7 @@
 #pragma once
+#include <detail/defer_base.hpp>
 #include <ktl/kunique_ptr.hpp>
-#include <algorithm>
+#include <mutex>
 #include <vector>
 
 namespace vf {
@@ -9,39 +10,37 @@ concept BoolLike = requires(T const& t) {
 	static_cast<bool>(t);
 };
 
-struct DeferQueue {
-	struct Base {
-		int delay;
-		Base(int delay = default_delay_v) : delay(delay) {}
-		virtual ~Base() = default;
-	};
-	template <typename T>
-	struct Model : Base {
-		T t;
-		Model(T&& t, int delay) : Base(delay), t(std::move(t)) {}
-	};
-	using Entry = ktl::kunique_ptr<Base>;
+class DeferQueue {
+  public:
+	static constexpr auto default_delay_v = DeferBase::default_delay_v;
 
-	static constexpr int default_delay_v = 3;
+	DeferQueue() : m_mutex(ktl::make_unique<std::mutex>()) {}
 
-	std::vector<Entry> entries{};
+	using Entry = ktl::kunique_ptr<DeferBase>;
 
 	template <BoolLike T>
 	void push(T t, int delay = default_delay_v) {
-		if (t) { entries.push_back(ktl::make_unique<Model<T>>(std::move(t), delay)); }
+		if (t) {
+			auto entry = ktl::make_unique<Model<T>>(std::move(t), delay);
+			auto lock = std::scoped_lock(*m_mutex);
+			m_entries.push_back(std::move(entry));
+		}
 	}
 
-	void decrement() {
-		std::erase_if(entries, [](Entry& e) { return --e->delay <= 0; });
-	}
-};
+	void push_direct(Entry&& entry, int delay = default_delay_v);
 
-struct Defer {
-	DeferQueue* queue{};
+	void decrement();
+	void clear();
 
-	template <BoolLike... T>
-	void operator()(T... t) const {
-		if (queue) { (queue->push(std::move(t)), ...); }
-	}
+  private:
+	template <typename T>
+	struct Model : DeferBase {
+		T t;
+		Model(T&& t, int delay) : DeferBase(delay), t(std::move(t)) {}
+	};
+
+	std::vector<Entry> m_entries{};
+	std::vector<Entry> m_expired{};
+	ktl::kunique_ptr<std::mutex> m_mutex{};
 };
 } // namespace vf
