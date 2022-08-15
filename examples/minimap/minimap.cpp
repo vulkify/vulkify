@@ -79,29 +79,27 @@ class Minimap : public Base {
 		triangle.vertices.push_back(vf::Vertex::make(bg_scale * glm::vec2{-50.f, 50.0f}));
 		m_player->buffer.write(std::move(triangle));
 		m_player_size = bg_scale * glm::vec2{100.0f};
+
+		m_cover = vf::Mesh{context().device()};
+		auto const viewport = minimap_view_v.extent * m_framebuffer_size;
+		auto qci = vf::QuadCreateInfo{};
+		qci.size = 1.1f * minimap_view_v.extent * vf::LockedResize<vf::Crop::eFillMin>{m_bg_size}(m_framebuffer_size);
+		qci.origin = 0.5f * glm::vec2{viewport.x, -viewport.y};
+		m_cover.buffer.write(vf::Geometry::make_quad(qci));
+		m_cover.instance().transform.position = viewport_to_world(minimap_view_v.offset, m_framebuffer_size);
+	}
+
+	static constexpr glm::vec2 viewport_to_world(glm::vec2 const viewport, glm::vec2 const extent) {
+		return glm::vec2{viewport.x - 0.5f, 0.5f - viewport.y} * extent;
 	}
 
 	bool setup() override {
 		if (!load_assets()) { return false; }
 
-		make_quads();
 		m_controller.transform.orientation = vf::nvec2::up_v;
-
 		m_framebuffer_size = glm::vec2{context().framebuffer_extent()};
 		clear = vf::Rgba::make(0x113388ff).linear();
-
-		auto const bg_ar = m_bg_size.x / m_bg_size.y;
-		auto const fb_ar = m_framebuffer_size.x / m_framebuffer_size.y;
-		if (fb_ar > bg_ar) {
-			m_viewport_size.y = m_bg_size.y;
-			m_viewport_size.x = m_bg_size.x * fb_ar;
-		} else {
-			m_viewport_size.x = m_bg_size.x;
-			m_viewport_size.y = m_bg_size.y / fb_ar;
-		}
-
-		m_cover = vf::Mesh{device()};
-		m_cover.buffer.write(vf::Geometry::make_quad({.size = m_bg_size}));
+		make_quads();
 
 		return true;
 	}
@@ -116,6 +114,8 @@ class Minimap : public Base {
 	void render(vf::Frame const& frame) const override {
 		setup_world(frame.camera());
 		Base::render(frame);
+		frame.camera().position = {};
+		frame.draw(m_cover);
 		setup_minimap(frame.camera());
 		Base::render(frame);
 	}
@@ -129,18 +129,17 @@ class Minimap : public Base {
 
 	void setup_minimap(vf::Camera& out_camera) const {
 		out_camera.position = {};
-		out_camera.view.set_extent(m_viewport_size);
+		out_camera.view.set_extent(m_bg_size, vf::Crop::eFillMax);
 		out_camera.viewport = minimap_view_v;
 	}
 
 	vf::Texture m_background{};
-	vf::Mesh m_cover{};
 	Controller m_controller{};
+	vf::Mesh m_cover{};
 	vf::Ptr<vf::Mesh> m_player{};
 
 	glm::vec2 m_framebuffer_size{};
 	glm::vec2 m_bg_size{};
-	glm::vec2 m_viewport_size{};
 	glm::vec2 m_player_size{};
 };
 } // namespace example

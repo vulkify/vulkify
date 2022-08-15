@@ -23,6 +23,11 @@ CircleShape& CircleShape::set_texture(Ptr<Texture const> texture, bool resize_to
 	return *this;
 }
 
+CircleShape& CircleShape::set_texture(Handle<Texture> texture) {
+	m_texture = texture;
+	return *this;
+}
+
 CircleShape& CircleShape::set_silhouette(float extrude, Rgba tint) {
 	if (extrude > 0.0f) {
 		auto state = m_state;
