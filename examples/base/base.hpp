@@ -115,8 +115,8 @@ class Base {
 	virtual void configure(vf::Builder&) {}
 	virtual bool setup() { return true; }
 	virtual void tick(vf::Time dt) = 0;
-	virtual void render(vf::Frame const& frame) const {
-		for (auto const& primitive : scene.primitives) { frame.draw(*primitive); }
+	virtual void render(vf::Frame const& frame, vf::RenderState const& state = {}) const {
+		for (auto const& primitive : scene.primitives) { frame.draw(*primitive, state); }
 	}
 
   private:

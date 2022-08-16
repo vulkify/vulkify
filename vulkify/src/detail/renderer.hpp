@@ -7,6 +7,7 @@ struct ImageBarrier;
 
 struct RenderTarget {
 	ImageView colour{};
+	ImageView depth{};
 	ImageView resolve{};
 	vk::Extent2D extent{};
 };
@@ -41,6 +42,7 @@ struct Renderer::Frame {
 	void render(Rgba clear, std::span<vk::CommandBuffer const> recorded) const;
 	void blit(ImageView const& src, ImageView const& dst) const;
 
+	void undef_to_depth(ImageView const& src) const;
 	void undef_to_colour(std::span<ImageView const> images) const;
 	void colour_to_tfr(ImageView const& src, ImageView const& dst) const;
 	void colour_to_present(ImageView const& image) const;

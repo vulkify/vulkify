@@ -163,6 +163,7 @@ struct SwapchainRenderer {
 	Renderer renderer{};
 	Rotator<FrameSync> frame_sync{};
 	ImageCache msaa_image{};
+	ImageCache depth_image{};
 	vk::UniqueCommandPool command_pool{};
 
 	Framebuffer framebuffer{};
@@ -191,6 +192,14 @@ struct SwapchainRenderer {
 			ret.frame_sync.push(std::move(sync));
 		}
 
+		{
+			auto& image = ret.depth_image;
+			image = {.device = device};
+			image.set_depth(false);
+			image.info.info.samples = device->colour_samples;
+			image.info.info.format = vk::Format::eD16Unorm;
+		}
+
 		if (device->colour_samples > vk::SampleCountFlagBits::e1) {
 			ret.msaa = true;
 			auto& image = ret.msaa_image;
@@ -213,11 +222,12 @@ struct SwapchainRenderer {
 		auto& sync = frame_sync.get();
 		auto const extent = Extent{acquired.extent.width, acquired.extent.height};
 		device->device.reset(*sync.drawn);
-		framebuffer.colour = {acquired.image, acquired.view, acquired.extent};
+		framebuffer.colour = acquired;
+		framebuffer.depth = depth_image.refresh(extent);
 		if (msaa) {
 			auto refreshed = msaa_image.refresh(extent);
-			framebuffer.colour = {refreshed.image, refreshed.view, refreshed.extent};
-			framebuffer.resolve = {acquired.image, acquired.view, acquired.extent};
+			framebuffer.colour = refreshed;
+			framebuffer.resolve = acquired;
 		}
 		framebuffer.extent = vk::Extent2D(extent.x, extent.y);
 		sync.framebuffer = renderer.make_framebuffer(framebuffer);
@@ -244,6 +254,7 @@ struct SwapchainRenderer {
 		if (msaa) { images.push_back(framebuffer.resolve); }
 
 		auto frame = Renderer::Frame{renderer, framebuffer, sync.cmd.primary};
+		frame.undef_to_depth(framebuffer.depth);
 		frame.undef_to_colour(images);
 		frame.render(clear, {&sync.cmd.secondary, 1});
 		frame.colour_to_present({present.image, present.view, present.extent});
@@ -336,6 +347,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 		impl->device = UniqueGfxDevice::make(impl->vulkan, freetype->lib, get_samples(create_info.desired_aa));
 		if (!impl->device) { return Error::eVulkanInitFailure; }
 		impl->device.device->buffering = 2;
+		impl->device.device->default_z_order = create_info.default_z_order;
 	}
 	{
 		bool const linear = create_info.instance_flags.test(InstanceFlag::eLinearSwapchain);
@@ -427,6 +439,7 @@ AntiAliasing VulkifyInstance::anti_aliasing() const {
 
 VSync VulkifyInstance::vsync() const { return to_vsync(m_impl->swapchain.info.presentMode); }
 std::vector<Gpu> VulkifyInstance::gpu_list() const { return m_impl->vulkan.available_devices(); }
+ZOrder VulkifyInstance::default_z_order() const { return m_impl->device.device->default_z_order; }
 void VulkifyInstance::set_position(glm::ivec2 xy) { m_impl->window->position(xy); }
 void VulkifyInstance::set_extent(Extent size) { m_impl->window->set_window_size(size); }
 void VulkifyInstance::set_cursor_mode(CursorMode mode) { m_impl->window->set_cursor_mode(mode); }

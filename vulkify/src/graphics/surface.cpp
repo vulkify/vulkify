@@ -4,6 +4,7 @@
 #include <detail/render_pass.hpp>
 #include <detail/trace.hpp>
 #include <ktl/fixed_vector.hpp>
+#include <vulkify/graphics/descriptor_set.hpp>
 #include <vulkify/graphics/drawable.hpp>
 #include <vulkify/graphics/geometry_buffer.hpp>
 #include <vulkify/graphics/shader.hpp>
@@ -132,7 +133,12 @@ bool Surface::bind(RenderState const& state) const {
 		assert(state.descriptor_set->m_shader.allocation->type() == GfxAllocation::Type::eShader);
 		program.frag = *static_cast<GfxShader const*>(state.descriptor_set->m_shader.allocation)->module;
 	}
-	auto const spec = PipelineFactory::Spec{program, polygon_mode(state.pipeline.polygon_mode), topology(state.pipeline.topology)};
+	auto const spec = PipelineFactory::Spec{
+		.shader = program,
+		.mode = polygon_mode(state.polygon_mode),
+		.topology = topology(state.topology),
+		.depth_test = state.force_z_order.value_or(m_render_pass->device->default_z_order) == ZOrder::eOn,
+	};
 	auto const [pipe, layout] = m_render_pass->pipeline_factory->pipeline(spec, m_render_pass->render_pass);
 	if (!pipe || !layout) { return false; }
 	m_render_pass->bind(layout, pipe);
@@ -155,7 +161,7 @@ bool Surface::draw(std::span<DrawModel const> models, Drawable const& drawable, 
 		m_render_pass->write_custom(set, state.descriptor_set->m_data.bytes, state.descriptor_set->m_data.texture);
 	}
 	m_render_pass->set_viewport();
-	auto const lineWidth = std::clamp(state.pipeline.line_width, m_render_pass->line_width_limit.first, m_render_pass->line_width_limit.second);
+	auto const lineWidth = std::clamp(state.line_width, m_render_pass->line_width_limit.first, m_render_pass->line_width_limit.second);
 	m_render_pass->command_buffer.setLineWidth(lineWidth);
 
 	auto const* gbo = static_cast<GfxGeometryBuffer const*>(drawable.buffer.allocation);

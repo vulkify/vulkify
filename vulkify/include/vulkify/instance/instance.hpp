@@ -37,6 +37,7 @@ class Instance {
 	virtual AntiAliasing anti_aliasing() const = 0;
 	virtual VSync vsync() const = 0;
 	virtual std::vector<Gpu> gpu_list() const = 0;
+	virtual ZOrder default_z_order() const = 0;
 
 	virtual void show() = 0;
 	virtual void hide() = 0;

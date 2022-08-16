@@ -1,4 +1,5 @@
 #include <base.hpp>
+#include <vulkify/graphics/descriptor_set.hpp>
 #include <vulkify/graphics/primitives/all.hpp>
 #include <vulkify/graphics/shader.hpp>
 #include <vulkify/graphics/texture.hpp>

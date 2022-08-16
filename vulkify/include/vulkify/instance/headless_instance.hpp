@@ -26,6 +26,7 @@ class HeadlessInstance : public Instance {
 	AntiAliasing anti_aliasing() const override { return AntiAliasing::eNone; }
 	VSync vsync() const override { return {}; }
 	std::vector<Gpu> gpu_list() const override { return {m_gpu}; }
+	ZOrder default_z_order() const override { return {}; }
 
 	void show() override {}
 	void hide() override {}

@@ -538,11 +538,12 @@ void GfxDeferred::release() && {
 }
 
 /// GfxBuffer/Image
-vk::ImageCreateInfo& ImageCache::set_depth() {
+vk::ImageCreateInfo& ImageCache::set_depth(bool stencil) {
 	static constexpr auto flags = vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransientAttachment;
 	info.info = vk::ImageCreateInfo();
 	info.info.usage = flags;
-	info.aspect |= vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil;
+	info.aspect |= vk::ImageAspectFlagBits::eDepth;
+	if (stencil) { info.aspect |= vk::ImageAspectFlagBits::eStencil; }
 	return info.info;
 }
 

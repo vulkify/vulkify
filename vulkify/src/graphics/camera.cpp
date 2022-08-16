@@ -15,8 +15,8 @@ glm::vec2 View::get_scale(Extent framebuffer, glm::vec2 fallback) const {
 			auto const fb_ar = fb.x / fb.y;
 			auto const self_ar = self.x / self.y;
 			if (FloatEq{}(fb_ar, self_ar)) { return fb / self; }
-			auto match_x = [self, fb, fb_ar] { return fb / glm::vec2{self.x, self.y / fb_ar}; };
-			auto match_y = [self, fb, fb_ar] { return fb / glm::vec2{self.x * fb_ar, self.y}; };
+			auto match_x = [&] { return fb / glm::vec2{self.x, self.y * self_ar / fb_ar}; };
+			auto match_y = [&] { return fb / glm::vec2{self.x * fb_ar / self_ar, self.y}; };
 			if (size.crop == Crop::eFillMin) { return fb_ar > self_ar ? match_x() : match_y(); }
 			return fb_ar > self_ar ? match_y() : match_x();
 		},

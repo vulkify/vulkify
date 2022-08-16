@@ -22,5 +22,6 @@ struct InstanceCreateInfo {
 	AntiAliasing desired_aa{AntiAliasing::e2x};
 	Ptr<GpuSelector const> gpu_selector{};
 	std::vector<VSync> desired_vsyncs{VSync::eAdaptive, VSync::eOn};
+	ZOrder default_z_order{ZOrder::eOff};
 };
 } // namespace vf

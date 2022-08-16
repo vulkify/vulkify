@@ -210,7 +210,9 @@ void test(vf::Context context) {
 int main(int argc, char** argv) {
 	bool const headless = argc > 1 && argv[1] == std::string_view("--headless");
 	std::cout << "vulkify " << vf::version_v << '\n';
-	auto context = vf::Builder{}.set_flag(vf::WindowFlag::eResizable).set_flag(vf::InstanceFlag::eHeadless, headless).build();
+	static constexpr auto extent = vf::Extent{1280, 720};
+	auto context = vf::Builder{}.set_extent(extent).set_flag(vf::WindowFlag::eResizable).set_flag(vf::InstanceFlag::eHeadless, headless).build();
 	if (!context) { return EXIT_FAILURE; }
+	context->camera().view.set_extent(extent);
 	test(std::move(context.value()));
 }

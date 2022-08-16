@@ -28,6 +28,7 @@ class VulkifyInstance : public Instance {
 	AntiAliasing anti_aliasing() const override;
 	VSync vsync() const override;
 	std::vector<Gpu> gpu_list() const override;
+	ZOrder default_z_order() const override;
 
 	void show() override;
 	void hide() override;

@@ -12,6 +12,7 @@ class Texture;
 
 struct DrawInstance {
 	Transform transform{};
+	float z_index{};
 	Rgba tint = white_v;
 
 	DrawModel draw_model() const;
@@ -35,7 +36,7 @@ inline DrawModel DrawInstance::draw_model() const {
 	auto const utint = tint.to_u32();
 	float ftint;
 	std::memcpy(&ftint, &utint, sizeof(float));
-	ret.scl_tint = {transform.scale, ftint, 0.0f};
+	ret.scl_z_tint = {transform.scale, z_index, ftint};
 	return ret;
 }
 } // namespace vf

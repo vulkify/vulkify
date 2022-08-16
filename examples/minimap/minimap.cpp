@@ -67,10 +67,12 @@ class Minimap : public Base {
 
 	void make_quads() {
 		auto const bg_scale = static_cast<float>(context().framebuffer_extent().x) / static_cast<float>(context().window_extent().x);
+
 		m_bg_size = bg_scale * glm::vec2(m_background.extent());
 		auto& mesh = scene.add<vf::Mesh>(context().device());
 		mesh.texture = m_background.handle();
 		mesh.buffer.write(vf::Geometry::make_quad({.size = m_bg_size}));
+		mesh.instance().z_index = 10.0f;
 
 		m_player = &scene.add<vf::Mesh>(context().device());
 		auto triangle = vf::Geometry{};
@@ -111,13 +113,13 @@ class Minimap : public Base {
 		m_player->instance().transform = m_controller.transform;
 	}
 
-	void render(vf::Frame const& frame) const override {
+	void render(vf::Frame const& frame, vf::RenderState const& state) const override {
 		setup_world(frame.camera());
-		Base::render(frame);
+		Base::render(frame, state);
 		frame.camera().position = {};
 		frame.draw(m_cover);
 		setup_minimap(frame.camera());
-		Base::render(frame);
+		Base::render(frame, state);
 	}
 
 	void setup_world(vf::Camera& out_camera) const {

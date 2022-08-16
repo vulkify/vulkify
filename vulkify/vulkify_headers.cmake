@@ -33,6 +33,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   include/vulkify/graphics/shader.hpp
   include/vulkify/graphics/surface.hpp
   include/vulkify/graphics/texture.hpp
+  include/vulkify/graphics/z_order.hpp
 
   include/vulkify/graphics/primitives/all.hpp
   include/vulkify/graphics/primitives/circle_shape.hpp

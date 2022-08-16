@@ -88,6 +88,11 @@ vk::UniquePipeline PipelineFactory::make_pipeline(vk::PipelineLayout layout, Spe
 	prsci.cullMode = vk::CullModeFlagBits::eNone;
 	gpci.pRasterizationState = &prsci;
 
+	auto pdssci = vk::PipelineDepthStencilStateCreateInfo{};
+	pdssci.depthTestEnable = pdssci.depthWriteEnable = spec.depth_test;
+	pdssci.depthCompareOp = vk::CompareOp::eLess;
+	gpci.pDepthStencilState = &pdssci;
+
 	auto pcbas = vk::PipelineColorBlendAttachmentState{};
 	using CCF = vk::ColorComponentFlagBits;
 	pcbas.colorWriteMask = CCF::eR | CCF::eG | CCF::eB | CCF::eA;
