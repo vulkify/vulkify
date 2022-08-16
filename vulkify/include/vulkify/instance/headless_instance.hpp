@@ -42,6 +42,7 @@ class HeadlessInstance : public Instance {
 	void set_fullscreen(Monitor const&, glm::uvec2) override {}
 	void update_window_flags(WindowFlags, WindowFlags) override {}
 	Camera& camera() override { return m_camera; }
+	void lock_aspect_ratio(bool) override {}
 
 	EventQueue poll() override { return std::move(m_event_queue); }
 	Surface begin_pass(Rgba) override { return {}; }

@@ -186,11 +186,6 @@ void test(vf::Context context) {
 			}
 		}
 
-		if (auto pad = vf::Gamepad{0}) {
-			auto const dx = pad(vf::GamepadAxis::eLeftX) * frame.dt().count() * 100.0f;
-			frame.camera().position.x += dx;
-		}
-
 		for (auto [star, index] : ktl::enumerate(stars.storage)) {
 			auto const ds = std::cos(elapsed.count() + starOffsets[index].dscale) * 0.5f;
 			star.transform.scale = glm::vec2(1.0f) + ds;
@@ -214,5 +209,6 @@ int main(int argc, char** argv) {
 	auto context = vf::Builder{}.set_extent(extent).set_flag(vf::WindowFlag::eResizable).set_flag(vf::InstanceFlag::eHeadless, headless).build();
 	if (!context) { return EXIT_FAILURE; }
 	context->camera().view.set_extent(extent);
+	context->lock_aspect_ratio(true);
 	test(std::move(context.value()));
 }

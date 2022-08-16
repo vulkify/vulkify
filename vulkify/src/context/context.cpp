@@ -11,7 +11,11 @@ struct {
 } g_dummy{};
 } // namespace
 
-Camera& Frame::camera() const { return m_surface.m_render_pass->cam.camera ? *m_surface.m_render_pass->cam.camera : g_dummy.camera; }
+Camera Frame::camera() const { return m_surface.m_render_pass && m_surface.m_render_pass->cam.camera ? *m_surface.m_render_pass->cam.camera : g_dummy.camera; }
+
+void Frame::set_camera(Camera const& cam) const {
+	if (m_surface.m_render_pass && m_surface.m_render_pass->cam.camera) { *m_surface.m_render_pass->cam.camera = cam; }
+}
 
 Context::Context(UInstance&& instance) noexcept : m_instance(std::move(instance)) {}
 

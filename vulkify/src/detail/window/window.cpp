@@ -273,6 +273,15 @@ void Window::position(glm::ivec2 pos) { glfwSetWindowPos(static_cast<GLFWwindow*
 void Window::set_window_size(glm::ivec2 size) { glfwSetWindowSize(static_cast<GLFWwindow*>(win), size.x, size.y); }
 void Window::set_cursor_mode(CursorMode mode) { glfwSetInputMode(static_cast<GLFWwindow*>(win), GLFW_CURSOR, from(mode)); }
 
+void Window::lock_aspect_ratio(bool lock) {
+	if (lock) {
+		glm::ivec2 const extent = window_size();
+		glfwSetWindowAspectRatio(static_cast<GLFWwindow*>(win), extent.x, extent.y);
+	} else {
+		glfwSetWindowAspectRatio(static_cast<GLFWwindow*>(win), GLFW_DONT_CARE, GLFW_DONT_CARE);
+	}
+}
+
 void Window::update(WindowFlags set, WindowFlags unset) {
 	auto update_attrib = [&](WindowFlag flag, int attrib, bool if_set) {
 		if (set.test(flag)) { glfwSetWindowAttrib(static_cast<GLFWwindow*>(win), attrib, if_set ? GLFW_TRUE : GLFW_FALSE); }

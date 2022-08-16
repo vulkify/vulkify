@@ -114,11 +114,15 @@ class Minimap : public Base {
 	}
 
 	void render(vf::Frame const& frame, vf::RenderState const& state) const override {
-		setup_world(frame.camera());
+		auto camera = frame.camera();
+		setup_world(camera);
+		frame.set_camera(camera);
 		Base::render(frame, state);
-		frame.camera().position = {};
+		camera.position = {};
+		frame.set_camera(camera);
 		frame.draw(m_cover);
-		setup_minimap(frame.camera());
+		setup_minimap(camera);
+		frame.set_camera(camera);
 		Base::render(frame, state);
 	}
 

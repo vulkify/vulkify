@@ -454,6 +454,7 @@ bool VulkifyInstance::set_cursor(Cursor cursor) { return m_impl->window->set_cur
 void VulkifyInstance::show() { m_impl->window->show(); }
 void VulkifyInstance::hide() { m_impl->window->hide(); }
 void VulkifyInstance::close() { m_impl->window->close(); }
+void VulkifyInstance::lock_aspect_ratio(bool lock) { m_impl->window->lock_aspect_ratio(lock); }
 
 EventQueue VulkifyInstance::poll() {
 	m_impl->window->events.clear();

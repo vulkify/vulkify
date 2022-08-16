@@ -46,6 +46,7 @@ class Context {
 	void set_windowed(glm::uvec2 extent) { m_instance->set_windowed(extent); }
 	void set_fullscreen(Monitor const& monitor, glm::uvec2 resolution = {}) { m_instance->set_fullscreen(monitor, resolution); }
 	void update_window_flags(WindowFlags set, WindowFlags unset) { m_instance->update_window_flags(set, unset); }
+	void lock_aspect_ratio(bool lock) { m_instance->lock_aspect_ratio(lock); }
 
 	glm::mat3 unprojection() const;
 	glm::vec2 unproject(glm::vec2 point) const { return unprojection() * glm::vec3(point, 1.0f); }
