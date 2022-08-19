@@ -60,8 +60,20 @@ Text& Text::set_align(Align align) {
 	return *this;
 }
 
-Text& Text::set_height(Height height) {
-	m_height = height;
+Text& Text::set_height(Glyph::Height height) {
+	m_size.height = height;
+	m_mesh.set_dirty();
+	return *this;
+}
+
+Text& Text::set_scaling(float scaling) {
+	m_size.scaling = scaling;
+	m_mesh.set_dirty();
+	return *this;
+}
+
+Text& Text::set_size(Size size) {
+	m_size = size;
 	m_mesh.set_dirty();
 	return *this;
 }
@@ -75,9 +87,9 @@ void Text::rebuild() const {
 	auto* self = static_cast<GfxFont*>(m_ttf.allocation);
 	if (m_text.empty() || !self || !m_mesh.t) { return; }
 	assert(self->type() == GfxAllocation::Type::eFont);
-	auto scribe = Scribe{*self, m_height};
+	auto scribe = Scribe{*self, m_size};
 	scribe.write(Scribe::Block{m_text}, pivot(m_align));
-	if (auto const* texture = self->texture(m_height)) {
+	if (auto const* texture = self->texture(m_size.glyph_height())) {
 		m_mesh.get().texture = texture->handle();
 		m_mesh.get().buffer.write(std::move(scribe.geometry));
 		m_mesh.set_clean();

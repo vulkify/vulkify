@@ -11,6 +11,7 @@ class Ttf;
 class Text : public Primitive, public GfxResource {
   public:
 	using Height = Glyph::Height;
+	using Size = CharSize;
 
 	enum class Horz { eLeft, eCentre, eRight };
 	enum class Vert { eDown, eMid, eUp };
@@ -28,7 +29,7 @@ class Text : public Primitive, public GfxResource {
 	Transform const& transform() const { return m_mesh.get().storage.transform; }
 	std::string_view string() const { return m_text; }
 	Align align() const { return m_align; }
-	Height height() const { return m_height; }
+	Size size() const { return m_size; }
 
 	Text& set_ttf(ktl::not_null<Ttf*> ttf);
 	Text& set_ttf(Handle<Ttf> ttf);
@@ -36,7 +37,9 @@ class Text : public Primitive, public GfxResource {
 	Text& append(std::string string);
 	Text& append(char ch);
 	Text& set_align(Align align);
-	Text& set_height(Height height);
+	Text& set_height(Glyph::Height height);
+	Text& set_scaling(float scaling);
+	Text& set_size(Size size);
 
 	void draw(Surface const& surface, RenderState const& state = {}) const override;
 
@@ -46,7 +49,7 @@ class Text : public Primitive, public GfxResource {
 	DirtyFlag<Mesh> m_mesh{};
 	std::string m_text{};
 	Align m_align{};
-	Height m_height{60};
+	Size m_size{};
 	Handle<Ttf> m_ttf{};
 };
 } // namespace vf
