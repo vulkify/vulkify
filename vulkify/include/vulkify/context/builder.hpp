@@ -17,6 +17,7 @@ class Builder {
 	InstanceFlags instance_flags() const { return m_create_info.instance_flags; }
 	AntiAliasing anti_aliasing() const { return m_create_info.desired_aa; }
 	std::span<VSync const> vsyncs() const { return m_create_info.desired_vsyncs; }
+	ZOrder default_z_order() const { return m_create_info.default_z_order; }
 
 	Builder& set_title(std::string set);
 	Builder& set_extent(glm::uvec2 set);
@@ -25,8 +26,9 @@ class Builder {
 	Builder& set_flag(WindowFlag flag, bool set = true);
 	Builder& set_flag(InstanceFlag flag, bool set = true);
 	Builder& set_anti_aliasing(AntiAliasing aa);
-	Builder& set_select_gpu(SelectGpu selectGpu);
+	Builder& set_select_gpu(SelectGpu select_gpu);
 	Builder& set_vsyncs(std::vector<VSync> desired);
+	Builder& set_default_z_order(ZOrder z_order);
 
 	Context::Result build();
 
@@ -80,6 +82,11 @@ inline Builder& Builder::set_select_gpu(SelectGpu selectGpu) {
 
 inline Builder& Builder::set_vsyncs(std::vector<VSync> desired) {
 	m_create_info.desired_vsyncs = std::move(desired);
+	return *this;
+}
+
+inline Builder& Builder::set_default_z_order(ZOrder z_order) {
+	m_create_info.default_z_order = z_order;
 	return *this;
 }
 } // namespace vf

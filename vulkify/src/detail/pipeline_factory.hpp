@@ -27,6 +27,7 @@ struct PipelineFactory {
 		ShaderProgram shader{};
 		vk::PolygonMode mode{vk::PolygonMode::eFill};
 		vk::PrimitiveTopology topology{vk::PrimitiveTopology::eTriangleList};
+		bool depth_test{};
 
 		bool operator==(Spec const&) const = default;
 	};

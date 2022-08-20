@@ -82,6 +82,7 @@ struct Window {
 	void set_icons(std::span<Icon const> icons);
 	void set_windowed(Extent extent);
 	void set_fullscreen(Monitor const& monitor, Extent resolution);
+	void lock_aspect_ratio(bool lock);
 
 	static GamepadMap gamepads();
 	static void update_gamepad_mappings(char const* text);

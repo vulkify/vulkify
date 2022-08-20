@@ -9,6 +9,6 @@ namespace vf {
 ///
 struct DrawModel {
 	glm::vec4 pos_orn;
-	glm::vec4 scl_tint;
+	glm::vec4 scl_z_tint;
 };
 } // namespace vf

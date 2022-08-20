@@ -15,22 +15,20 @@ struct LineViewer {
 /// \brief Writes codepoints and moves write-head
 ///
 struct Pen {
-	GfxFont* out_font{};
+	GfxFont& out_font;
 	Geometry* out_geometry{};
 	glm::vec2 head{};
-	Glyph::Height height{Glyph::height_v};
 	float max_height{};
 
-	Character character(Codepoint codepoint) const;
-	glm::vec2 write(Codepoint codepoint);
-	glm::vec2 write(std::span<Codepoint const> codepoints);
+	Character character(Codepoint codepoint, Glyph::Height height) const;
+	glm::vec2 write(Codepoint codepoint, Glyph::Height height, float scale);
+	glm::vec2 write(std::span<Codepoint const> codepoints, Glyph::Height height, float scale);
 };
 
 ///
 /// \brief Writes aligned text using a Ttf
 ///
 struct Scribe {
-	using Height = Glyph::Height;
 	using Pivot = glm::vec2;
 	using Block = LineViewer;
 	struct Leading {
@@ -42,7 +40,7 @@ struct Scribe {
 	static constexpr auto codepoint_range_v = std::pair(Codepoint{33}, Codepoint{255});
 
 	GfxFont& out_font;
-	Height height{Glyph::height_v};
+	CharSize size{};
 	glm::vec2 origin{};
 
 	Geometry geometry{};

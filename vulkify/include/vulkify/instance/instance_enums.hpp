@@ -1,5 +1,6 @@
 #pragma once
 #include <ktl/enum_flags/enum_flags.hpp>
+#include <vulkify/graphics/z_order.hpp>
 
 namespace vf {
 enum class WindowFlag { eBorderless, eResizable, eFloating, eAutoIconify, eMaximized };

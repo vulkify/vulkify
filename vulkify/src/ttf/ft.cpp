@@ -114,7 +114,7 @@ FtSlot FtFace::slot(std::uint32_t const codepoint) {
 	if (load_glyph(id)) {
 		auto const& slot = *face->glyph;
 		ret.metrics.advance = {slot.advance.x >> 6, slot.advance.y >> 6};
-		ret.metrics.topLeft = {slot.bitmap_left, slot.bitmap_top};
+		ret.metrics.top_left = {slot.bitmap_left, slot.bitmap_top};
 		ret.metrics.extent = {slot.bitmap.width, slot.bitmap.rows};
 		ret.pixmap = build_glyph_image();
 	}
@@ -184,44 +184,46 @@ Ptr<Texture const> GfxFont::texture(Height height) const {
 	return {};
 }
 
-Character Pen::character(Codepoint codepoint) const {
-	if (!out_font || !*out_font) { return {}; }
-	if (auto const ch = out_font->get(codepoint, height)) { return ch; }
-	return out_font->get({}, height);
+Character Pen::character(Codepoint codepoint, Glyph::Height height) const {
+	if (!out_font) { return {}; }
+	if (auto const ch = out_font.get(codepoint, height)) { return ch; }
+	return out_font.get({}, height);
 }
 
-glm::vec2 Pen::write(Codepoint const codepoint) {
-	if (!out_font || !*out_font) { return head; }
+glm::vec2 Pen::write(Codepoint const codepoint, Glyph::Height height, float scale) {
+	if (!out_font) { return head; }
 	if (auto space = get_space(codepoint); space > 0) {
-		head += space * character('i').glyph->metrics.advance;
+		head += scale * glm::vec2{space * character('i', height).glyph->metrics.advance};
 		return head;
 	}
-	if (auto const ch = character(codepoint)) {
-		auto const pen = head + glm::vec2(ch.glyph->metrics.topLeft);
-		auto const hs = glm::vec2(ch.glyph->metrics.extent) * 0.5f;
+	if (auto const ch = character(codepoint, height)) {
+		auto const pen = head + scale * glm::vec2(ch.glyph->metrics.top_left);
+		auto const hs = scale * glm::vec2(ch.glyph->metrics.extent) * 0.5f;
 		auto const origin = pen + glm::vec2(hs.x, -hs.y);
-		if (out_geometry) { out_geometry->add_quad({ch.glyph->metrics.extent, origin, ch.uv}); }
-		head += ch.glyph->metrics.advance;
-		max_height = std::max(max_height, static_cast<float>(ch.glyph->metrics.extent.y));
+		if (out_geometry) { out_geometry->add_quad({scale * glm::vec2{ch.glyph->metrics.extent}, origin, ch.uv}); }
+		head += scale * glm::vec2{ch.glyph->metrics.advance};
+		max_height = std::max(max_height, scale * static_cast<float>(ch.glyph->metrics.extent.y));
 	}
 	return head;
 }
 
-glm::vec2 Pen::write(std::span<Codepoint const> codepoints) {
-	if (!out_font || !*out_font) { return head; }
+glm::vec2 Pen::write(std::span<Codepoint const> codepoints, Glyph::Height height, float scale) {
+	if (!out_font) { return head; }
 	if (out_geometry) { out_geometry->reserve(codepoints.size() * 4, codepoints.size() * 6); }
-	for (auto const codepoint : codepoints) { write(codepoint); }
+	for (auto const codepoint : codepoints) { write(codepoint, height, scale); }
 	return head;
 }
 
 glm::vec2 Scribe::extent(std::string_view line) const {
-	auto pen = Pen{&out_font, {}, {}, height};
-	for (auto const ch : line) { pen.write(static_cast<Codepoint>(ch)); }
+	auto pen = Pen{out_font};
+	auto const height = size.glyph_height();
+	auto const scale = size.quad_scale();
+	for (auto const ch : line) { pen.write(static_cast<Codepoint>(ch), height, scale); }
 	return {pen.head.x, pen.max_height};
 }
 
 Scribe& Scribe::preload(std::string_view text) {
-	auto& font = out_font.get_or_make(height);
+	auto& font = out_font.get_or_make(size.glyph_height());
 	auto bulk = Atlas::Bulk(font.atlas);
 	for (auto const ch : text) {
 		auto const codepoint = static_cast<Codepoint>(ch);
@@ -241,8 +243,10 @@ Scribe& Scribe::write(std::string_view const text, Pivot pivot) {
 		start -= ext * pivot;
 	}
 	geometry.reserve(text.size() * 4, text.size() * 6);
-	auto pen = Pen{&out_font, &geometry, start, height};
-	for (auto const ch : text) { pen.write(static_cast<Codepoint>(ch)); }
+	auto const height = size.glyph_height();
+	auto const scale = size.quad_scale();
+	auto pen = Pen{out_font, &geometry, start};
+	for (auto const ch : text) { pen.write(static_cast<Codepoint>(ch), height, scale); }
 	return *this;
 }
 
@@ -264,7 +268,7 @@ Scribe& Scribe::write(Block block, Pivot pivot) {
 }
 
 float Scribe::line_height() const {
-	auto const ch = out_font.get(leading.codepoint, height);
+	auto const ch = out_font.get(leading.codepoint, size.glyph_height());
 	if (!ch) { return {}; }
 	return static_cast<float>(ch.glyph->metrics.extent.y) * leading.coefficient;
 }

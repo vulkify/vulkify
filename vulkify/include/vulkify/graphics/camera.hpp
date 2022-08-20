@@ -7,16 +7,43 @@ namespace vf {
 using Extent = glm::uvec2;
 
 ///
+/// \brief Whether to crop to match framebuffer aspect ratio
+///
+enum class Crop {
+	///
+	/// \brief Match larger dimension, scale smaller dimension to match aspect ratio
+	///
+	eFillMax,
+	///
+	/// \brief Match smaller dimension, scale larger dimension to match aspect ratio
+	///
+	eFillMin,
+	///
+	/// \brief Use exact extent (stretch)
+	///
+	eNone
+};
+
+template <Crop C>
+struct LockedResize {
+	glm::vec2 original{};
+
+	constexpr glm::vec2 operator()(glm::vec2 const target) const;
+};
+
+///
 /// \brief View space dynamically scaled to framebuffer or with a fixed extent
 ///
-/// If set as glm::vec2, will be interpreted as a relative scale,
-/// otherwise as absolute extent
-///
 struct View {
-	ktl::either<glm::vec2, Extent> value{glm::vec2(1.0f)};
+	struct Size {
+		Extent extent{};
+		Crop crop{};
+	};
+
+	ktl::either<glm::vec2, Size> value{glm::vec2(1.0f)};
 
 	void set_scale(glm::vec2 scale) { value = scale; }
-	void set_extent(Extent extent) { value = extent; }
+	void set_extent(Extent extent, Crop crop = Crop::eFillMax) { value = Size{extent, crop}; }
 
 	glm::vec2 get_scale(Extent framebuffer, glm::vec2 fallback = glm::vec2(1.0f)) const;
 };
@@ -39,18 +66,21 @@ struct Camera {
 	Rect viewport{{glm::vec2(1.0f, 1.0f), glm::vec2(0.0f, 0.0f)}};
 };
 
-// impl
-
-inline glm::vec2 View::get_scale(Extent framebuffer, glm::vec2 fallback) const {
-	return value.visit(ktl::koverloaded{
-		[fallback](glm::vec2 scale) {
-			if (scale.x == 0.0f || scale.y == 0.0f) { return fallback; }
-			return scale;
-		},
-		[framebuffer, fallback](Extent e) {
-			if (e.x == 0 || e.y == 0) { return fallback; }
-			return glm::vec2(framebuffer) / glm::vec2(e);
-		},
-	});
+template <Crop C>
+constexpr glm::vec2 LockedResize<C>::operator()(glm::vec2 const target) const {
+	if constexpr (C == Crop::eNone) {
+		return target;
+	} else {
+		if (FloatEq{}(original.x, {}) || FloatEq{}(original.y, {}) || FloatEq{}(target.x, {}) || FloatEq{}(target.y, {})) { return target; }
+		auto const original_ar = original.x / original.y;
+		auto const target_ar = target.x / target.y;
+		auto match_x = [&] { return glm::vec2{target.x, target.y * target_ar / original_ar}; };
+		auto match_y = [&] { return glm::vec2{target.x * original_ar / target_ar, target.y}; };
+		if constexpr (C == Crop::eFillMin) {
+			return target_ar < original_ar ? match_x() : match_y();
+		} else {
+			return target_ar < original_ar ? match_y() : match_x();
+		}
+	}
 }
 } // namespace vf

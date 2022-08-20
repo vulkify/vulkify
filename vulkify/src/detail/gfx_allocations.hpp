@@ -24,7 +24,7 @@ struct ImageCache {
 
 	explicit operator bool() const { return device && device->device && image; }
 
-	vk::ImageCreateInfo& set_depth();
+	vk::ImageCreateInfo& set_depth(bool stencil);
 	vk::ImageCreateInfo& set_colour();
 	vk::ImageCreateInfo& set_texture(bool const transfer_src);
 

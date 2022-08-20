@@ -1,8 +1,9 @@
-#include <vulkify/vulkify.hpp>
-#include <iostream>
-
 #include <ktl/enumerate.hpp>
+#include <ktl/kformat.hpp>
+#include <vulkify/vulkify.hpp>
 #include <array>
+#include <future>
+#include <iostream>
 
 namespace {
 using InstanceStorage = std::array<vf::DrawInstance, 3>;
@@ -37,6 +38,23 @@ struct Helper {
 			auto const t = static_cast<float>(i) / static_cast<float>(vertices.size());
 			vertex.rgba = vf::Rgba::lerp(from, to, t).normalize();
 		}
+	}
+
+	std::future<vf::Texture> load_texture_async(char const* path) {
+		return std::async(std::launch::async, [path, this] {
+			auto image = vf::Image{};
+			auto load_result = image.load(path);
+			if (load_result) { std::cout << ktl::kformat("{} [{}x{}] loaded sucessfully\n", path, load_result->x, load_result->y); }
+			return vf::Texture(context.device(), image);
+		});
+	}
+
+	std::future<vf::Ttf> load_ttf_async(char const* path) {
+		return std::async(std::launch::async, [this, path] {
+			auto ret = vf::Ttf(context.device());
+			if (ret.load(path)) { std::cout << ktl::kformat("[{}] loaded successfully\n", path); }
+			return ret;
+		});
 	}
 
 	vf::Mesh make_triangle() {
@@ -92,14 +110,9 @@ struct Helper {
 		return {std::move(circle), std::move(iris)};
 	}
 
-	vf::QuadShape make_textured_quad(vf::Texture& out_texture, char const* image_path) {
-		auto image = vf::Image{};
-		auto load_result = image.load(image_path);
-		if (load_result) { std::cout << image_path << " [" << load_result->x << 'x' << load_result->y << "] loaded sucessfully\n"; }
-
+	vf::QuadShape make_textured_quad(vf::Texture const& out_texture) {
 		auto ret = vf::QuadShape(context.device(), {{200.0f, 200.0f}});
-		out_texture = vf::Texture(context.device(), image);
-		ret.set_texture(&out_texture, false); // should be magenta if image is bad
+		ret.set_texture(out_texture.handle()); // should be magenta if image is bad
 		return ret;
 	}
 
@@ -124,20 +137,22 @@ struct Helper {
 void test(vf::Context context) {
 	std::cout << "using GPU: " << context.gpu().name << '\n';
 
-	auto ttf = vf::Ttf{context.device()};
-	if (ttf.load("test_font.ttf")) { std::cout << "[test_font.ttf] loaded successfully\n"; }
-
 	auto helper = Helper{context};
+	auto texture_future = helper.load_texture_async("test_image.png");
+	auto ttf_future = helper.load_ttf_async("test_font.ttf");
 
 	auto triangle = helper.make_triangle();
 	auto rgb_bitmap = helper.make_rgb_bitmap();
 	auto rgb_texture = vf::Texture(context.device(), rgb_bitmap.image());
-	auto image_texture = vf::Texture{};
 	auto rgb_quad = helper.make_rgb_quad(rgb_texture);
 	auto hexagon = helper.make_hexagon(rgb_texture);
 	auto [circle, iris] = helper.make_circles();
-	auto textured_quad = helper.make_textured_quad(image_texture, "test_image.png");
+	assert(texture_future.valid());
+	auto image_texture = texture_future.get();
+	auto textured_quad = helper.make_textured_quad(image_texture);
 	auto stars = helper.make_stars();
+	assert(ttf_future.valid());
+	auto ttf = ttf_future.get();
 	auto text = helper.make_text(ttf);
 
 	auto text_y = text.transform().position.y;
@@ -171,11 +186,6 @@ void test(vf::Context context) {
 			}
 		}
 
-		if (auto pad = vf::Gamepad{0}) {
-			auto const dx = pad(vf::GamepadAxis::eLeftX) * frame.dt().count() * 100.0f;
-			frame.camera().position.x += dx;
-		}
-
 		for (auto [star, index] : ktl::enumerate(stars.storage)) {
 			auto const ds = std::cos(elapsed.count() + starOffsets[index].dscale) * 0.5f;
 			star.transform.scale = glm::vec2(1.0f) + ds;
@@ -184,8 +194,8 @@ void test(vf::Context context) {
 		}
 
 		circle.storage.transform.orientation.rotate(vf::Radian{frame.dt().count()});
-		auto const textDy = std::abs(std::sin(elapsed.count()) * 3.0f);
-		text.transform().position.y = text_y - (textDy * 10.0f);
+		auto const text_dy = std::abs(std::sin(elapsed.count()) * 3.0f);
+		text.transform().position.y = text_y - (text_dy * 10.0f);
 
 		for (auto primitive : primitives) { frame.draw(*primitive); }
 	}
@@ -195,7 +205,10 @@ void test(vf::Context context) {
 int main(int argc, char** argv) {
 	bool const headless = argc > 1 && argv[1] == std::string_view("--headless");
 	std::cout << "vulkify " << vf::version_v << '\n';
-	auto context = vf::Builder{}.set_flag(vf::WindowFlag::eResizable).set_flag(vf::InstanceFlag::eHeadless, headless).build();
+	static constexpr auto extent = vf::Extent{1280, 720};
+	auto context = vf::Builder{}.set_extent(extent).set_flag(vf::WindowFlag::eResizable).set_flag(vf::InstanceFlag::eHeadless, headless).build();
 	if (!context) { return EXIT_FAILURE; }
+	context->camera().view.set_extent(extent);
+	context->lock_aspect_ratio(true);
 	test(std::move(context.value()));
 }

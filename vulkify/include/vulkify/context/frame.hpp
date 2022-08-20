@@ -20,7 +20,8 @@ class Frame {
 	void draw(Primitive const& primitive, DescriptorSet const& descriptorSet) const { draw(primitive, {.descriptor_set = &descriptorSet}); }
 
 	Surface const& surface() const { return m_surface; }
-	Camera& camera() const;
+	Camera camera() const;
+	void set_camera(Camera const& cam) const;
 
   private:
 	Frame(Surface&& surface, EventQueue poll, Time dt) noexcept : m_surface(std::move(surface)), m_poll(poll), m_dt(dt) {}

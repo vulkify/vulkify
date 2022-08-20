@@ -7,6 +7,7 @@
 #include <vulkify/core/rect.hpp>
 #include <vulkify/core/rgba.hpp>
 #include <vulkify/core/unique.hpp>
+#include <vulkify/graphics/z_order.hpp>
 
 struct FT_LibraryRec_;
 using FT_Library = FT_LibraryRec_*;
@@ -105,6 +106,7 @@ struct GfxDevice {
 	std::size_t buffering{};
 	CommandFactory* command_factory{};
 	DeferQueue* defer{};
+	ZOrder default_z_order{};
 
 	vk::PhysicalDeviceLimits const* device_limits{};
 	vk::SampleCountFlagBits colour_samples{};

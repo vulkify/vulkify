@@ -37,6 +37,7 @@ class Instance {
 	virtual AntiAliasing anti_aliasing() const = 0;
 	virtual VSync vsync() const = 0;
 	virtual std::vector<Gpu> gpu_list() const = 0;
+	virtual ZOrder default_z_order() const = 0;
 
 	virtual void show() = 0;
 	virtual void hide() = 0;
@@ -52,6 +53,7 @@ class Instance {
 	virtual void set_fullscreen(Monitor const& monitor, glm::uvec2 resolution = {}) = 0;
 	virtual void update_window_flags(WindowFlags set, WindowFlags unset = {}) = 0;
 	virtual Camera& camera() = 0;
+	virtual void lock_aspect_ratio(bool lock) = 0;
 
 	virtual EventQueue poll() = 0;
 	virtual Surface begin_pass(Rgba clear) = 0;

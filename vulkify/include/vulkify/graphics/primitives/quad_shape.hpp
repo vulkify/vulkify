@@ -20,6 +20,7 @@ class QuadShape : public Shape {
 
 	QuadShape& set_state(State state);
 	QuadShape& set_texture(Ptr<Texture const> texture, bool resize_to_match = false);
+	QuadShape& set_texture(Handle<Texture> texture);
 	QuadShape& set_silhouette(float extrude, Rgba tint);
 
   protected:

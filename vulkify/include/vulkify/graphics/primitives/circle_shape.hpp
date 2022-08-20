@@ -19,6 +19,7 @@ class CircleShape : public Shape {
 
 	CircleShape& set_state(State state);
 	CircleShape& set_texture(Ptr<Texture const> texture, bool resize_to_match = false);
+	CircleShape& set_texture(Handle<Texture> texture);
 	CircleShape& set_silhouette(float extrude, Rgba tint);
 
   protected:

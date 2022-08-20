@@ -28,6 +28,7 @@ class VulkifyInstance : public Instance {
 	AntiAliasing anti_aliasing() const override;
 	VSync vsync() const override;
 	std::vector<Gpu> gpu_list() const override;
+	ZOrder default_z_order() const override;
 
 	void show() override;
 	void hide() override;
@@ -43,6 +44,7 @@ class VulkifyInstance : public Instance {
 	void set_fullscreen(Monitor const& monitor, glm::uvec2 resolution) override;
 	void update_window_flags(WindowFlags set, WindowFlags unset) override;
 	Camera& camera() override;
+	void lock_aspect_ratio(bool lock) override;
 
 	EventQueue poll() override;
 	Surface begin_pass(Rgba clear) override;

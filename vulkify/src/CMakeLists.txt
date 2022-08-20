@@ -6,6 +6,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 
   graphics/atlas.cpp
   graphics/bitmap.cpp
+  graphics/camera.cpp
   graphics/geometry_buffer.cpp
   graphics/geometry.cpp
   graphics/image.cpp
