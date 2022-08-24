@@ -26,6 +26,7 @@ class Sprite : public Prop {
 	Sprite& set_size(glm::vec2 size);
 	Sprite& set_sheet(Ptr<Sheet const> sheet, UvIndex index = {});
 
+	Rect bounds() const { return {{size() * transform().scale, transform().position}}; }
 	glm::vec2 size() const { return m_state.size; }
 	UvRect uv() const { return m_state.uv; }
 
