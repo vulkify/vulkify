@@ -2,6 +2,7 @@
 #include <ktl/debug_trap.hpp>
 
 #include <vulkify/instance/headless_instance.hpp>
+#include <vulkify/instance/keyboard.hpp>
 #include <vulkify/instance/vf_instance.hpp>
 #include <memory>
 #include <vector>
@@ -461,6 +462,7 @@ EventQueue VulkifyInstance::poll() {
 	m_impl->window->scancodes.clear();
 	m_impl->window->file_drops.clear();
 	g_gamepads();
+	g_keyboard.next();
 	m_impl->window->poll();
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->file_drops};
 }
@@ -533,6 +535,16 @@ float Gamepad::operator()(Axis axis) const {
 }
 
 std::size_t GamepadMap::count() const { return static_cast<std::size_t>(std::count(std::begin(map), std::end(map), true)); }
+
+bool keyboard::pressed(Key key) { return g_keyboard.state.key_states[static_cast<int>(key)] == KeyState::ePressed; }
+bool keyboard::released(Key key) { return g_keyboard.state.key_states[static_cast<int>(key)] == KeyState::eReleased; }
+
+bool keyboard::held(Key key) {
+	auto const& state = g_keyboard.state.key_states[static_cast<int>(key)];
+	return state == KeyState::eHeld || state == KeyState::eRepeated;
+}
+
+bool keyboard::repeated(Key key) { return g_keyboard.state.key_states[static_cast<int>(key)] == KeyState::eRepeated; }
 
 GfxDevice const& VulkifyInstance::gfx_device() const { return m_impl->device.device; }
 

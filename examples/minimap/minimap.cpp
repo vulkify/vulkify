@@ -17,12 +17,12 @@ struct Controller {
 	vf::Transform transform{};
 	float speed{1000.0f};
 
-	void tick(Base::Input const& input, vf::Time dt) {
+	void tick(vf::Time dt) {
 		auto dxy = glm::vec2{};
-		if (input.held(vf::Key::eW) || input.held(vf::Key::eUp)) { dxy.y += 1.0f; }
-		if (input.held(vf::Key::eD) || input.held(vf::Key::eRight)) { dxy.x += 1.0f; }
-		if (input.held(vf::Key::eS) || input.held(vf::Key::eDown)) { dxy.y -= 1.0f; }
-		if (input.held(vf::Key::eA) || input.held(vf::Key::eLeft)) { dxy.x -= 1.0f; }
+		if (vf::keyboard::held(vf::Key::eW) || vf::keyboard::held(vf::Key::eUp)) { dxy.y += 1.0f; }
+		if (vf::keyboard::held(vf::Key::eD) || vf::keyboard::held(vf::Key::eRight)) { dxy.x += 1.0f; }
+		if (vf::keyboard::held(vf::Key::eS) || vf::keyboard::held(vf::Key::eDown)) { dxy.y -= 1.0f; }
+		if (vf::keyboard::held(vf::Key::eA) || vf::keyboard::held(vf::Key::eLeft)) { dxy.x -= 1.0f; }
 		if (dxy.x != 0.0f || dxy.y != 0.0f) {
 			auto const ndxy = vf::nvec2{dxy};
 			transform.position += speed * dt.count() * ndxy.value();
@@ -107,7 +107,7 @@ class Minimap : public Base {
 	}
 
 	void tick(vf::Time dt) override {
-		m_controller.tick(input, dt);
+		m_controller.tick(dt);
 		auto const player_limit = 0.5f * (m_bg_size - m_player_size);
 		m_controller.transform.position = clamp(m_controller.transform.position, -player_limit, player_limit);
 		m_player->instance().transform = m_controller.transform;

@@ -44,8 +44,9 @@ void attach_callbacks(GLFWwindow* w) {
 	});
 	glfwSetKeyCallback(w, [](GLFWwindow* w, int key, int, int action, int mods) {
 		if (g_window.match(w) && g_window.events->has_space()) {
-			auto const keyEvent = KeyEvent{static_cast<Key>(key), static_cast<Action>(action), static_cast<Mods::type>(mods)};
-			g_window.events->push_back({keyEvent, EventType::eKey});
+			auto const key_event = KeyEvent{static_cast<Key>(key), static_cast<Action>(action), static_cast<Mods::type>(mods)};
+			g_window.events->push_back({key_event, EventType::eKey});
+			g_keyboard(key_event);
 		}
 	});
 	glfwSetMouseButtonCallback(w, [](GLFWwindow* w, int button, int action, int mods) {
@@ -144,6 +145,28 @@ void GamepadStorage::operator()() {
 		} else {
 			states[i] = {};
 		}
+	}
+}
+
+void KeyboardStorage::next() {
+	auto previous = state;
+	state = {};
+	for (std::size_t i = 0; i < std::size(previous.key_states); ++i) {
+		switch (previous.key_states[i]) {
+		case KeyState::ePressed:
+		case KeyState::eRepeated:
+		case KeyState::eHeld: state.key_states[i] = KeyState::eHeld; break;
+		default: break;
+		}
+	}
+}
+
+void KeyboardStorage::operator()(KeyEvent const& key) {
+	auto& st = state.key_states[static_cast<int>(key.key)];
+	switch (key.action) {
+	case Action::ePress: st = KeyState::ePressed; break;
+	case Action::eRepeat: st = KeyState::eRepeated; break;
+	case Action::eRelease: st = KeyState::eReleased; break;
 	}
 }
 

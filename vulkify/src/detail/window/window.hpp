@@ -22,6 +22,12 @@ struct GamepadState {
 	float axes[6];
 };
 
+enum class KeyState : std::uint8_t { eNone, ePressed, eHeld, eRepeated, eReleased };
+
+struct KeyboardState {
+	KeyState key_states[512]{};
+};
+
 using EventsStorage = ktl::fixed_vector<Event, 16>;
 using ScancodeStorage = ktl::fixed_vector<std::uint32_t, 16>;
 using FileDropStorage = std::vector<std::string>;
@@ -39,6 +45,13 @@ struct GamepadStorage {
 	GamepadState states[Gamepad::max_id_v]{};
 
 	void operator()();
+};
+
+struct KeyboardStorage {
+	KeyboardState state{};
+
+	void next();
+	void operator()(KeyEvent const& key);
 };
 
 struct Window {
@@ -126,4 +139,5 @@ struct WindowView {
 
 inline WindowView g_window{};
 inline GamepadStorage g_gamepads{};
+inline KeyboardStorage g_keyboard{};
 } // namespace vf

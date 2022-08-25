@@ -49,47 +49,6 @@ std::string Base::Env::string(std::string_view uri) const {
 	return ret;
 }
 
-void Base::Input::onKey(vf::KeyEvent const& key) {
-	switch (key.action) {
-	case vf::Action::ePress: keyStates[key.key] = {KeyAction::ePressed, key.mods}; break;
-	case vf::Action::eRelease: keyStates[key.key] = {KeyAction::eReleased, key.mods}; break;
-	default: break;
-	}
-}
-
-bool Base::Input::update(vf::EventQueue queue) {
-	for (auto [_, state] : keyStates) {
-		switch (state.action) {
-		case KeyAction::ePressed: state = {KeyAction::eHeld}; break;
-		case KeyAction::eReleased: state = {}; break;
-		default: break;
-		}
-	}
-
-	for (auto const& event : queue.events) {
-		switch (event.type) {
-		case vf::EventType::eClose: return false;
-		case vf::EventType::eKey: onKey(event.get<vf::EventType::eKey>()); break;
-		default: break;
-		}
-	}
-
-	auto const& w = keyStates[vf::Key::eW];
-	if (w.action == KeyAction::eReleased && w.mods == vf::Mod::eCtrl) { return false; }
-
-	return true;
-}
-
-KeyAction Base::Input::key_action(vf::Key key) const {
-	if (auto it = keyStates.find(key); it != keyStates.end()) { return it->second.action; }
-	return KeyAction::eNone;
-}
-
-vf::Mods Base::Input::mods(vf::Key key) const {
-	if (auto it = keyStates.find(key); it != keyStates.end()) { return it->second.mods; }
-	return {};
-}
-
 std::string Base::Logger::logString(LogLevel level, std::string_view msg) {
 	static constexpr char levels_v[] = {'E', 'W', 'I'};
 	auto const levelChar = levels_v[static_cast<int>(level)];
@@ -127,7 +86,6 @@ int Base::run() {
 		m_context->show();
 		while (!m_context->closing()) {
 			auto frame = m_context->frame(clear);
-			if (!input.update(frame.poll())) { break; }
 			tick(frame.dt());
 			render(frame);
 		}

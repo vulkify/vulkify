@@ -3,6 +3,7 @@
 #include <ktl/kformat.hpp>
 #include <vulkify/context/builder.hpp>
 #include <vulkify/context/context.hpp>
+#include <vulkify/instance/keyboard.hpp>
 #include <optional>
 
 namespace example {
@@ -34,19 +35,6 @@ class Base {
 		std::string data_path(std::string_view uri) const;
 		std::vector<std::byte> bytes(std::string_view uri) const;
 		std::string string(std::string_view uri) const;
-	};
-
-	struct Input {
-		ktl::hash_table<vf::Key, KeyState> keyStates{};
-
-		void onKey(vf::KeyEvent const& key);
-		bool update(vf::EventQueue queue);
-
-		KeyAction key_action(vf::Key key) const;
-		vf::Mods mods(vf::Key key) const;
-		bool pressed(vf::Key key) const { return key_action(key) == KeyAction::ePressed; }
-		bool held(vf::Key key) const { return key_action(key) == KeyAction::eHeld; }
-		bool released(vf::Key key) const { return key_action(key) == KeyAction::eReleased; }
 	};
 
 	struct Scene {
@@ -106,7 +94,6 @@ class Base {
 
   protected:
 	Env env{};
-	Input input{};
 	Scene scene{};
 	[[no_unique_address]] Logger log{};
 	vf::Rgba clear{vf::black_v};
