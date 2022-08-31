@@ -37,23 +37,30 @@ void attach_callbacks(GLFWwindow* w) {
 		if (g_window.match(w) && g_window.events->has_space()) { g_window.events->push_back({glm::ivec2(x, y), EventType::eFramebufferResize}); }
 	});
 	glfwSetCursorPosCallback(w, [](GLFWwindow* w, double x, double y) {
-		if (g_window.match(w) && g_window.events->has_space()) { g_window.events->push_back({glm::vec2(x, y), EventType::eCursorPos}); }
+		if (g_window.match(w) && g_window.events->has_space()) {
+			g_input.position = glm::vec2{x, y};
+			g_window.events->push_back({g_input.position, EventType::eCursorPos});
+		}
 	});
 	glfwSetScrollCallback(w, [](GLFWwindow* w, double x, double y) {
-		if (g_window.match(w) && g_window.events->has_space()) { g_window.events->push_back({glm::vec2(x, y), EventType::eScroll}); }
+		if (g_window.match(w) && g_window.events->has_space()) {
+			g_input.scroll = glm::vec2(x, y);
+			g_window.events->push_back({g_input.scroll, EventType::eScroll});
+		}
 	});
 	glfwSetKeyCallback(w, [](GLFWwindow* w, int key, int, int action, int mods) {
 		if (g_window.match(w) && g_window.events->has_space()) {
 			auto const key_event = KeyEvent{static_cast<Key>(key), static_cast<Action>(action), static_cast<Mods::type>(mods)};
 			g_window.events->push_back({key_event, EventType::eKey});
-			g_keyboard(key_event);
+			g_input(key_event);
 		}
 	});
 	glfwSetMouseButtonCallback(w, [](GLFWwindow* w, int button, int action, int mods) {
 		if (g_window.match(w) && g_window.events->has_space()) {
 			auto const key = static_cast<Key>(button + static_cast<int>(Key::eMouseButtonBegin));
-			auto const keyEvent = KeyEvent{key, static_cast<Action>(action), static_cast<Mods::type>(mods)};
-			g_window.events->push_back({keyEvent, EventType::eMouseButton});
+			auto const key_event = KeyEvent{key, static_cast<Action>(action), static_cast<Mods::type>(mods)};
+			g_window.events->push_back({key_event, EventType::eMouseButton});
+			g_input(key_event);
 		}
 	});
 
@@ -148,21 +155,22 @@ void GamepadStorage::operator()() {
 	}
 }
 
-void KeyboardStorage::next() {
-	auto previous = state;
-	state = {};
+void InputStorage::next() {
+	auto previous = key_states;
+	key_states = {};
+	scroll = {};
 	for (std::size_t i = 0; i < std::size(previous.key_states); ++i) {
 		switch (previous.key_states[i]) {
 		case KeyState::ePressed:
 		case KeyState::eRepeated:
-		case KeyState::eHeld: state.key_states[i] = KeyState::eHeld; break;
+		case KeyState::eHeld: key_states.key_states[i] = KeyState::eHeld; break;
 		default: break;
 		}
 	}
 }
 
-void KeyboardStorage::operator()(KeyEvent const& key) {
-	auto& st = state.key_states[static_cast<int>(key.key)];
+void InputStorage::operator()(KeyEvent const& key) {
+	auto& st = key_states.key_states[static_cast<int>(key.key)];
 	switch (key.action) {
 	case Action::ePress: st = KeyState::ePressed; break;
 	case Action::eRepeat: st = KeyState::eRepeated; break;
@@ -328,7 +336,7 @@ Cursor Window::make_cursor(Icon icon) {
 	auto const img = GLFWimage{extent.x, extent.y, pixels};
 	auto const glfw_cursor = glfwCreateCursor(&img, icon.hotspot.x, icon.hotspot.y);
 	if (glfw_cursor) {
-		auto const ret = Cursor{++instance->cursors.next};
+		auto const ret = Cursor{++instance->cursors.next_id};
 		instance->cursors.cursors.insert_or_assign(ret, glfw_cursor);
 		return ret;
 	}

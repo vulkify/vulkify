@@ -3,6 +3,7 @@
 
 #include <vulkify/instance/headless_instance.hpp>
 #include <vulkify/instance/keyboard.hpp>
+#include <vulkify/instance/mouse.hpp>
 #include <vulkify/instance/vf_instance.hpp>
 #include <memory>
 #include <vector>
@@ -391,6 +392,7 @@ VulkifyInstance::Result VulkifyInstance::make(CreateInfo const& create_info) {
 
 VulkifyInstance::VulkifyInstance(ktl::kunique_ptr<Impl> impl) noexcept : m_impl(std::move(impl)) {
 	g_window = {m_impl->window->win, &m_impl->window->events, &m_impl->window->scancodes, &m_impl->window->file_drops};
+	g_input.position = m_impl->window->cursor_position();
 }
 
 VulkifyInstance::~VulkifyInstance() {
@@ -462,7 +464,7 @@ EventQueue VulkifyInstance::poll() {
 	m_impl->window->scancodes.clear();
 	m_impl->window->file_drops.clear();
 	g_gamepads();
-	g_keyboard.next();
+	g_input.next();
 	m_impl->window->poll();
 	return {m_impl->window->events, m_impl->window->scancodes, m_impl->window->file_drops};
 }
@@ -536,15 +538,30 @@ float Gamepad::operator()(Axis axis) const {
 
 std::size_t GamepadMap::count() const { return static_cast<std::size_t>(std::count(std::begin(map), std::end(map), true)); }
 
-bool keyboard::pressed(Key key) { return g_keyboard.state.key_states[static_cast<int>(key)] == KeyState::ePressed; }
-bool keyboard::released(Key key) { return g_keyboard.state.key_states[static_cast<int>(key)] == KeyState::eReleased; }
+namespace {
+bool key_pressed(Key key) { return g_input.key_states.key_states[static_cast<int>(key)] == KeyState::ePressed; }
+bool key_released(Key key) { return g_input.key_states.key_states[static_cast<int>(key)] == KeyState::eReleased; }
 
-bool keyboard::held(Key key) {
-	auto const& state = g_keyboard.state.key_states[static_cast<int>(key)];
+bool key_held(Key key) {
+	auto const& state = g_input.key_states.key_states[static_cast<int>(key)];
 	return state == KeyState::eHeld || state == KeyState::eRepeated;
 }
 
-bool keyboard::repeated(Key key) { return g_keyboard.state.key_states[static_cast<int>(key)] == KeyState::eRepeated; }
+bool key_repeated(Key key) { return g_input.key_states.key_states[static_cast<int>(key)] == KeyState::eRepeated; }
+} // namespace
+
+bool keyboard::pressed(Key key) { return key_pressed(key); }
+bool keyboard::released(Key key) { return key_released(key); }
+bool keyboard::held(Key key) { return key_held(key); }
+bool keyboard::repeated(Key key) { return key_repeated(key); }
+
+bool mouse::pressed(Key key) { return key_pressed(key); }
+bool mouse::released(Key key) { return key_released(key); }
+bool mouse::held(Key key) { return key_held(key); }
+bool mouse::repeated(Key key) { return key_repeated(key); }
+
+glm::vec2 mouse::position() { return g_input.position; }
+glm::vec2 mouse::scroll() { return g_input.scroll; }
 
 GfxDevice const& VulkifyInstance::gfx_device() const { return m_impl->device.device; }
 

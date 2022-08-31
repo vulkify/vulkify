@@ -24,7 +24,7 @@ struct GamepadState {
 
 enum class KeyState : std::uint8_t { eNone, ePressed, eHeld, eRepeated, eReleased };
 
-struct KeyboardState {
+struct KeyStateMap {
 	KeyState key_states[512]{};
 };
 
@@ -38,7 +38,7 @@ struct CursorStorage {
 	};
 
 	std::unordered_map<Cursor, void*, Hasher> cursors{};
-	std::uint64_t next{};
+	std::uint64_t next_id{};
 };
 
 struct GamepadStorage {
@@ -47,8 +47,10 @@ struct GamepadStorage {
 	void operator()();
 };
 
-struct KeyboardStorage {
-	KeyboardState state{};
+struct InputStorage {
+	KeyStateMap key_states{};
+	glm::vec2 position{};
+	glm::vec2 scroll{};
 
 	void next();
 	void operator()(KeyEvent const& key);
@@ -139,5 +141,5 @@ struct WindowView {
 
 inline WindowView g_window{};
 inline GamepadStorage g_gamepads{};
-inline KeyboardStorage g_keyboard{};
+inline InputStorage g_input{};
 } // namespace vf
