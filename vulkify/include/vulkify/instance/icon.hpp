@@ -1,11 +1,11 @@
 #pragma once
-#include <vulkify/graphics/bitmap.hpp>
+#include <vulkify/graphics/image.hpp>
 
 namespace vf {
 struct Icon {
 	using TopLeft = glm::ivec2;
 
-	Bitmap::View bitmap{};
+	Image::View bitmap{};
 	TopLeft hotspot{};
 };
 } // namespace vf

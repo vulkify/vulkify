@@ -140,10 +140,13 @@ enum class Key : std::uint32_t {
 	eMouseButton7 = 406,
 	eMouseButton8 = 407,
 	eMouseButtonEnd,
+	eCOUNT_,
+
 	eMouseButtonLast = eMouseButton8,
 	eMouseButtonLeft = eMouseButton1,
 	eMouseButtonRight = eMouseButton2,
 	eMouseButtonMiddle = eMouseButton3,
+
 };
 
 ///

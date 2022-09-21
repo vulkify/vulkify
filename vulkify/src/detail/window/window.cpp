@@ -50,7 +50,8 @@ void attach_callbacks(GLFWwindow* w) {
 	});
 	glfwSetKeyCallback(w, [](GLFWwindow* w, int key, int, int action, int mods) {
 		if (g_window.match(w) && g_window.events->has_space()) {
-			auto const key_event = KeyEvent{static_cast<Key>(key), static_cast<Action>(action), static_cast<Mods::type>(mods)};
+			auto const k = key < 0 || key > static_cast<int>(vf::Key::eCOUNT_) ? vf::Key::eUnknown : static_cast<vf::Key>(key);
+			auto const key_event = KeyEvent{k, static_cast<Action>(action), static_cast<Mods::type>(mods)};
 			g_window.events->push_back({key_event, EventType::eKey});
 			g_input(key_event);
 		}
